@@ -36,13 +36,23 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        if(args.length != 3) {
+        if(args.length != 2 || args.length != 3) {
             throw new Exception("wrong command");
         }
         
-        String clusterConfiguration = args[0];
-        String inputPath = args[1];
-        String outputPath = args[2];
+        String clusterConfiguration = null;
+        String inputPath = null;
+        String outputPath = null;
+        
+        if(args.length == 2) {
+            clusterConfiguration = "Default";
+            inputPath = args[0];
+            outputPath = args[1];
+        } else if(args.length == 3) {
+            clusterConfiguration = args[0];
+            inputPath = args[1];
+            outputPath = args[2];
+        }
         
         Configuration conf = this.getConf();
         MRClusterConfiguration clusterConfig = MRClusterConfiguration.findConfiguration(clusterConfiguration);
