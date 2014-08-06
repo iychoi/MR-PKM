@@ -79,8 +79,56 @@ public class FileSystemHelper {
     }
     
     public static Path[] getAllInputPaths(Configuration conf, String[] inputPaths, PathFilter filter) throws IOException {
-        Path[] inputFiles = makePathFromString(inputPaths);
-        return getAllInputPaths(conf, inputFiles, filter);
+        List<Path> inputFiles = new ArrayList<Path>();
+        
+        for(String path : inputPaths) {
+            int wildcardIdx = path.indexOf("*");
+            if(wildcardIdx >= 0) {
+                int lastIdx = path.lastIndexOf("/");
+                if (lastIdx < 0) {
+                    throw new IOException("cannot get parent path from " + path);
+                }
+
+                String parentPath = path.substring(0, lastIdx);
+                String wildcard = path.substring(lastIdx + 1);
+
+                Path inputParentPath = new Path(parentPath);
+                FileSystem fs = inputParentPath.getFileSystem(conf);
+                FileStatus status = fs.getFileStatus(inputParentPath);
+                if (status.isDir()) {
+                    WildcardPathFilter wildcardFilter = new WildcardPathFilter(wildcard);
+                    FileStatus[] entries = fs.listStatus(inputParentPath);
+                    for (FileStatus entry : entries) {
+                        if (wildcardFilter.accept(entry.getPath())) {
+                            if (filter.accept(entry.getPath())) {
+                                inputFiles.add(entry.getPath());
+                            }
+                        }
+                    }
+                } else {
+                    throw new IOException("parent path is not a directory : " + path);
+                }
+            } else {
+                Path inputFile = new Path(path);
+                FileSystem fs = inputFile.getFileSystem(conf);
+                FileStatus status = fs.getFileStatus(inputFile);
+                if (status.isDir()) {
+                    FileStatus[] entries = fs.listStatus(inputFile);
+                    for (FileStatus entry : entries) {
+                        if (filter.accept(entry.getPath())) {
+                            inputFiles.add(entry.getPath());
+                        }
+                    }
+                } else {
+                    if (filter.accept(inputFile)) {
+                        inputFiles.add(inputFile);
+                    }
+                }
+            }
+        }
+        
+        Path[] files = inputFiles.toArray(new Path[0]);
+        return files;
     }
     
     public static Path[] getAllInputPaths(Configuration conf, Path[] inputPaths, PathFilter filter) throws IOException {
