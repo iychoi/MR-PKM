@@ -36,7 +36,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        if(args.length != 2 || args.length != 3) {
+        if(args.length != 2 && args.length != 3) {
             throw new Exception("wrong command");
         }
         
