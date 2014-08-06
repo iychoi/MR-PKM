@@ -5,10 +5,15 @@ import edu.arizona.cs.mrpkm.readididx.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.recordreader.FastaReadDescriptionInputFormat;
 import edu.arizona.cs.mrpkm.utils.FastaPathFilter;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -36,22 +41,24 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        if(args.length != 2 && args.length != 3) {
-            throw new Exception("wrong command");
-        }
-        
         String clusterConfiguration = null;
         String inputPath = null;
         String outputPath = null;
         
         if(args.length == 2) {
-            clusterConfiguration = "Default";
+            clusterConfiguration = "default";
             inputPath = args[0];
             outputPath = args[1];
-        } else if(args.length == 3) {
+        } else if(args.length >= 3) {
             clusterConfiguration = args[0];
-            inputPath = args[1];
-            outputPath = args[2];
+            inputPath = "";
+            for(int i=1;i<args.length-1;i++) {
+                if(!inputPath.equals("")) {
+                    inputPath += ",";
+                }
+                inputPath += args[i];
+            }
+            outputPath = args[args.length - 1];
         }
         
         Configuration conf = this.getConf();
@@ -110,6 +117,30 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);
+        
+        // commit results
+        commit(new Path(outputPath), conf, namedOutputs);
+        
         return result ? 0 : 1;
+    }
+
+    private void commit(Path outputPath, Configuration conf, String[] namedOutputs) throws IOException {
+        FileSystem fs = outputPath.getFileSystem(conf);
+        
+        Path[] outputFiles = FileSystemHelper.getNamedOutputPaths(outputPath, conf, namedOutputs);
+        Path[] logOutputFiles = FileSystemHelper.getLogOutputPaths(outputPath, conf);
+        
+        // rename
+        for(Path outputFile : outputFiles) {
+            LOG.info("output : " + outputFile.toString());
+            LOG.info("renamed to : " + FileSystemHelper.getNamedOutputFromMROutputName(outputFile.toString()));
+            
+            fs.rename(outputFile, new Path(FileSystemHelper.getNamedOutputFromMROutputName(outputFile.toString())));
+        }
+        
+        // delete
+        for(Path logOutputFile : logOutputFiles) {
+            fs.delete(logOutputFile, true);
+        }
     }
 }

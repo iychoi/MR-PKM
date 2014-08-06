@@ -16,6 +16,10 @@ public abstract class MRClusterConfiguration {
     };
     
     public static MRClusterConfiguration findConfiguration(String configurationName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        if(configurationName.equalsIgnoreCase("default")) {
+            configurationName = "Default";
+        }
+        
         Class clazz = ClassHelper.findClass("MRClusterConfiguration_" + configurationName, SEARCH_PACKAGES);
         return (MRClusterConfiguration) ClassHelper.getClassInstance(clazz);
     }

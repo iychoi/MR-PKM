@@ -82,47 +82,19 @@ public class FileSystemHelper {
         List<Path> inputFiles = new ArrayList<Path>();
         
         for(String path : inputPaths) {
-            int wildcardIdx = path.indexOf("*");
-            if(wildcardIdx >= 0) {
-                int lastIdx = path.lastIndexOf("/");
-                if (lastIdx < 0) {
-                    throw new IOException("cannot get parent path from " + path);
-                }
-
-                String parentPath = path.substring(0, lastIdx);
-                String wildcard = path.substring(lastIdx + 1);
-
-                Path inputParentPath = new Path(parentPath);
-                FileSystem fs = inputParentPath.getFileSystem(conf);
-                FileStatus status = fs.getFileStatus(inputParentPath);
-                if (status.isDir()) {
-                    WildcardPathFilter wildcardFilter = new WildcardPathFilter(wildcard);
-                    FileStatus[] entries = fs.listStatus(inputParentPath);
-                    for (FileStatus entry : entries) {
-                        if (wildcardFilter.accept(entry.getPath())) {
-                            if (filter.accept(entry.getPath())) {
-                                inputFiles.add(entry.getPath());
-                            }
-                        }
+            Path inputFile = new Path(path);
+            FileSystem fs = inputFile.getFileSystem(conf);
+            FileStatus status = fs.getFileStatus(inputFile);
+            if (status.isDir()) {
+                FileStatus[] entries = fs.listStatus(inputFile);
+                for (FileStatus entry : entries) {
+                    if (filter.accept(entry.getPath())) {
+                        inputFiles.add(entry.getPath());
                     }
-                } else {
-                    throw new IOException("parent path is not a directory : " + path);
                 }
             } else {
-                Path inputFile = new Path(path);
-                FileSystem fs = inputFile.getFileSystem(conf);
-                FileStatus status = fs.getFileStatus(inputFile);
-                if (status.isDir()) {
-                    FileStatus[] entries = fs.listStatus(inputFile);
-                    for (FileStatus entry : entries) {
-                        if (filter.accept(entry.getPath())) {
-                            inputFiles.add(entry.getPath());
-                        }
-                    }
-                } else {
-                    if (filter.accept(inputFile)) {
-                        inputFiles.add(inputFile);
-                    }
+                if (filter.accept(inputFile)) {
+                    inputFiles.add(inputFile);
                 }
             }
         }
@@ -153,5 +125,57 @@ public class FileSystemHelper {
         
         Path[] files = inputFiles.toArray(new Path[0]);
         return files;
+    }
+    
+    public static Path[] getNamedOutputPaths(Path outputPath, Configuration conf, String[] namedOutputs) throws IOException {
+        FileSystem fs = outputPath.getFileSystem(conf);
+        FileStatus status = fs.getFileStatus(outputPath);
+        
+        List<Path> outputFiles = new ArrayList<Path>();
+        if (status.isDir()) {
+            FileStatus[] entries = fs.listStatus(outputPath);
+            for (FileStatus entry : entries) {
+                for (String namedOutput : namedOutputs) {
+                    if (entry.getPath().getName().startsWith(namedOutput + "-r-")) {
+                        outputFiles.add(entry.getPath());
+                    }
+                }
+            }
+        } else {
+            throw new IOException("path not found : " + outputPath.toString());
+        }
+        
+        Path[] files = outputFiles.toArray(new Path[0]);
+        return files;
+    }
+    
+    public static Path[] getLogOutputPaths(Path outputPath, Configuration conf) throws IOException {
+        FileSystem fs = outputPath.getFileSystem(conf);
+        FileStatus status = fs.getFileStatus(outputPath);
+        
+        List<Path> outputFiles = new ArrayList<Path>();
+        if (status.isDir()) {
+            FileStatus[] entries = fs.listStatus(outputPath);
+            for (FileStatus entry : entries) {
+                if(entry.getPath().getName().equals("_SUCCESS")) {
+                    outputFiles.add(entry.getPath());
+                } else if(entry.getPath().getName().startsWith("part-r-")) {
+                    outputFiles.add(entry.getPath());
+                }
+            }
+        } else {
+            throw new IOException("path not found : " + outputPath.toString());
+        }
+        
+        Path[] files = outputFiles.toArray(new Path[0]);
+        return files;
+    }
+    
+    public static String getNamedOutputFromMROutputName(String mrOutputName) {
+        int index = mrOutputName.indexOf("-r-");
+        if(index > 0) {
+            return mrOutputName.substring(0, index);
+        }
+        return mrOutputName;
     }
 }
