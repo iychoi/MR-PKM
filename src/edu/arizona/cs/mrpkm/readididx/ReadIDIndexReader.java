@@ -20,6 +20,10 @@ public class ReadIDIndexReader implements java.io.Closeable {
     private String indexPath;
     private MapFile.Reader mapfileReader;
     
+    public static String getReadIDIndexFileName(String inputFileName) {
+        return inputFileName + "." + ReadIDIndexConstants.NAMED_OUTPUT_NAME_SUFFIX;
+    }
+    
     public ReadIDIndexReader(FileSystem fs, String indexPath, Configuration conf) throws IOException {
         initialize(fs, indexPath, conf);
     }

@@ -57,27 +57,6 @@ public class FileSystemHelper {
         return paths;
     }
     
-    public static String getSafeNamedOutput(String input) {
-        StringBuffer sb = new StringBuffer();
-        
-        for (char ch : input.toCharArray()) {
-            boolean isSafe = false;
-            if ((ch >= 'A') && (ch <= 'Z')) {
-                isSafe = true;
-            } else if ((ch >= 'a') && (ch <= 'z')) {
-                isSafe = true;
-            } else if ((ch >= '0') && (ch <= '9')) {
-                isSafe = true;
-            }
-            
-            if(isSafe) {
-                sb.append(ch);
-            }
-        }
-        
-        return sb.toString();
-    }
-    
     public static Path[] getAllInputPaths(Configuration conf, String[] inputPaths, PathFilter filter) throws IOException {
         List<Path> inputFiles = new ArrayList<Path>();
         
@@ -125,57 +104,5 @@ public class FileSystemHelper {
         
         Path[] files = inputFiles.toArray(new Path[0]);
         return files;
-    }
-    
-    public static Path[] getNamedOutputPaths(Path outputPath, Configuration conf, String[] namedOutputs) throws IOException {
-        FileSystem fs = outputPath.getFileSystem(conf);
-        FileStatus status = fs.getFileStatus(outputPath);
-        
-        List<Path> outputFiles = new ArrayList<Path>();
-        if (status.isDir()) {
-            FileStatus[] entries = fs.listStatus(outputPath);
-            for (FileStatus entry : entries) {
-                for (String namedOutput : namedOutputs) {
-                    if (entry.getPath().getName().startsWith(namedOutput + "-r-")) {
-                        outputFiles.add(entry.getPath());
-                    }
-                }
-            }
-        } else {
-            throw new IOException("path not found : " + outputPath.toString());
-        }
-        
-        Path[] files = outputFiles.toArray(new Path[0]);
-        return files;
-    }
-    
-    public static Path[] getLogOutputPaths(Path outputPath, Configuration conf) throws IOException {
-        FileSystem fs = outputPath.getFileSystem(conf);
-        FileStatus status = fs.getFileStatus(outputPath);
-        
-        List<Path> outputFiles = new ArrayList<Path>();
-        if (status.isDir()) {
-            FileStatus[] entries = fs.listStatus(outputPath);
-            for (FileStatus entry : entries) {
-                if(entry.getPath().getName().equals("_SUCCESS")) {
-                    outputFiles.add(entry.getPath());
-                } else if(entry.getPath().getName().startsWith("part-r-")) {
-                    outputFiles.add(entry.getPath());
-                }
-            }
-        } else {
-            throw new IOException("path not found : " + outputPath.toString());
-        }
-        
-        Path[] files = outputFiles.toArray(new Path[0]);
-        return files;
-    }
-    
-    public static String getNamedOutputFromMROutputName(String mrOutputName) {
-        int index = mrOutputName.indexOf("-r-");
-        if(index > 0) {
-            return mrOutputName.substring(0, index);
-        }
-        return mrOutputName;
     }
 }

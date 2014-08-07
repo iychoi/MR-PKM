@@ -34,10 +34,9 @@ public class ReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mu
     protected void map(LongWritable key, FastaRead value, Context context) throws IOException, InterruptedException {
         Integer namedoutputID = this.namedOutputIDCache.get(value.getFileName());
         if (namedoutputID == null) {
-            String namedOutput = ReadIDIndexHelper.generateNamedOutputString(value.getFileName());
-            namedoutputID = context.getConfiguration().getInt(ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput, -1);
+            namedoutputID = context.getConfiguration().getInt(ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName(), -1);
             if (namedoutputID < 0) {
-                throw new IOException("No named output found : " + ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput);
+                throw new IOException("No named output found : " + ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName());
             }
             this.namedOutputIDCache.put(value.getFileName(), namedoutputID);
         }

@@ -25,6 +25,7 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
     private static final Log LOG = LogFactory.getLog(KmerIndexBuilderMapper.class);
     
     private int kmerSize;
+    private String readIDIndexPath;
     
     private Hashtable<String, Integer> namedOutputIDCache;
     private ReadIDIndexReader readIDIndexReader;
@@ -34,11 +35,22 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
-        this.kmerSize = conf.getInt(KmerIndexConstants.CONF_KMER_SIZE, KmerIndexConstants.KMER_SIZE_DEFAULT);
+        this.kmerSize = conf.getInt(KmerIndexConstants.CONF_KMER_SIZE, -1);
+        if(this.kmerSize <= 0) {
+            throw new IOException("kmer size has to be a positive value");
+        }
+        
+        String[] readIDIndexPaths = conf.getStrings(KmerIndexConstants.CONF_READID_INDEX_PATH, "");
+        if(readIDIndexPaths.length != 1) {
+            throw new IOException("number of readIDIndexPaths is not 1");
+        }
+        this.readIDIndexPath = readIDIndexPaths[0];
+
         this.namedOutputIDCache = new Hashtable<String, Integer>();
         
-        Path filePath = ((FileSplit) context.getInputSplit()).getPath();
-        this.readIDIndexReader = new ReadIDIndexReader(filePath.getFileSystem(conf), filePath.toString(), conf);
+        Path inputFilePath = ((FileSplit) context.getInputSplit()).getPath();
+        Path indexPath = new Path(this.readIDIndexPath, ReadIDIndexReader.getReadIDIndexFileName(inputFilePath.getName()));
+        this.readIDIndexReader = new ReadIDIndexReader(indexPath.getFileSystem(conf), indexPath.toString(), conf);
     }
     
     @Override
@@ -60,10 +72,9 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
         String sequence = value.getSequence();
         Integer namedoutputID = this.namedOutputIDCache.get(value.getFileName());
         if (namedoutputID == null) {
-            String namedOutput = KmerIndexHelper.generateNamedOutputString(value.getFileName());
-            namedoutputID = context.getConfiguration().getInt(KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput, -1);
+            namedoutputID = context.getConfiguration().getInt(KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName(), -1);
             if (namedoutputID < 0) {
-                throw new IOException("No named output found : " + KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput);
+                throw new IOException("No named output found : " + KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName());
             }
             this.namedOutputIDCache.put(value.getFileName(), namedoutputID);
         }

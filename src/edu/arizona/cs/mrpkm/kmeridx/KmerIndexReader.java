@@ -30,6 +30,10 @@ public class KmerIndexReader implements Closeable {
     
     private int currentIndex;
     
+    public static String getKmerIndexFileName(String inputFileName, int kmerSize) {
+        return inputFileName + "." + kmerSize + "." + KmerIndexConstants.NAMED_OUTPUT_NAME_SUFFIX;
+    }
+    
     public KmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
         initialize(fs, indexPaths, conf);
     }

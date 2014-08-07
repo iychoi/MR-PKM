@@ -44,11 +44,19 @@ def runReadIDIndexBuilder():
 
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder default test/sample/input/CP* test/sample/output", shell=True)
 
+def runKmerIndexBuilder():
+    #remove outdir
+    if os.path.exists('sample/output'):
+        shutil.rmtree('sample/output')
+
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder default 20 1 test/sample/input/CP* test/sample/ridx test/sample/output", shell=True)
+
 def main():
     if len(sys.argv) < 2:
         print "command : ./test.py run <classname> <program arguments> ..."
         print "command : ./test.py dep"
         print "command : ./test.py ridx"
+        print "command : ./test.py kidx"
     else:
         command = sys.argv[1]
 
@@ -58,6 +66,8 @@ def main():
             dep()
         elif command == "ridx":
             runReadIDIndexBuilder()
+        elif command == "kidx":
+            runKmerIndexBuilder()
         else:
             print "invalid command"
 
