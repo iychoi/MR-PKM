@@ -21,6 +21,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -46,20 +47,23 @@ public class KmerIndexBuilder extends Configured implements Tool {
         String outputPath = null;
         int kmerSize = 0;
         int nodeSize = 0;
+        boolean useBloomMap = false;
         
-        if(args.length == 5) {
+        if(args.length == 6) {
             clusterConfiguration = "default";
-            kmerSize = Integer.parseInt(args[0]);
-            nodeSize = Integer.parseInt(args[1]);
-            inputPath = args[2];
-            readIDIndexPath = args[3];
-            outputPath = args[4];
-        } else if(args.length >= 6) {
-            clusterConfiguration = args[0];
+            useBloomMap = Boolean.parseBoolean(args[0]);
             kmerSize = Integer.parseInt(args[1]);
             nodeSize = Integer.parseInt(args[2]);
+            inputPath = args[3];
+            readIDIndexPath = args[4];
+            outputPath = args[5];
+        } else if(args.length >= 7) {
+            clusterConfiguration = args[0];
+            useBloomMap = Boolean.parseBoolean(args[1]);
+            kmerSize = Integer.parseInt(args[2]);
+            nodeSize = Integer.parseInt(args[3]);
             inputPath = "";
-            for(int i=3;i<args.length-2;i++) {
+            for(int i=4;i<args.length-2;i++) {
                 if(!inputPath.equals("")) {
                     inputPath += ",";
                 }
@@ -123,7 +127,11 @@ public class KmerIndexBuilder extends Configured implements Tool {
             job.getConfiguration().setInt(KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput.getInputPath().getName(), id);
             LOG.info("regist new ConfigString : " + KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput.getInputPath().getName());
             
-            MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), BloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+            if(useBloomMap) {
+                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), BloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+            } else {
+                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+            }
             id++;
         }
         

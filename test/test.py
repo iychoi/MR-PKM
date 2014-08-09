@@ -49,7 +49,7 @@ def runKmerIndexBuilder():
     if os.path.exists('sample/output'):
         shutil.rmtree('sample/output')
 
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder default 20 1 test/sample/input/CP* test/sample/ridx test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder default false 20 1 test/sample/input/CP* test/sample/ridx test/sample/output", shell=True)
 
 def main():
     if len(sys.argv) < 2:
