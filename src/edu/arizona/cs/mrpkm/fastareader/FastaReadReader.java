@@ -1,9 +1,10 @@
-package edu.arizona.cs.mrpkm.recordreader;
+package edu.arizona.cs.mrpkm.fastareader;
 
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRawRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRawRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
 import java.io.IOException;
+import org.apache.hadoop.io.LongWritable;
 
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -12,20 +13,20 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  *
  * @author iychoi
  */
-public class FastaTextReadReader extends RecordReader<Text, Text> {
+public class FastaReadReader extends RecordReader<LongWritable, FastaRead> {
 
     private FastaRawReadReader rawReadReader = new FastaRawReadReader();
     
-    private Text key;
-    private Text value;
+    private LongWritable key;
+    private FastaRead value;
     
     @Override
-    public Text getCurrentKey() throws IOException, InterruptedException {
+    public LongWritable getCurrentKey() throws IOException, InterruptedException {
         return this.key;
     }
 
     @Override
-    public Text getCurrentValue() throws IOException, InterruptedException {
+    public FastaRead getCurrentValue() throws IOException, InterruptedException {
         return this.value;
     }
 
@@ -45,14 +46,9 @@ public class FastaTextReadReader extends RecordReader<Text, Text> {
         if(retVal) {
             FastaRawRead value = this.rawReadReader.getCurrentValue();
             if(value != null) {
-                String description = value.getDescription();
-                String pureSequence = new String();
-                for (int i = 0; i < value.getRawSequence().length; i++) {
-                    pureSequence += value.getRawSequence()[i].getLine();
-                }
-                
-                this.key = new Text(description);
-                this.value = new Text(pureSequence);
+                FastaRead read = new FastaRead(value);
+                this.value = read;
+                this.key = new LongWritable(read.getReadOffset());
             } else {
                 this.key = null;
                 this.value = null;

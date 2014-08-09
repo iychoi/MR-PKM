@@ -1,7 +1,10 @@
-package edu.arizona.cs.mrpkm.recordreader;
+package edu.arizona.cs.mrpkm.fastareader;
 
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRawRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRawReadLine;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -24,9 +27,9 @@ import org.apache.hadoop.util.LineReader;
  *
  * @author iychoi
  */
-public class FastaReadDescriptionReader extends RecordReader<LongWritable, FastaRead> {
+public class FastaRawReadReader extends RecordReader<LongWritable, FastaRawRead> {
 
-    private static final Log LOG = LogFactory.getLog(FastaReadDescriptionReader.class);
+    private static final Log LOG = LogFactory.getLog(FastaRawReadReader.class);
     
     public static final char READ_DELIMITER = '>';
     
@@ -37,13 +40,14 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
     private LineReader in;
     private int maxLineLength;
     private String filename;
-    private boolean hasNextRecord;
+    private boolean hasNextRead;
     private LongWritable key;
-    private FastaRead value;
+    private FastaRawRead value;
     private Text prevLine;
     private long prevSize;
     private boolean isCompressed;
     private long uncompressedSize;
+    private boolean firstRead = true;
 
     @Override
     public LongWritable getCurrentKey() throws IOException, InterruptedException {
@@ -51,7 +55,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
     }
 
     @Override
-    public FastaRead getCurrentValue() throws IOException, InterruptedException {
+    public FastaRawRead getCurrentValue() throws IOException, InterruptedException {
         return this.value;
     }
 
@@ -69,6 +73,8 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
         final CompressionCodec codec = this.compressionCodecs.getCodec(file);
         
         this.filename = file.getName();
+        
+        this.firstRead = true;
         
         // open the file and seek to the start of the split
         FileSystem fs = file.getFileSystem(job);
@@ -114,7 +120,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
             this.in = new LineReader(fileIn, job);
         }
         
-        // skip lines until we meet new record start
+        // skip lines until we meet new read start
         while (this.start < this.end) {
             Text skipText = new Text();
             long newSize = this.in.readLine(skipText, this.maxLineLength,
@@ -122,7 +128,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
                     this.maxLineLength));
             if (newSize == 0) {
                 // EOF
-                this.hasNextRecord = false;
+                this.hasNextRead = false;
                 this.pos = this.end;
                 break;
             }
@@ -130,7 +136,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
             if (skipText.getLength() > 0 && skipText.charAt(0) == READ_DELIMITER) {
                 this.prevLine = skipText;
                 this.prevSize = newSize;
-                this.hasNextRecord = true;
+                this.hasNextRead = true;
                 this.pos = this.start;
                 break;
             }
@@ -139,7 +145,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
             
             if(this.start >= this.end) {
                 // EOF
-                this.hasNextRecord = false;
+                this.hasNextRead = false;
                 this.pos = this.end;
                 break;
             }
@@ -151,10 +157,10 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        // seek to new record start
-        if(this.hasNextRecord) {
+        // seek to new read start
+        if(this.hasNextRead) {
             this.key = new LongWritable(this.pos);
-            this.value = new FastaRead(this.filename);
+            this.value = new FastaRawRead(this.filename);
             
             Text description = this.prevLine;
             this.pos += this.prevSize;
@@ -164,6 +170,8 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
             
             long sequenceStartOffset = this.pos;
             long descriptionLen = sequenceStartOffset - descriptionStartOffset;
+            List<String> sequences = new ArrayList<String>();
+            List<Long> sequenceStarts = new ArrayList<Long>();
             
             boolean foundNextRead = false;
             while(!foundNextRead) {
@@ -190,17 +198,39 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
                     }
                     break;
                 } else {
-                    // skip
+                    sequences.add(newLine.toString());
+                    sequenceStarts.add(this.pos);
                 }
 
                 this.pos += newSize;
             }
             
+            long newReadStartOffset = this.pos;
+            long readLen = newReadStartOffset - readStartOffset;
+            long sequenceLen = newReadStartOffset - sequenceStartOffset;
+
             this.value.setReadOffset(readStartOffset);
+            this.value.setDescriptionOffset(descriptionStartOffset);
+            this.value.setSequenceOffset(sequenceStartOffset);
+            this.value.setReadLen(readLen);
+            this.value.setDescriptionLen(descriptionLen);
+            this.value.setSequenceLen(sequenceLen);
             this.value.setDescription(description.toString());
-            this.value.setSequence(null);
+            if(this.firstRead) {
+                this.value.setContinuousRead(false);
+                this.firstRead = false;
+            } else {
+                this.value.setContinuousRead(true);
+            }
             
-            this.hasNextRecord = foundNextRead;
+            FastaRawReadLine[] readLines = new FastaRawReadLine[sequences.size()];
+            for(int i=0;i<sequences.size();i++) {
+                readLines[i] = new FastaRawReadLine(sequenceStarts.get(i), sequences.get(i));
+            }
+            
+            this.value.setRawSequence(readLines);
+            
+            this.hasNextRead = foundNextRead;
             return true;
         } else {
             this.pos = this.end;
@@ -208,7 +238,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
             this.prevSize = 0;
             this.key = null;
             this.value = null;
-            this.hasNextRecord = false;
+            this.hasNextRead = false;
             return false;
         }
     }

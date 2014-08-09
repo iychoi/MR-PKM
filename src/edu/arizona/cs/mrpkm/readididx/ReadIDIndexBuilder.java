@@ -2,11 +2,12 @@ package edu.arizona.cs.mrpkm.readididx;
 
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
 import edu.arizona.cs.mrpkm.readididx.types.MultiFileOffsetWritable;
-import edu.arizona.cs.mrpkm.recordreader.FastaReadDescriptionInputFormat;
+import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FastaPathFilter;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
+import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -138,13 +139,11 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                 Path entryPath = entry.getPath();
                 
                 // remove unnecessary outputs
-                if(entryPath.getName().equals("_SUCCESS")) {
-                    fs.delete(entryPath, true);
-                } else if(entryPath.getName().startsWith("part-r-")) {
+                if(MapReduceHelper.isLogFiles(entryPath)) {
                     fs.delete(entryPath, true);
                 } else {
                     // rename outputs
-                    NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutputName(entryPath.getName());
+                    NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath.getName());
                     if(namedOutput != null) {
                         Path toPath = new Path(entryPath.getParent(), namedOutput.getInputPath().getName() + "." + ReadIDIndexConstants.NAMED_OUTPUT_NAME_SUFFIX);
                         

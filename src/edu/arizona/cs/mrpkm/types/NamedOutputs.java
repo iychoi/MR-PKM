@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.types;
 
+import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import java.util.Collection;
 import java.util.Hashtable;
 import org.apache.hadoop.fs.Path;
@@ -43,16 +44,12 @@ public class NamedOutputs {
         return this.table.get(outputName);
     }
     
-    public NamedOutput getNamedOutputByMROutputName(String outputFileName) {
-        return this.table.get(getNamedOutputFromMROutputName(outputFileName));
+    public NamedOutput getNamedOutputByMROutput(Path outputFilePath) {
+        return this.table.get(MapReduceHelper.getNameFromReduceOutput(outputFilePath));
     }
     
-    private String getNamedOutputFromMROutputName(String mrOutputName) {
-        int index = mrOutputName.indexOf("-r-");
-        if(index > 0) {
-            return mrOutputName.substring(0, index);
-        }
-        return mrOutputName;
+    public NamedOutput getNamedOutputByMROutput(String outputFileName) {
+        return this.table.get(MapReduceHelper.getNameFromReduceOutput(outputFileName));
     }
     
     public NamedOutput[] getAllNamedOutput() {

@@ -1,6 +1,6 @@
-package edu.arizona.cs.mrpkm.recordreader;
+package edu.arizona.cs.mrpkm.fastareader;
 
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRawRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRawRead;
 import java.io.IOException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;

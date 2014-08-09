@@ -1,6 +1,6 @@
-package edu.arizona.cs.mrpkm.recordreader;
+package edu.arizona.cs.mrpkm.fastareader;
 
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
 import java.io.IOException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -17,13 +17,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
  *
  * @author iychoi
  */
-public class FastaReadDescriptionInputFormat extends FileInputFormat<LongWritable, FastaRead> {
+public class FastaReadInputFormat extends FileInputFormat<LongWritable, FastaRead> {
 
     @Override
     public RecordReader<LongWritable, FastaRead> createRecordReader(InputSplit split,
             TaskAttemptContext context) throws IOException,
             InterruptedException {
-        return new FastaReadDescriptionReader();
+        return new FastaReadReader();
     }
     
     @Override

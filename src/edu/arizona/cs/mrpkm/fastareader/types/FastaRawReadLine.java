@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.recordreader.types;
+package edu.arizona.cs.mrpkm.fastareader.types;
 
 /**
  *

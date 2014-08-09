@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.recordreader;
+package edu.arizona.cs.mrpkm.fastareader;
 
 import java.io.IOException;
 import org.apache.hadoop.fs.Path;

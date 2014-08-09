@@ -5,7 +5,7 @@ import edu.arizona.cs.mrpkm.kmeridx.types.KmerRecord;
 import edu.arizona.cs.mrpkm.kmeridx.types.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexReader;
 import edu.arizona.cs.mrpkm.readididx.ReadIDNotFoundException;
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;

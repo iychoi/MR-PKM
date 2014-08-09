@@ -1,10 +1,9 @@
-package edu.arizona.cs.mrpkm.recordreader;
+package edu.arizona.cs.mrpkm.fastareader;
 
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRawRead;
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRawRead;
 import java.io.IOException;
-import org.apache.hadoop.io.LongWritable;
 
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -13,20 +12,20 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  *
  * @author iychoi
  */
-public class FastaReadReader extends RecordReader<LongWritable, FastaRead> {
+public class FastaTextReadReader extends RecordReader<Text, Text> {
 
     private FastaRawReadReader rawReadReader = new FastaRawReadReader();
     
-    private LongWritable key;
-    private FastaRead value;
+    private Text key;
+    private Text value;
     
     @Override
-    public LongWritable getCurrentKey() throws IOException, InterruptedException {
+    public Text getCurrentKey() throws IOException, InterruptedException {
         return this.key;
     }
 
     @Override
-    public FastaRead getCurrentValue() throws IOException, InterruptedException {
+    public Text getCurrentValue() throws IOException, InterruptedException {
         return this.value;
     }
 
@@ -46,9 +45,14 @@ public class FastaReadReader extends RecordReader<LongWritable, FastaRead> {
         if(retVal) {
             FastaRawRead value = this.rawReadReader.getCurrentValue();
             if(value != null) {
-                FastaRead read = new FastaRead(value);
-                this.value = read;
-                this.key = new LongWritable(read.getReadOffset());
+                String description = value.getDescription();
+                String pureSequence = new String();
+                for (int i = 0; i < value.getRawSequence().length; i++) {
+                    pureSequence += value.getRawSequence()[i].getLine();
+                }
+                
+                this.key = new Text(description);
+                this.value = new Text(pureSequence);
             } else {
                 this.key = null;
                 this.value = null;

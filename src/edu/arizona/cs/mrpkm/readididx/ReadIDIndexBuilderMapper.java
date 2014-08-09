@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.readididx;
 
 import edu.arizona.cs.mrpkm.readididx.types.MultiFileOffsetWritable;
-import edu.arizona.cs.mrpkm.recordreader.types.FastaRead;
+import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;

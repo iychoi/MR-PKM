@@ -57,6 +57,14 @@ public class FileSystemHelper {
         return paths;
     }
     
+    public static String[] makeStringFromPath(Path[] paths) {
+        String[] pathStrings = new String[paths.length];
+        for(int i=0;i<paths.length;i++) {
+            pathStrings[i] = paths[i].toString();
+        }
+        return pathStrings;
+    }
+    
     public static Path[] getAllInputPaths(Configuration conf, String[] inputPaths, PathFilter filter) throws IOException {
         List<Path> inputFiles = new ArrayList<Path>();
         
