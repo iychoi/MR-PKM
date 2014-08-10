@@ -1,16 +1,14 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexReader;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,7 +18,7 @@ import org.apache.hadoop.fs.Path;
  *
  * @author iychoi
  */
-public class PairwiseLinearMatch {
+public class KmerLinearMatcher {
     private Path[] inputIndexPaths;
     private KmerSequenceSlice slice;
     private Configuration conf;
@@ -29,13 +27,13 @@ public class PairwiseLinearMatch {
     private BigInteger sliceSize;
     private BigInteger currentProgress;
     
-    private MatchResult curMatch;
+    private KmerMatchResult curMatch;
     private CompressedSequenceWritable[] stepKeys;
     private CompressedIntArrayWritable[] stepVals;
     private boolean stepStarted;
 
     
-    public PairwiseLinearMatch(Path[] inputIndexPaths, KmerSequenceSlice slice, Configuration conf) throws IOException {
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerSequenceSlice slice, Configuration conf) throws IOException {
         initialize(inputIndexPaths, slice, conf);
     }
     
@@ -44,7 +42,7 @@ public class PairwiseLinearMatch {
         this.slice = slice;
         this.conf = conf;
         
-        Path[][] indice = groupIndice(this.inputIndexPaths);
+        Path[][] indice = KmerIndexHelper.groupKmerIndice(this.inputIndexPaths);
         this.readers = new KmerIndexReader[indice.length];
         for(int i=0;i<indice.length;i++) {
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
@@ -115,7 +113,7 @@ public class PairwiseLinearMatch {
                         valIdx++;
                     }
                     
-                    this.curMatch = new MatchResult(minKey, minVals, minIndexPaths);
+                    this.curMatch = new KmerMatchResult(minKey, minVals, minIndexPaths);
                     return true;
                 }
             } else {
@@ -196,7 +194,7 @@ public class PairwiseLinearMatch {
         }
     }
     
-    public MatchResult getCurrentMatch() {
+    public KmerMatchResult getCurrentMatch() {
         return this.curMatch;
     }
     
@@ -210,50 +208,6 @@ public class PairwiseLinearMatch {
         }
     }
     
-    private Path[][] groupIndice(Path[] inputIndexPaths) {
-        List<Path[]> groups = new ArrayList<Path[]>();
-        
-        List<Path> sortedInputIndexPaths = sortPaths(inputIndexPaths);
-        List<Path> group = new ArrayList<Path>();
-        for(Path path: sortedInputIndexPaths) {
-            if(group.isEmpty()) {
-                group.add(path);
-            } else {
-                Path prev = group.get(0);
-                if(KmerIndexReader.isSameKmerIndex(prev, path)) {
-                    group.add(path);
-                } else {
-                    groups.add(group.toArray(new Path[0]));
-                    group.clear();
-                }
-            }
-        }
-        
-        if(!group.isEmpty()) {
-            groups.add(group.toArray(new Path[0]));
-            group.clear();
-        }
-        
-        return groups.toArray(new Path[0][0]);
-    }
-    
-    private List<Path> sortPaths(Path[] paths) {
-        List<Path> pathList = new ArrayList<Path>();
-        pathList.addAll(Arrays.asList(paths));
-        
-        Collections.sort(pathList, new Comparator<Path>() {
-
-            @Override
-            public int compare(Path t, Path t1) {
-                String ts = t.getName();
-                String t1s = t1.getName();
-
-                return ts.compareTo(t1s);
-            }
-        });
-        return pathList;
-    }
-
     public void close() throws IOException {
         for(KmerIndexReader reader : this.readers) {
             reader.close();

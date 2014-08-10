@@ -1,18 +1,18 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 
 /**
  *
  * @author iychoi
  */
-public class MatchResult {
+public class KmerMatchResult {
     private CompressedSequenceWritable key;
     private CompressedIntArrayWritable[] vals;
     private String[][] indexPaths;
     
-    public MatchResult(CompressedSequenceWritable key, CompressedIntArrayWritable[] vals, String[][] indexPaths) {
+    public KmerMatchResult(CompressedSequenceWritable key, CompressedIntArrayWritable[] vals, String[][] indexPaths) {
         this.key = key;
         this.vals = vals;
         this.indexPaths = indexPaths;

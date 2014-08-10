@@ -1,11 +1,10 @@
 package edu.arizona.cs.mrpkm.readididx;
 
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
-import edu.arizona.cs.mrpkm.readididx.types.MultiFileOffsetWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
-import edu.arizona.cs.mrpkm.utils.FastaPathFilter;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import java.io.IOException;
@@ -86,7 +85,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllInputPaths(conf, paths, new FastaPathFilter());
+        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
         
         FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         
@@ -101,18 +100,18 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
         
-        LOG.info("regist new ConfigString : " + ReadIDIndexConstants.CONF_NAMED_OUTPUTS_NUM);
-        job.getConfiguration().setInt(ReadIDIndexConstants.CONF_NAMED_OUTPUTS_NUM, namedOutputs.getSize());
+        LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum());
+        job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), namedOutputs.getSize());
         
         int id = 0;
         for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
             LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
 
-            job.getConfiguration().setStrings(ReadIDIndexConstants.CONF_NAMED_OUTPUT_ID_PREFIX + id, namedOutput.getNamedOutputString());
-            LOG.info("regist new ConfigString : " + ReadIDIndexConstants.CONF_NAMED_OUTPUT_ID_PREFIX + id);
+            job.getConfiguration().setStrings(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
+            LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputName(id));
             
-            job.getConfiguration().setInt(ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput.getInputPath().getName(), id);
-            LOG.info("regist new ConfigString : " + ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput.getInputPath().getName());
+            job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
+            LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
             
             MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, LongWritable.class, IntWritable.class);
             id++;
@@ -145,7 +144,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                     // rename outputs
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath.getName());
                     if(namedOutput != null) {
-                        Path toPath = new Path(entryPath.getParent(), namedOutput.getInputPath().getName() + "." + ReadIDIndexConstants.NAMED_OUTPUT_NAME_SUFFIX);
+                        Path toPath = new Path(entryPath.getParent(), ReadIDIndexHelper.getReadIDIndexFileName(namedOutput.getInputString()));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

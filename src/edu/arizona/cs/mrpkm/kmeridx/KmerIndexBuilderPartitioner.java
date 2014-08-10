@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmeridx.types.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Partitioner;

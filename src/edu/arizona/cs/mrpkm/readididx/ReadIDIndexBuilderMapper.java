@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.readididx.types.MultiFileOffsetWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
 import java.io.IOException;
 import java.util.Hashtable;
@@ -23,20 +23,19 @@ public class ReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mu
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         this.namedOutputIDCache = new Hashtable<String, Integer>();
-        int numberOfOutputs = context.getConfiguration().getInt(ReadIDIndexConstants.CONF_NAMED_OUTPUTS_NUM, -1);
+        int numberOfOutputs = context.getConfiguration().getInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), -1);
         if(numberOfOutputs <= 0) {
             throw new IOException("number of outputs is zero or negative");
         }
-
     }
     
     @Override
     protected void map(LongWritable key, FastaRead value, Context context) throws IOException, InterruptedException {
         Integer namedoutputID = this.namedOutputIDCache.get(value.getFileName());
         if (namedoutputID == null) {
-            namedoutputID = context.getConfiguration().getInt(ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName(), -1);
+            namedoutputID = context.getConfiguration().getInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(value.getFileName()), -1);
             if (namedoutputID < 0) {
-                throw new IOException("No named output found : " + ReadIDIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName());
+                throw new IOException("No named output found : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(value.getFileName()));
             }
             this.namedOutputIDCache.put(value.getFileName(), namedoutputID);
         }

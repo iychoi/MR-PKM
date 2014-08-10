@@ -1,8 +1,8 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -42,7 +42,7 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         int namedoutputID = key.getFileID();
         String namedOutput = this.namedOutputCache.get(namedoutputID);
         if (namedOutput == null) {
-            String[] namedOutputs = context.getConfiguration().getStrings(KmerIndexConstants.CONF_NAMED_OUTPUT_ID_PREFIX + namedoutputID);
+            String[] namedOutputs = context.getConfiguration().getStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(namedoutputID));
             if (namedOutputs.length != 1) {
                 throw new IOException("no named output found");
             }

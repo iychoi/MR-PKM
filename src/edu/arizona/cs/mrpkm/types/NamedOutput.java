@@ -7,24 +7,32 @@ import org.apache.hadoop.fs.Path;
  * @author iychoi
  */
 public class NamedOutput {
-    private Path inputPath;
+    private String inputString;
     private String namedOutputString;
     
     public NamedOutput(Path inputPath) {
-        initialize(inputPath, NamedOutput.getSafeNamedOutputString(inputPath.getName()));
+        initialize(inputPath.getName(), NamedOutput.getSafeNamedOutputString(inputPath.getName()));
     }
     
     public NamedOutput(Path inputPath, String namedOutputString) {
-        initialize(inputPath, namedOutputString);
+        initialize(inputPath.getName(), namedOutputString);
     }
     
-    private void initialize(Path inputPath, String namedOutputString) {
-        this.inputPath = inputPath;
+    public NamedOutput(String inputString) {
+        initialize(inputString, NamedOutput.getSafeNamedOutputString(inputString));
+    }
+    
+    public NamedOutput(String inputString, String namedOutputString) {
+        initialize(inputString, namedOutputString);
+    }
+    
+    private void initialize(String inputString, String namedOutputString) {
+        this.inputString = inputString;
         this.namedOutputString = namedOutputString;
     }
     
-    public Path getInputPath() {
-        return this.inputPath;
+    public String getInputString() {
+        return this.inputString;
     }
     
     public String getNamedOutputString() {

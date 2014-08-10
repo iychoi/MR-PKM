@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -12,9 +12,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  *
  * @author iychoi
  */
-public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritable, MatchResult> {
+public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritable, KmerMatchResult> {
     private Path[] inputIndexPaths;
-    private PairwiseLinearMatch matcher;
+    private KmerLinearMatcher matcher;
     private Configuration conf;
 
     @Override
@@ -28,7 +28,7 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
         this.inputIndexPaths = kmerIndexSplit.getIndexFilePaths();
         
         KmerSequenceSlice slice = kmerIndexSplit.getSlice();
-        this.matcher = new PairwiseLinearMatch(this.inputIndexPaths, slice, this.conf);
+        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, slice, this.conf);
     }
 
     @Override
@@ -43,7 +43,7 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
     }
 
     @Override
-    public MatchResult getCurrentValue() {
+    public KmerMatchResult getCurrentValue() {
         return this.matcher.getCurrentMatch();
     }
 

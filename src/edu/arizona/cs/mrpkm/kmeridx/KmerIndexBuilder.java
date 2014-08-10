@@ -1,13 +1,12 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
-import edu.arizona.cs.mrpkm.utils.FastaPathFilter;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import java.io.IOException;
@@ -81,8 +80,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
         MRClusterConfiguration clusterConfig = MRClusterConfiguration.findConfiguration(clusterConfiguration);
         clusterConfig.setConfiguration(conf);
 
-        conf.setInt(KmerIndexConstants.CONF_KMER_SIZE, kmerSize);
-        conf.setStrings(KmerIndexConstants.CONF_READID_INDEX_PATH, readIDIndexPath);
+        conf.setInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), kmerSize);
+        conf.setStrings(KmerIndexHelper.getConfigurationKeyOfReadIDIndexPath(), readIDIndexPath);
         
         Job job = new Job(conf, "Kmer Index Builder");
         job.setJarByClass(KmerIndexBuilder.class);
@@ -102,7 +101,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         
         // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllInputPaths(conf, paths, new FastaPathFilter());
+        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
         
         FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         
@@ -121,11 +120,11 @@ public class KmerIndexBuilder extends Configured implements Tool {
         for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
             LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
 
-            job.getConfiguration().setStrings(KmerIndexConstants.CONF_NAMED_OUTPUT_ID_PREFIX + id, namedOutput.getNamedOutputString());
-            LOG.info("regist new ConfigString : " + KmerIndexConstants.CONF_NAMED_OUTPUT_ID_PREFIX + id);
+            job.getConfiguration().setStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
+            LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id));
             
-            job.getConfiguration().setInt(KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput.getInputPath().getName(), id);
-            LOG.info("regist new ConfigString : " + KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + namedOutput.getInputPath().getName());
+            job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
+            LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
             
             if(useBloomMap) {
                 MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), BloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
@@ -162,8 +161,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
                     // rename outputs
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath);
                     if(namedOutput != null) {
-                        int reduceID = MapReduceHelper.getReduceID(entryPath);
-                        Path toPath = new Path(entryPath.getParent(), namedOutput.getInputPath().getName() + "." + kmerSize + "." + KmerIndexConstants.NAMED_OUTPUT_NAME_SUFFIX + "." + reduceID);
+                        int reducerID = MapReduceHelper.getReduceID(entryPath);
+                        Path toPath = new Path(entryPath.getParent(), KmerIndexHelper.getKmerIndexFileName(namedOutput.getInputString(), kmerSize, reducerID));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.readididx.types;
+package edu.arizona.cs.mrpkm.types;
 
 import java.io.DataInput;
 import java.io.DataOutput;

@@ -10,14 +10,17 @@ import org.apache.hadoop.fs.Path;
  * @author iychoi
  */
 public class NamedOutputs {
-    private Hashtable<String, NamedOutput> table;
+    private Hashtable<String, NamedOutput> table = new Hashtable<String, NamedOutput>();
     
     public NamedOutputs() {
-        this.table = new Hashtable<String, NamedOutput>();
     }
     
     public void addNamedOutput(Path output) {
-        String outputName = NamedOutput.getSafeNamedOutputString(output.getName());
+        addNamedOutput(output.getName());
+    }
+    
+    public void addNamedOutput(String output) {
+        String outputName = NamedOutput.getSafeNamedOutputString(output);
         
         if(this.table.get(outputName) == null) {
             // okey
@@ -28,7 +31,7 @@ public class NamedOutputs {
             boolean success = false;
             while(!success) {
                 trial++;
-                String outputNameTrial = NamedOutput.getSafeNamedOutputString(output.getName() + trial);
+                String outputNameTrial = NamedOutput.getSafeNamedOutputString(output + trial);
                 if(this.table.get(outputNameTrial) == null) {
                     // okey
                     NamedOutput namedOutput = new NamedOutput(output, outputNameTrial);

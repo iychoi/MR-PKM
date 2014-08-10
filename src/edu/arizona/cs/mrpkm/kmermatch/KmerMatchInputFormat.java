@@ -1,8 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmeridx.KmerIndexConstants;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,25 +18,30 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
  *
  * @author iychoi
  */
-public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequenceWritable, MatchResult> {
+public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequenceWritable, KmerMatchResult> {
 
     private static final Log LOG = LogFactory.getLog(KmerMatchInputFormat.class);
 
-    private static final String CONF_NUM_SLICES = "edu.arizona.cs.mrpkm.search.slices";
-    private static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
-    
     @Override
-    public RecordReader<CompressedSequenceWritable, MatchResult> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
+    public RecordReader<CompressedSequenceWritable, KmerMatchResult> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
         return new KmerMatchRecordReader();
+    }
+    
+    public static void setKmerSize(JobContext job, int kmerSize) {
+        job.getConfiguration().setInt(KmerMatchHelper.getConfigurationKeyOfKmerSize(), kmerSize);
+    }
+    
+    public static void setSliceNum(JobContext job, int numSlices) {
+        job.getConfiguration().setInt(KmerMatchHelper.getConfigurationKeyOfSliceNum(), numSlices);
     }
 
     public List<InputSplit> getSplits(JobContext job) throws IOException {
-        int kmerSize = job.getConfiguration().getInt(KmerIndexConstants.CONF_KMER_SIZE, -1);
+        int kmerSize = job.getConfiguration().getInt(KmerMatchHelper.getConfigurationKeyOfKmerSize(), -1);
         if(kmerSize <= 0) {
             throw new IOException("kmer size must be a positive number");
         }
         
-        int numSlices = job.getConfiguration().getInt(CONF_NUM_SLICES, -1);
+        int numSlices = job.getConfiguration().getInt(KmerMatchHelper.getConfigurationKeyOfSliceNum(), -1);
         if(numSlices <= 0) {
             throw new IOException("number of slices must be a positive number");
         }
@@ -63,7 +66,7 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         }
         
         // Save the number of input files in the job-conf
-        job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
+        job.getConfiguration().setLong(KmerMatchHelper.getConfigurationKeyOfInputFileNum(), files.size());
 
         LOG.debug("Total # of splits: " + splits.size());
         return splits;

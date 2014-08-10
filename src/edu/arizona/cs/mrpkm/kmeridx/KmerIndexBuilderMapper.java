@@ -1,11 +1,12 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmeridx.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.kmeridx.types.KmerRecord;
-import edu.arizona.cs.mrpkm.kmeridx.types.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.KmerRecord;
+import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexReader;
 import edu.arizona.cs.mrpkm.readididx.ReadIDNotFoundException;
 import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
+import edu.arizona.cs.mrpkm.readididx.ReadIDIndexHelper;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;
@@ -35,12 +36,12 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
-        this.kmerSize = conf.getInt(KmerIndexConstants.CONF_KMER_SIZE, -1);
+        this.kmerSize = conf.getInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), -1);
         if(this.kmerSize <= 0) {
             throw new IOException("kmer size has to be a positive value");
         }
         
-        String[] readIDIndexPaths = conf.getStrings(KmerIndexConstants.CONF_READID_INDEX_PATH, "");
+        String[] readIDIndexPaths = conf.getStrings(KmerIndexHelper.getConfigurationKeyOfReadIDIndexPath(), "");
         if(readIDIndexPaths.length != 1) {
             throw new IOException("number of readIDIndexPaths is not 1");
         }
@@ -49,7 +50,7 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
         this.namedOutputIDCache = new Hashtable<String, Integer>();
         
         Path inputFilePath = ((FileSplit) context.getInputSplit()).getPath();
-        Path indexPath = new Path(this.readIDIndexPath, ReadIDIndexReader.getReadIDIndexFileName(inputFilePath.getName()));
+        Path indexPath = new Path(this.readIDIndexPath, ReadIDIndexHelper.getReadIDIndexFileName(inputFilePath.getName()));
         this.readIDIndexReader = new ReadIDIndexReader(indexPath.getFileSystem(conf), indexPath.toString(), conf);
     }
     
@@ -72,9 +73,9 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
         String sequence = value.getSequence();
         Integer namedoutputID = this.namedOutputIDCache.get(value.getFileName());
         if (namedoutputID == null) {
-            namedoutputID = context.getConfiguration().getInt(KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName(), -1);
+            namedoutputID = context.getConfiguration().getInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(value.getFileName()), -1);
             if (namedoutputID < 0) {
-                throw new IOException("No named output found : " + KmerIndexConstants.CONF_NAMED_OUTPUT_NAME_PREFIX + value.getFileName());
+                throw new IOException("No named output found : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(value.getFileName()));
             }
             this.namedOutputIDCache.put(value.getFileName(), namedoutputID);
         }

@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.readididx.types.MultiFileOffsetWritable;
+import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;
@@ -27,7 +27,7 @@ public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, 
     protected void setup(Context context) throws IOException, InterruptedException {
         this.mos = new MultipleOutputs(context);
         this.namedOutputCache = new Hashtable<Integer, String>();
-        int numberOfOutputs = context.getConfiguration().getInt(ReadIDIndexConstants.CONF_NAMED_OUTPUTS_NUM, -1);
+        int numberOfOutputs = context.getConfiguration().getInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), -1);
         if(numberOfOutputs <= 0) {
             throw new IOException("number of outputs is zero or negative");
         }
@@ -47,7 +47,7 @@ public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, 
         
         String namedOutput = this.namedOutputCache.get(namedoutputID);
         if (namedOutput == null) {
-            String[] namedOutputs = context.getConfiguration().getStrings(ReadIDIndexConstants.CONF_NAMED_OUTPUT_ID_PREFIX + namedoutputID);
+            String[] namedOutputs = context.getConfiguration().getStrings(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputName(namedoutputID));
             if (namedOutputs.length != 1) {
                 throw new IOException("no named output found");
             }

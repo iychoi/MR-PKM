@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.kmeridx.types;
+package edu.arizona.cs.mrpkm.types;
 
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 

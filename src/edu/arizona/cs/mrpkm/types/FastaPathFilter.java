@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.utils;
+package edu.arizona.cs.mrpkm.types;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
@@ -22,5 +22,4 @@ public class FastaPathFilter implements PathFilter {
         }
         return false;
     }
-    
 }

@@ -1,5 +1,8 @@
 package edu.arizona.cs.mrpkm.utils;
 
+import edu.arizona.cs.mrpkm.types.FastaPathFilter;
+import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
+import edu.arizona.cs.mrpkm.types.ReadIDIndexPathFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +10,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 
 /**
  *
@@ -65,33 +67,13 @@ public class FileSystemHelper {
         return pathStrings;
     }
     
-    public static Path[] getAllInputPaths(Configuration conf, String[] inputPaths, PathFilter filter) throws IOException {
-        List<Path> inputFiles = new ArrayList<Path>();
-        
-        for(String path : inputPaths) {
-            Path inputFile = new Path(path);
-            FileSystem fs = inputFile.getFileSystem(conf);
-            FileStatus status = fs.getFileStatus(inputFile);
-            if (status.isDir()) {
-                FileStatus[] entries = fs.listStatus(inputFile);
-                for (FileStatus entry : entries) {
-                    if (filter.accept(entry.getPath())) {
-                        inputFiles.add(entry.getPath());
-                    }
-                }
-            } else {
-                if (filter.accept(inputFile)) {
-                    inputFiles.add(inputFile);
-                }
-            }
-        }
-        
-        Path[] files = inputFiles.toArray(new Path[0]);
-        return files;
+    public static Path[] getAllFastaFilePaths(Configuration conf, String[] inputPaths) throws IOException {
+        return getAllFastaFilePaths(conf, makePathFromString(inputPaths));
     }
     
-    public static Path[] getAllInputPaths(Configuration conf, Path[] inputPaths, PathFilter filter) throws IOException {
+    public static Path[] getAllFastaFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
         List<Path> inputFiles = new ArrayList<Path>();
+        FastaPathFilter filter = new FastaPathFilter();
         
         for(Path path : inputPaths) {
             FileSystem fs = path.getFileSystem(conf);
@@ -106,6 +88,70 @@ public class FileSystemHelper {
             } else {
                 if(filter.accept(path)) {
                     inputFiles.add(path);
+                }
+            }
+        }
+        
+        Path[] files = inputFiles.toArray(new Path[0]);
+        return files;
+    }
+    
+    public static Path[] getAllReadIDIndexFilePaths(Configuration conf, String[] inputPaths) throws IOException {
+        return getAllReadIDIndexFilePaths(conf, makePathFromString(inputPaths));
+    }
+    
+    public static Path[] getAllReadIDIndexFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
+        List<Path> inputFiles = new ArrayList<Path>();
+        ReadIDIndexPathFilter filter = new ReadIDIndexPathFilter();
+        
+        for(Path path : inputPaths) {
+            FileSystem fs = path.getFileSystem(conf);
+            FileStatus status = fs.getFileStatus(path);
+            if(status.isDir()) {
+                if(filter.accept(path)) {
+                    inputFiles.add(path);
+                } else {
+                    // check child
+                    FileStatus[] entries = fs.listStatus(path);
+                    for (FileStatus entry : entries) {
+                        if(entry.isDir()) {
+                            if (filter.accept(entry.getPath())) {
+                                inputFiles.add(entry.getPath());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Path[] files = inputFiles.toArray(new Path[0]);
+        return files;
+    }
+    
+    public static Path[] getAllKmerIndexFilePaths(Configuration conf, String[] inputPaths) throws IOException {
+        return getAllKmerIndexFilePaths(conf, makePathFromString(inputPaths));
+    }
+    
+    public static Path[] getAllKmerIndexFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
+        List<Path> inputFiles = new ArrayList<Path>();
+        KmerIndexPathFilter filter = new KmerIndexPathFilter();
+        
+        for(Path path : inputPaths) {
+            FileSystem fs = path.getFileSystem(conf);
+            FileStatus status = fs.getFileStatus(path);
+            if(status.isDir()) {
+                if(filter.accept(path)) {
+                    inputFiles.add(path);
+                } else {
+                    // check child
+                    FileStatus[] entries = fs.listStatus(path);
+                    for (FileStatus entry : entries) {
+                        if(entry.isDir()) {
+                            if (filter.accept(entry.getPath())) {
+                                inputFiles.add(entry.getPath());
+                            }
+                        }
+                    }
                 }
             }
         }
