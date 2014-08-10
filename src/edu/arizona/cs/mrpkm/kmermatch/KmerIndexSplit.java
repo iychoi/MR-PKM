@@ -17,6 +17,9 @@ public class KmerIndexSplit extends InputSplit implements Writable {
     private Path[] indexPaths;
     private KmerSequenceSlice slice;
 
+    public KmerIndexSplit() {    
+    }
+    
     public KmerIndexSplit(Path[] indexFilePaths, KmerSequenceSlice slice) {
         this.indexPaths = indexFilePaths;
         this.slice = slice;
@@ -50,8 +53,8 @@ public class KmerIndexSplit extends InputSplit implements Writable {
     @Override
     public void write(DataOutput out) throws IOException {
         out.writeInt(this.indexPaths.length);
-        for(int i=0;i<this.indexPaths.length;i++) {
-            Text.writeString(out, this.indexPaths[i].toString());
+        for (Path indexPath : this.indexPaths) {
+            Text.writeString(out, indexPath.toString());
         }
         this.slice.write(out);
     }
@@ -62,6 +65,7 @@ public class KmerIndexSplit extends InputSplit implements Writable {
         for(int i=0;i<this.indexPaths.length;i++) {
             this.indexPaths[i] = new Path(Text.readString(in));
         }
+        this.slice = new KmerSequenceSlice();
         this.slice.read(in);
     }
 

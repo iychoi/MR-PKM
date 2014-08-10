@@ -29,6 +29,11 @@ def dep():
             shutil.copy2(jar, copyto)
     print "done!"
 
+def removeOutDir():
+    #remove outdir
+    if os.path.exists('sample/output'):
+        shutil.rmtree('sample/output')
+
 def run(args):
     programargs = ""
     for x in range(0, len(args)):
@@ -38,18 +43,17 @@ def run(args):
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM " + programargs, shell=True)
 
 def runReadIDIndexBuilder():
-    #remove outdir
-    if os.path.exists('sample/output'):
-        shutil.rmtree('sample/output')
-
+    removeOutDir();
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder default test/sample/input/CP* test/sample/output", shell=True)
 
 def runKmerIndexBuilder():
-    #remove outdir
-    if os.path.exists('sample/output'):
-        shutil.rmtree('sample/output')
-
+    removeOutDir()
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder default false 20 1 test/sample/input/CP* test/sample/ridx test/sample/output", shell=True)
+
+def runPairwiseKmerModeCounter():
+    removeOutDir();
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter default 1 test/sample/kidx/ test/sample/output", shell=True)
+
 
 def main():
     if len(sys.argv) < 2:
@@ -57,6 +61,7 @@ def main():
         print "command : ./test.py dep"
         print "command : ./test.py ridx"
         print "command : ./test.py kidx"
+        print "command : ./test.py pkm"
     else:
         command = sys.argv[1]
 
@@ -68,6 +73,8 @@ def main():
             runReadIDIndexBuilder()
         elif command == "kidx":
             runKmerIndexBuilder()
+        elif command == "pkm" :
+            runPairwiseKmerModeCounter()
         else:
             print "invalid command"
 

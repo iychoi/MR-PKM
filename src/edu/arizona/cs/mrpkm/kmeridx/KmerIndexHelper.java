@@ -65,10 +65,16 @@ public class KmerIndexHelper {
     public static String getFastaFileName(String indexFileName) {
         int idx = indexFileName.lastIndexOf("." + OUTPUT_NAME_SUFFIX);
         if(idx >= 0) {
-            String part = indexFileName.substring(idx);
+            String part = indexFileName.substring(0, idx);
             int idx2 = part.lastIndexOf(".");
             if(idx2 >= 0) {
-                return part.substring(0, idx2);
+                String fastaFilePath = part.substring(0, idx2);
+                int idx3 = fastaFilePath.lastIndexOf("/");
+                if(idx3 >= 0) {
+                    return fastaFilePath.substring(idx3 + 1);
+                } else {
+                    return fastaFilePath;
+                }
             }
         }
         return null;
@@ -92,10 +98,14 @@ public class KmerIndexHelper {
         return false;
     }
     
+    public static int getKmerSize(Path indexFilePath) {
+        return getKmerSize(indexFilePath.getName());
+    }
+    
     public static int getKmerSize(String indexFileName) {
         int idx = indexFileName.lastIndexOf("." + OUTPUT_NAME_SUFFIX);
         if(idx >= 0) {
-            String part = indexFileName.substring(idx);
+            String part = indexFileName.substring(0, idx);
             int idx2 = part.lastIndexOf(".");
             if(idx2 >= 0) {
                 return Integer.parseInt(part.substring(idx2 + 1));
@@ -119,6 +129,7 @@ public class KmerIndexHelper {
                 } else {
                     groups.add(group.toArray(new Path[0]));
                     group.clear();
+                    group.add(path);
                 }
             }
         }

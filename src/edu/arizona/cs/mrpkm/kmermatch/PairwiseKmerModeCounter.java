@@ -1,7 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
-import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
@@ -47,7 +46,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             nodeSize = Integer.parseInt(args[0]);
             kmerIndexPath = args[1];
             outputPath = args[2];
-        } else if(args.length >= 7) {
+        } else if(args.length >= 4) {
             clusterConfiguration = args[0];
             nodeSize = Integer.parseInt(args[1]);
             kmerIndexPath = "";
@@ -60,19 +59,6 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             outputPath = args[args.length - 1];
         } else {
             throw new Exception("Argument is not properly given");
-        }
-        
-        // check kmerSize
-        String[] kmerIndexPaths = FileSystemHelper.splitCommaSeparated(kmerIndexPath);
-        kmerSize = -1;
-        for(String indexPath : kmerIndexPaths) {
-            if(kmerSize <= 0) {
-                kmerSize = KmerIndexHelper.getKmerSize(indexPath);
-            } else {
-                if(kmerSize != KmerIndexHelper.getKmerSize(indexPath)) {
-                    throw new Exception("kmer sizes of given index files are different");
-                }
-            }
         }
         
         Configuration conf = this.getConf();
@@ -101,6 +87,26 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         String[] paths = FileSystemHelper.splitCommaSeparated(kmerIndexPath);
         Path[] inputFiles = FileSystemHelper.getAllKmerIndexFilePaths(conf, paths);
         
+        for(Path path : inputFiles) {
+            LOG.info("Input : " + path);
+        }
+        
+        // check kmerSize
+        kmerSize = -1;
+        for(Path indexPath : inputFiles) {
+            if(kmerSize <= 0) {
+                kmerSize = KmerIndexHelper.getKmerSize(indexPath);
+            } else {
+                if(kmerSize != KmerIndexHelper.getKmerSize(indexPath)) {
+                    throw new Exception("kmer sizes of given index files are different");
+                }
+            }
+        }
+        
+        if(kmerSize <= 0) {
+            throw new Exception("kmer size is not properly set");
+        }
+        
         KmerMatchInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         KmerMatchInputFormat.setKmerSize(job, kmerSize);
         KmerMatchInputFormat.setSliceNum(job, nodeSize * 100);
@@ -126,7 +132,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             }
         }
         
-        job.setInputFormatClass(FastaReadInputFormat.class);
+        job.setInputFormatClass(KmerMatchInputFormat.class);
 
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
         
