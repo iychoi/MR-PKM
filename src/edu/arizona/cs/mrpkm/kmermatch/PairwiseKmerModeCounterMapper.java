@@ -29,6 +29,7 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
     
     @Override
     protected void map(CompressedSequenceWritable key, KmerMatchResult value, Context context) throws IOException, InterruptedException {
+        Configuration conf = context.getConfiguration();
         CompressedIntArrayWritable[] vals = value.getVals();
         if(vals.length <= 1) {
             throw new IOException("Number of pairwise match result must be larger than 1");
@@ -80,10 +81,29 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                         
                         int bigger = Math.max(forward, backward);
                         
-                        int[] arr = new int[2];
-                        arr[0] = bigger;
-                        arr[1] = 1;
-                        context.write(new MultiFileReadIDWritable(namedoutputID, readID), new CompressedIntArrayWritable(arr));
+                        // apply filter
+                        int matchFilterMin = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), -1);
+                        int matchFilterMax = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), -1);
+                        
+                        boolean filtered = false;
+                        if(matchFilterMin > 0) {
+                            if(bigger < matchFilterMin) {
+                                filtered = true;
+                            }
+                        }
+                        
+                        if(matchFilterMax > 0) {
+                            if(bigger > matchFilterMax) {
+                                filtered = true;
+                            }
+                        }
+                        
+                        if(!filtered) {
+                            int[] arr = new int[2];
+                            arr[0] = bigger;
+                            arr[1] = 1;
+                            context.write(new MultiFileReadIDWritable(namedoutputID, readID), new CompressedIntArrayWritable(arr));
+                        }
                     }
                 }
             }

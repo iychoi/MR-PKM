@@ -40,6 +40,8 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         String outputPath = null;
         int kmerSize = 0;
         int nodeSize = 0;
+        int matchFilterMin = 1;
+        int matchFilterMax = 999;
         
         if(args.length == 3) {
             clusterConfiguration = "default";
@@ -66,6 +68,9 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         // configuration
         MRClusterConfiguration clusterConfig = MRClusterConfiguration.findConfiguration(clusterConfiguration);
         clusterConfig.setConfiguration(conf);
+        
+        conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), matchFilterMin);
+        conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), matchFilterMax);
 
         Job job = new Job(conf, "Pairwise Kmer Mode Counter");
         job.setJarByClass(PairwiseKmerModeCounter.class);
