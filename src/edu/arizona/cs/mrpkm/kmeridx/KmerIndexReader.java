@@ -19,7 +19,9 @@ public class KmerIndexReader implements Closeable {
     
     private static final Log LOG = LogFactory.getLog(KmerIndexReader.class);
         
+    private FileSystem fs;
     private String[] indexPaths;
+    private Configuration conf;
     private MapFile.Reader[] mapfileReaders;
     
     private CompressedSequenceWritable currentKey = null;
@@ -35,7 +37,9 @@ public class KmerIndexReader implements Closeable {
     }
     
     private void initialize(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
+        this.fs = fs;
         this.indexPaths = indexPaths;
+        this.conf = conf;
 
         // create new AugMapFile readers
         this.mapfileReaders = new MapFile.Reader[indexPaths.length];
@@ -79,6 +83,13 @@ public class KmerIndexReader implements Closeable {
             }
         }
     }
+    
+    public void reset() throws IOException {
+        for(int i=0;i<this.mapfileReaders.length;i++) {
+            this.mapfileReaders[i].reset();
+        }
+        fillKV();
+    }
 
     @Override
     public void close() throws IOException {
@@ -118,15 +129,7 @@ public class KmerIndexReader implements Closeable {
         return records;
     }
     
-    public CompressedSequenceWritable getCurrentKey() {
-        return this.currentKey;
-    }
-    
-    public CompressedIntArrayWritable getCurrentValue() {
-        return this.currentVal;
-    }
-    
-    public boolean next() throws IOException {
+    public boolean next(CompressedSequenceWritable key, CompressedIntArrayWritable val) throws IOException {
         if(this.currentIndex < 0) {
             this.currentKey = null;
             this.currentVal = null;
@@ -136,12 +139,12 @@ public class KmerIndexReader implements Closeable {
         this.currentKey = this.keys[this.currentIndex];
         this.currentVal = this.vals[this.currentIndex];
         
-        CompressedSequenceWritable key = new CompressedSequenceWritable();
-        CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+        CompressedSequenceWritable myKey = new CompressedSequenceWritable();
+        CompressedIntArrayWritable myVal = new CompressedIntArrayWritable();
         
-        if(this.mapfileReaders[this.currentIndex].next(key, val)) {
-            this.keys[this.currentIndex] = key;
-            this.vals[this.currentIndex] = val;
+        if(this.mapfileReaders[this.currentIndex].next(myKey, myVal)) {
+            this.keys[this.currentIndex] = myKey;
+            this.vals[this.currentIndex] = myVal;
         } else {
             this.keys[this.currentIndex] = null;
             this.vals[this.currentIndex] = null;
@@ -162,6 +165,9 @@ public class KmerIndexReader implements Closeable {
                 }
             }
         }
+        
+        key.set(this.currentKey);
+        val.set(this.currentVal);
         
         if(this.currentKey != null) {
             return true;

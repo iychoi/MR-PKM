@@ -41,6 +41,11 @@ public class CompressedSequenceWritable extends BinaryComparable implements Writ
         this.compressedSequence = SequenceHelper.compress(sequence);
         this.seqLength = sequence.length();
     }
+    
+    public void set(CompressedSequenceWritable that) throws IOException {
+        this.compressedSequence = that.compressedSequence;
+        this.seqLength = that.seqLength;
+    }
 
     /**
      * Return the value.

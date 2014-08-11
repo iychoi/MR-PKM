@@ -45,6 +45,11 @@ public class CompressedIntArrayWritable extends BinaryComparable implements Writ
         this.intArray = arr;
         this.prevBytes = null;
     }
+    
+    public void set(CompressedIntArrayWritable that) {
+        this.intArray = that.intArray;
+        this.prevBytes = that.prevBytes;
+    }
 
     /**
      * Return the value.

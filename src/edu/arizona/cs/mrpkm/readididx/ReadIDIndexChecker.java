@@ -34,15 +34,21 @@ public class ReadIDIndexChecker extends Configured implements Tool {
         ReadIDIndexReader reader = new ReadIDIndexReader(fs, indexPathString, conf);
         
         LOG.info("ReadID Index File : " + reader.getIndexPath());
-        LOG.info("Total # of ReadID Index Entries : " + reader.getEntryNum());
-        LOG.info("Entry Info");
+        
+        LongWritable key = new LongWritable();
+        IntWritable val = new IntWritable();
+        int count = 0;
+        while(reader.next(key, val)) {
+            count++;
+        }
         
         reader.reset();
-        LongWritable key = new LongWritable();
-        IntWritable value = new IntWritable();
         
-        while(reader.next(key, value)) {
-            LOG.info("> " + key.get() + " - " + value.get());
+        LOG.info("Total # of ReadID Index Entries : " + count);
+        LOG.info("Entry Info");
+        
+        while(reader.next(key, val)) {
+            LOG.info("> " + key.get() + " - " + val.get());
         }
         
         reader.close();

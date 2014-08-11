@@ -131,9 +131,11 @@ public class KmerLinearMatcher {
         if(!this.stepStarted) {
             for(int i=0;i<this.readers.length;i++) {
                 // fill first
-                if(this.readers[i].next()) {
-                    this.stepKeys[i] = this.readers[i].getCurrentKey();
-                    this.stepVals[i] = this.readers[i].getCurrentValue();
+                CompressedSequenceWritable key = new CompressedSequenceWritable();
+                CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+                if(this.readers[i].next(key, val)) {
+                    this.stepKeys[i] = key;
+                    this.stepVals[i] = val;
                     hasKey = true;
                 } else {
                     this.stepKeys[i] = null;
@@ -171,10 +173,12 @@ public class KmerLinearMatcher {
             if (minKey != null) {
                 // move min pointers
                 for(int idx : minKeyIndice) {
-                    if(this.readers[idx].next()) {
-                        if(this.slice.getEndKmer().compareTo(this.readers[idx].getCurrentKey().getSequence()) >= 0) {
-                            this.stepKeys[idx] = this.readers[idx].getCurrentKey();
-                            this.stepVals[idx] = this.readers[idx].getCurrentValue();
+                    CompressedSequenceWritable key = new CompressedSequenceWritable();
+                    CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+                    if(this.readers[idx].next(key, val)) {
+                        if(this.slice.getEndKmer().compareTo(key.getSequence()) >= 0) {
+                            this.stepKeys[idx] = key;
+                            this.stepVals[idx] = val;
                             hasKey = true;
                         } else {
                             this.stepKeys[idx] = null;
