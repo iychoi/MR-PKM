@@ -9,7 +9,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 
 /**
@@ -38,7 +37,7 @@ public class KmerIndexReader implements Closeable {
     private void initialize(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
         this.indexPaths = indexPaths;
 
-        // create new MapFile readers
+        // create new AugMapFile readers
         this.mapfileReaders = new MapFile.Reader[indexPaths.length];
         for(int i=0;i<indexPaths.length;i++) {
             this.mapfileReaders[i] = new MapFile.Reader(fs, indexPaths[i], conf);

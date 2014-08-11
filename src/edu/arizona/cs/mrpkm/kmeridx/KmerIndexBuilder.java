@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
+import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
