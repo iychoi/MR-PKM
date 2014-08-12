@@ -16,10 +16,14 @@ import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
+import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
+import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -204,11 +208,11 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         boolean result = job.waitForCompletion(true);
 
         // commit results
-        //commit(new Path(outputPath), conf, namedOutputs, kmerSize);
+        commit(new Path(outputPath), conf, namedOutputs, kmerSize);
         
         return result ? 0 : 1;
     }
-    /*
+    
     private void commit(Path outputPath, Configuration conf, NamedOutputs namedOutputs, int kmerSize) throws IOException {
         FileSystem fs = outputPath.getFileSystem(conf);
         
@@ -226,7 +230,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath);
                     if(namedOutput != null) {
                         int reduceID = MapReduceHelper.getReduceID(entryPath);
-                        Path toPath = new Path(entryPath.getParent(), namedOutput.getInputString().getName() + "." + kmerSize + "." + KmerIndexConstants.NAMED_OUTPUT_NAME_SUFFIX + "." + reduceID);
+                        Path toPath = new Path(entryPath.getParent(), namedOutput.getInputString() + ".PKM." + reduceID);
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());
@@ -238,7 +242,6 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             throw new IOException("path not found : " + outputPath.toString());
         }
     }
-    */
 
     private void printHelp(CommandLineArgumentParser parser) {
         System.out.println(parser.getHelpMessage());
