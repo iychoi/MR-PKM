@@ -44,15 +44,15 @@ def run(args):
 
 def runReadIDIndexBuilder():
     removeOutDir();
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder default test/sample/input/CP* test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder test/sample/input/ test/sample/output", shell=True)
 
 def runKmerIndexBuilder():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder default false 20 1 test/sample/input/CP* test/sample/ridx test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder --k 20 --i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
 def runPairwiseKmerModeCounter():
     removeOutDir();
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter default 1 test/sample/kidx/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter test/sample/kidx test/sample/output", shell=True)
 
 
 def main():

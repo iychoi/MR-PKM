@@ -1,5 +1,10 @@
 package edu.arizona.cs.mrpkm.readididx;
 
+import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.SinglePathArgumentParser;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -27,7 +32,34 @@ public class ReadIDIndexChecker extends Configured implements Tool {
     public int run(String[] args) throws Exception {
         Configuration conf = this.getConf();
         
-        String indexPathString = args[0];
+        String indexPathString = null;
+        
+        // parse command line
+        HelpArgumentParser helpParser = new HelpArgumentParser();
+        SinglePathArgumentParser pathParser = new SinglePathArgumentParser();
+        
+        CommandLineArgumentParser parser = new CommandLineArgumentParser();
+        parser.addArgumentParser(helpParser);
+        parser.addArgumentParser(pathParser);
+        ArgumentParserBase[] parsers = null;
+        try {
+            parsers = parser.parse(args);
+        } catch(ArgumentParseException ex) {
+            System.err.println(ex);
+            return -1;
+        }
+        
+        for(ArgumentParserBase base : parsers) {
+            if(base == helpParser) {
+                if(helpParser.getValue()) {
+                    printHelp(parser);
+                    return 0;
+                }
+            } else if(base == pathParser) {
+                indexPathString = pathParser.getValue();
+            }
+        }
+        
         Path indexPath = new Path(indexPathString);
         FileSystem fs = indexPath.getFileSystem(conf);
         
@@ -53,5 +85,9 @@ public class ReadIDIndexChecker extends Configured implements Tool {
         
         reader.close();
         return 0;
+    }
+
+    private void printHelp(CommandLineArgumentParser parser) {
+        System.out.println(parser.getHelpMessage());
     }
 }

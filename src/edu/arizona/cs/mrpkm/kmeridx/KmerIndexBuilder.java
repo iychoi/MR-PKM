@@ -1,7 +1,16 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
+import edu.arizona.cs.mrpkm.cluster.MRClusterConfigurationBase;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.IndexSearchPathArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.KmerSizeArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.NodeSizeArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MROutputFormatArgumentParser;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -21,7 +30,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -41,44 +49,76 @@ public class KmerIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        String clusterConfiguration = null;
-        String inputPath = null;
-        String readIDIndexPath = null;
-        String outputPath = null;
-        int kmerSize = 0;
-        int nodeSize = 0;
-        boolean useBloomMap = false;
-        
-        if(args.length == 6) {
-            clusterConfiguration = "default";
-            useBloomMap = Boolean.parseBoolean(args[0]);
-            kmerSize = Integer.parseInt(args[1]);
-            nodeSize = Integer.parseInt(args[2]);
-            inputPath = args[3];
-            readIDIndexPath = args[4];
-            outputPath = args[5];
-        } else if(args.length >= 7) {
-            clusterConfiguration = args[0];
-            useBloomMap = Boolean.parseBoolean(args[1]);
-            kmerSize = Integer.parseInt(args[2]);
-            nodeSize = Integer.parseInt(args[3]);
-            inputPath = "";
-            for(int i=4;i<args.length-2;i++) {
-                if(!inputPath.equals("")) {
-                    inputPath += ",";
-                }
-                inputPath += args[i];
-            }
-            readIDIndexPath = args[args.length - 2];
-            outputPath = args[args.length - 1];
-        } else {
-            throw new Exception("Argument is not properly given");
-        }
-        
         Configuration conf = this.getConf();
         
+        int kmerSize = 0;
+        int nodeSize = 0;
+        Class outputFormat = null;
+        String readIDIndexPath = null;
+        String inputPath = null;
+        String outputPath = null;
+        MRClusterConfigurationBase clusterConfig = null;
+        
+        // parse command line
+        HelpArgumentParser helpParser = new HelpArgumentParser();
+        ClusterConfigurationArgumentParser clusterParser = new ClusterConfigurationArgumentParser();
+        KmerSizeArgumentParser kmerSizeParser = new KmerSizeArgumentParser();
+        NodeSizeArgumentParser nodeSizeParser = new NodeSizeArgumentParser();
+        MROutputFormatArgumentParser outputFormatParser = new MROutputFormatArgumentParser();
+        IndexSearchPathArgumentParser indexSearchPathParser = new IndexSearchPathArgumentParser();
+        MultiPathArgumentParser pathParser = new MultiPathArgumentParser(2);
+        
+        CommandLineArgumentParser parser = new CommandLineArgumentParser();
+        parser.addArgumentParser(helpParser);
+        parser.addArgumentParser(clusterParser);
+        parser.addArgumentParser(kmerSizeParser);
+        parser.addArgumentParser(nodeSizeParser);
+        parser.addArgumentParser(outputFormatParser);
+        parser.addArgumentParser(indexSearchPathParser);
+        parser.addArgumentParser(pathParser);
+        ArgumentParserBase[] parsers = null;
+        try {
+            parsers = parser.parse(args);
+        } catch(ArgumentParseException ex) {
+            System.err.println(ex);
+            return -1;
+        }
+        
+        for(ArgumentParserBase base : parsers) {
+            if(base == helpParser) {
+                if(helpParser.getValue()) {
+                    printHelp(parser);
+                    return 0;
+                }
+            } else if(base == clusterParser) {
+                clusterConfig = clusterParser.getValue();
+            } else if(base == kmerSizeParser) {
+                kmerSize = kmerSizeParser.getValue();
+            } else if(base == nodeSizeParser) {
+                nodeSize = nodeSizeParser.getValue();
+            } else if(base == outputFormatParser) {
+                outputFormat = outputFormatParser.getValue();
+            } else if(base == indexSearchPathParser) {
+                readIDIndexPath = indexSearchPathParser.getValue();
+            } else if(base == pathParser) {
+                String[] paths = pathParser.getValue();
+                if (paths.length == 2) {
+                    inputPath = paths[0];
+                    outputPath = paths[1];
+                } else if (paths.length >= 3) {
+                    inputPath = "";
+                    for (int i = 0; i < paths.length - 2; i++) {
+                        if (!inputPath.equals("")) {
+                            inputPath += ",";
+                        }
+                        inputPath += paths[i];
+                    }
+                    outputPath = paths[paths.length - 1];
+                }
+            }
+        }
+        
         // configuration
-        MRClusterConfiguration clusterConfig = MRClusterConfiguration.findConfiguration(clusterConfiguration);
         clusterConfig.setConfiguration(conf);
 
         conf.setInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), kmerSize);
@@ -127,11 +167,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
             job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
             LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
             
-            if(useBloomMap) {
-                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), BloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
-            } else {
-                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
-            }
+            MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
             id++;
         }
         
@@ -174,5 +210,9 @@ public class KmerIndexBuilder extends Configured implements Tool {
         } else {
             throw new IOException("path not found : " + outputPath.toString());
         }
+    }
+
+    private void printHelp(CommandLineArgumentParser parser) {
+        System.out.println(parser.getHelpMessage());
     }
 }

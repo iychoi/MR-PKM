@@ -1,27 +1,25 @@
 package edu.arizona.cs.mrpkm.cluster;
 
 import edu.arizona.cs.mrpkm.utils.ClassHelper;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.hadoop.conf.Configuration;
 
 /**
  *
  * @author iychoi
  */
-public abstract class MRClusterConfiguration {
+public abstract class MRClusterConfigurationBase {
     
     private static String[] SEARCH_PACKAGES = {
         "edu.arizona.cs.mrpkm.cluster"
     };
     
-    public static MRClusterConfiguration findConfiguration(String configurationName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    public static MRClusterConfigurationBase findConfiguration(String configurationName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         if(configurationName.equalsIgnoreCase("default")) {
             configurationName = "Default";
         }
         
         Class clazz = ClassHelper.findClass("MRClusterConfiguration_" + configurationName, SEARCH_PACKAGES);
-        return (MRClusterConfiguration) ClassHelper.getClassInstance(clazz);
+        return (MRClusterConfigurationBase) ClassHelper.getClassInstance(clazz);
     }
     
     public void setConfiguration(Configuration conf) {

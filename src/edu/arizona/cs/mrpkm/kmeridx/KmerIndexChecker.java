@@ -1,5 +1,10 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
+import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -28,8 +33,34 @@ public class KmerIndexChecker extends Configured implements Tool {
     public int run(String[] args) throws Exception {
         Configuration conf = this.getConf();
         
-        String indexPathString = args[0];
-        String[] indexPathStrings = FileSystemHelper.splitCommaSeparated(indexPathString);
+        String indexPathStrings[] = null;
+        
+        // parse command line
+        HelpArgumentParser helpParser = new HelpArgumentParser();
+        MultiPathArgumentParser pathParser = new MultiPathArgumentParser();
+        
+        CommandLineArgumentParser parser = new CommandLineArgumentParser();
+        parser.addArgumentParser(helpParser);
+        parser.addArgumentParser(pathParser);
+        ArgumentParserBase[] parsers = null;
+        try {
+            parsers = parser.parse(args);
+        } catch(ArgumentParseException ex) {
+            System.err.println(ex);
+            return -1;
+        }
+        
+        for(ArgumentParserBase base : parsers) {
+            if(base == helpParser) {
+                if(helpParser.getValue()) {
+                    printHelp(parser);
+                    return 0;
+                }
+            } else if(base == pathParser) {
+                indexPathStrings = pathParser.getValue();
+            }
+        }
+        
         Path indexPath = new Path(indexPathStrings[0]);
         FileSystem fs = indexPath.getFileSystem(conf);
         
@@ -55,5 +86,9 @@ public class KmerIndexChecker extends Configured implements Tool {
         
         reader.close();
         return 0;
+    }
+
+    private void printHelp(CommandLineArgumentParser parser) {
+        System.out.println(parser.getHelpMessage());
     }
 }

@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.cluster;
  *
  * @author iychoi
  */
-public class MRClusterConfiguration_Default extends MRClusterConfiguration {
+public class MRClusterConfiguration_Default extends MRClusterConfigurationBase {
     
     private static final int CPU_CORE_PER_NODE = 1;
     

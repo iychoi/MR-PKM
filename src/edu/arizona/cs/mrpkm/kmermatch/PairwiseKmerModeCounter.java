@@ -1,6 +1,15 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
+import edu.arizona.cs.mrpkm.cluster.MRClusterConfigurationBase;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MatchHitMaxFilterArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MatchHitMinFilterArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.NodeSizeArgumentParser;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
@@ -35,38 +44,72 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        String clusterConfiguration = null;
-        String kmerIndexPath = null;
-        String outputPath = null;
-        int kmerSize = 0;
-        int nodeSize = 0;
-        int matchFilterMin = 1;
-        int matchFilterMax = 999;
-        
-        if(args.length == 3) {
-            clusterConfiguration = "default";
-            nodeSize = Integer.parseInt(args[0]);
-            kmerIndexPath = args[1];
-            outputPath = args[2];
-        } else if(args.length >= 4) {
-            clusterConfiguration = args[0];
-            nodeSize = Integer.parseInt(args[1]);
-            kmerIndexPath = "";
-            for(int i=2;i<args.length-1;i++) {
-                if(!kmerIndexPath.equals("")) {
-                    kmerIndexPath += ",";
-                }
-                kmerIndexPath += args[i];
-            }
-            outputPath = args[args.length - 1];
-        } else {
-            throw new Exception("Argument is not properly given");
-        }
-        
         Configuration conf = this.getConf();
         
+        int kmerSize = 0;
+        int nodeSize = 0;
+        int matchFilterMin = 0;
+        int matchFilterMax = 0;
+        String inputPath = null;
+        String outputPath = null;
+        MRClusterConfigurationBase clusterConfig = null;
+        
+        // parse command line
+        HelpArgumentParser helpParser = new HelpArgumentParser();
+        ClusterConfigurationArgumentParser clusterParser = new ClusterConfigurationArgumentParser();
+        NodeSizeArgumentParser nodeSizeParser = new NodeSizeArgumentParser();
+        MatchHitMinFilterArgumentParser minFilterParser = new MatchHitMinFilterArgumentParser();
+        MatchHitMaxFilterArgumentParser maxFilterParser = new MatchHitMaxFilterArgumentParser();
+        MultiPathArgumentParser pathParser = new MultiPathArgumentParser(2);
+        
+        CommandLineArgumentParser parser = new CommandLineArgumentParser();
+        parser.addArgumentParser(helpParser);
+        parser.addArgumentParser(clusterParser);
+        parser.addArgumentParser(nodeSizeParser);
+        parser.addArgumentParser(minFilterParser);
+        parser.addArgumentParser(maxFilterParser);
+        parser.addArgumentParser(pathParser);
+        ArgumentParserBase[] parsers = null;
+        try {
+            parsers = parser.parse(args);
+        } catch(ArgumentParseException ex) {
+            System.err.println(ex);
+            return -1;
+        }
+        
+        for(ArgumentParserBase base : parsers) {
+            if(base == helpParser) {
+                if(helpParser.getValue()) {
+                    printHelp(parser);
+                    return 0;
+                }
+            } else if(base == clusterParser) {
+                clusterConfig = clusterParser.getValue();
+            } else if(base == minFilterParser) {
+                matchFilterMin = minFilterParser.getValue();
+            } else if(base == maxFilterParser) {
+                matchFilterMax = maxFilterParser.getValue();
+            } else if(base == nodeSizeParser) {
+                nodeSize = nodeSizeParser.getValue();
+            } else if(base == pathParser) {
+                String[] paths = pathParser.getValue();
+                if (paths.length == 2) {
+                    inputPath = paths[0];
+                    outputPath = paths[1];
+                } else if (paths.length >= 3) {
+                    inputPath = "";
+                    for (int i = 0; i < paths.length - 2; i++) {
+                        if (!inputPath.equals("")) {
+                            inputPath += ",";
+                        }
+                        inputPath += paths[i];
+                    }
+                    outputPath = paths[paths.length - 1];
+                }
+            }
+        }
+        
         // configuration
-        MRClusterConfiguration clusterConfig = MRClusterConfiguration.findConfiguration(clusterConfiguration);
         clusterConfig.setConfiguration(conf);
         
         conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), matchFilterMin);
@@ -89,7 +132,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         job.setOutputValueClass(Text.class);
         
         // Inputs
-        String[] paths = FileSystemHelper.splitCommaSeparated(kmerIndexPath);
+        String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
         Path[] inputFiles = FileSystemHelper.getAllKmerIndexFilePaths(conf, paths);
         
         for(Path path : inputFiles) {
@@ -196,4 +239,8 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         }
     }
     */
+
+    private void printHelp(CommandLineArgumentParser parser) {
+        System.out.println(parser.getHelpMessage());
+    }
 }

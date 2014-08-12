@@ -12,6 +12,7 @@ import java.util.Hashtable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -26,12 +27,10 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
     private static final Log LOG = LogFactory.getLog(KmerIndexBuilderMapper.class);
     
     private int kmerSize;
-    private String readIDIndexPath;
-    
     private Hashtable<String, Integer> namedOutputIDCache;
-    private ReadIDIndexReader readIDIndexReader;
-    
     private int previousReadID = -1;
+    
+    private ReadIDIndexReader readIDIndexReader;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -41,17 +40,25 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
             throw new IOException("kmer size has to be a positive value");
         }
         
-        String[] readIDIndexPaths = conf.getStrings(KmerIndexHelper.getConfigurationKeyOfReadIDIndexPath(), "");
-        if(readIDIndexPaths.length != 1) {
-            throw new IOException("number of readIDIndexPaths is not 1");
-        }
-        this.readIDIndexPath = readIDIndexPaths[0];
-
         this.namedOutputIDCache = new Hashtable<String, Integer>();
         
         Path inputFilePath = ((FileSplit) context.getInputSplit()).getPath();
-        Path indexPath = new Path(this.readIDIndexPath, ReadIDIndexHelper.getReadIDIndexFileName(inputFilePath.getName()));
-        this.readIDIndexReader = new ReadIDIndexReader(indexPath.getFileSystem(conf), indexPath.toString(), conf);
+        String[] readIDIndexPaths = conf.getStrings(KmerIndexHelper.getConfigurationKeyOfReadIDIndexPath(), "");
+        boolean found = false;
+        for(String readIDIndexPath : readIDIndexPaths) {
+            // search index file
+            Path indexPath = new Path(readIDIndexPath, ReadIDIndexHelper.getReadIDIndexFileName(inputFilePath.getName()));
+            FileSystem fs = indexPath.getFileSystem(conf);
+            if(fs.exists(indexPath)) {
+                this.readIDIndexReader = new ReadIDIndexReader(fs, indexPath.toString(), conf);
+                found = true;
+                break;
+            }
+        }
+        
+        if(!found) {
+            throw new IOException("ReadIDIndex is not found in given index paths");
+        }
     }
     
     @Override

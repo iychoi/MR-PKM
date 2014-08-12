@@ -1,5 +1,8 @@
 package edu.arizona.cs.mrpkm;
 
+import edu.arizona.cs.mrpkm.kmeridx.KmerIndexBuilder;
+import edu.arizona.cs.mrpkm.kmermatch.PairwiseKmerModeCounter;
+import edu.arizona.cs.mrpkm.readididx.ReadIDIndexBuilder;
 import edu.arizona.cs.mrpkm.utils.ClassHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -27,48 +30,41 @@ public class MRPKM {
     }
     
     public static void main(String[] args) throws Exception {
-        ExecutionConfiguration ec = parseCommandLineArguments(args);
-        if(ec.isClassExecution()) {
-            // call a main function in the class
-            ClassExecutionConfiguration classExecution = ec.getClassExecution();
-            invokeClass(classExecution.getExecutionClass(), classExecution.getExecutionArgs());
-        } else if(ec.isParamExecution()) {
-            // run with command line options without class
-            ParamExecutionConfiguration paramExecution = ec.getParamExecution();
-            runWithParam(paramExecution);
-        } else if(ec.isHelp()) {
+        parseCommandLineArguments(args);
+    }
+
+    private static void parseCommandLineArguments(String[] args) throws Exception {
+        if(args.length == 0 || args[0].equalsIgnoreCase("h") || args[0].equalsIgnoreCase("help") 
+                || args[0].equalsIgnoreCase("-h") 
+                || args[0].equalsIgnoreCase("--h") || args[0].equalsIgnoreCase("--help")) {
             printHelp();
         } else {
-            // unknown
-            printHelp();   
-        }
-    }
+            String potentialClassName = args[0];
+            Class clazz = null;
+            try {
+                clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
+            } catch (ClassNotFoundException ex) {
+            }
 
-    private static ExecutionConfiguration parseCommandLineArguments(String[] args) throws Exception {
-        String potentialClassName = args[0];
-        Class clazz = null;
-        try {
-            clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
-        } catch (ClassNotFoundException ex) {
-        }
-        
-        if(clazz != null) {
-            String[] newArgs = new String[args.length-1];
-            System.arraycopy(args, 1, newArgs, 0, args.length-1);
-            ClassExecutionConfiguration cec = new ClassExecutionConfiguration(clazz, newArgs);
-            
-            return new ExecutionConfiguration(cec);
-        } else {
-            //TODO : do parse
-            // ParamExecutionConfiguration
-        }
-        
-        // help?
-        return new ExecutionConfiguration();
-    }
+            if(clazz == null) {
+                if(args[0].equalsIgnoreCase("ridx")) {
+                    clazz = ReadIDIndexBuilder.class;
+                } else if(args[0].equalsIgnoreCase("kidx")) {
+                    clazz = KmerIndexBuilder.class;
+                } else if(args[0].equalsIgnoreCase("pkm")) {
+                    clazz = PairwiseKmerModeCounter.class;
+                }
+            }
 
-    private static void runWithParam(ParamExecutionConfiguration paramExecution) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            if(clazz != null) {
+                String[] newArgs = new String[args.length-1];
+                System.arraycopy(args, 1, newArgs, 0, args.length-1);
+                // call a main function in the class
+                invokeClass(clazz, newArgs);
+            } else {
+                throw new Exception("Class name is not given properly");
+            }
+        }
     }
 
     private static void printHelp() {
@@ -76,7 +72,10 @@ public class MRPKM {
         System.out.println("MR-PKM : Pairwise K-mer Mode pipeline");
         System.out.println("============================================");
         System.out.println("Usage :");
-        System.out.println("> MR-PKM <class-name> <arguments ...>");
-        System.out.println("> MR-PKM <command line parameters ...>");
+        System.out.println("> MR-PKM <class-name|abbreviation> <arguments ...>");
+        System.out.println("Abbreviations :");
+        System.out.println("> ridx : ReadIDIndexBuilder");
+        System.out.println("> kidx : KmerIndexBuilder");
+        System.out.println("> pkm : PairwiseKmerModeCounter");
     }
 }

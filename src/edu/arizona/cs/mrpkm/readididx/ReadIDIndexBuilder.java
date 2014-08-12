@@ -1,6 +1,12 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration;
+import edu.arizona.cs.mrpkm.cluster.MRClusterConfigurationBase;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
+import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
 import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
@@ -41,32 +47,56 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        String clusterConfiguration = null;
-        String inputPath = null;
-        String outputPath = null;
-        
-        if(args.length == 2) {
-            clusterConfiguration = "default";
-            inputPath = args[0];
-            outputPath = args[1];
-        } else if(args.length >= 3) {
-            clusterConfiguration = args[0];
-            inputPath = "";
-            for(int i=1;i<args.length-1;i++) {
-                if(!inputPath.equals("")) {
-                    inputPath += ",";
-                }
-                inputPath += args[i];
-            }
-            outputPath = args[args.length - 1];
-        } else {
-            throw new Exception("Argument is not properly given");
-        }
-        
         Configuration conf = this.getConf();
         
+        String inputPath = null;
+        String outputPath = null;
+        MRClusterConfigurationBase clusterConfig = null;
+        
+        // parse command line
+        HelpArgumentParser helpParser = new HelpArgumentParser();
+        ClusterConfigurationArgumentParser clusterParser = new ClusterConfigurationArgumentParser();
+        MultiPathArgumentParser pathParser = new MultiPathArgumentParser(2);
+        
+        CommandLineArgumentParser parser = new CommandLineArgumentParser();
+        parser.addArgumentParser(helpParser);
+        parser.addArgumentParser(clusterParser);
+        parser.addArgumentParser(pathParser);
+        ArgumentParserBase[] parsers = null;
+        try {
+            parsers = parser.parse(args);
+        } catch(ArgumentParseException ex) {
+            System.err.println(ex);
+            return -1;
+        }
+        
+        for(ArgumentParserBase base : parsers) {
+            if(base == helpParser) {
+                if(helpParser.getValue()) {
+                    printHelp(parser);
+                    return 0;
+                }
+            } else if(base == clusterParser) {
+                clusterConfig = clusterParser.getValue();
+            } else if(base == pathParser) {
+                String[] paths = pathParser.getValue();
+                if (paths.length == 2) {
+                    inputPath = paths[0];
+                    outputPath = paths[1];
+                } else if (paths.length >= 3) {
+                    inputPath = "";
+                    for (int i = 0; i < paths.length - 2; i++) {
+                        if (!inputPath.equals("")) {
+                            inputPath += ",";
+                        }
+                        inputPath += paths[i];
+                    }
+                    outputPath = paths[paths.length - 1];
+                }
+            }
+        }
+        
         // configuration
-        MRClusterConfiguration clusterConfig = MRClusterConfiguration.findConfiguration(clusterConfiguration);
         clusterConfig.setConfiguration(conf);
         
         Job job = new Job(conf, "ReadID Index Builder");
@@ -155,5 +185,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         } else {
             throw new IOException("path not found : " + outputPath.toString());
         }
+    }
+
+    private void printHelp(CommandLineArgumentParser parser) {
+        System.out.println(parser.getHelpMessage());
     }
 }
