@@ -57,3 +57,18 @@ Command
 java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter <options> <input Kmer index paths> <output path>
 ```
 
+Performance Metrics
+-------------------
+
+ReadID Index Builder
+
+Number of MapReduce Nodes | FASTA File Size | Generated Index Size | Time Taken
+--- | --- | --- | ---
+3 | 22.14GB(4 files) | 2245.45MB | 11m17s
+
+
+Kmer Index Builder
+
+Number of MapReduce Nodes | FASTA File Size | Generated Index Size | Time Taken
+--- | --- | --- | ---
+3 | 22.14GB(4 files) | - | -
