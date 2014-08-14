@@ -33,10 +33,18 @@ public class KmerIndexReader implements Closeable {
     private int currentIndex;
     
     public KmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, conf);
+        initialize(fs, indexPaths, null, conf);
     }
     
-    private void initialize(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
+    public KmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, beginKey, conf);
+    }
+    
+    public KmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, new CompressedSequenceWritable(beginKey), conf);
+    }
+    
+    private void initialize(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
         this.fs = fs;
         this.indexPaths = indexPaths;
         this.conf = conf;
@@ -45,6 +53,9 @@ public class KmerIndexReader implements Closeable {
         this.mapfileReaders = new MapFile.Reader[indexPaths.length];
         for(int i=0;i<indexPaths.length;i++) {
             this.mapfileReaders[i] = new MapFile.Reader(fs, indexPaths[i], conf);
+            if(beginKey != null) {
+                mapfileReaders[i].seek(beginKey);
+            }
         }
         
         this.keys = new CompressedSequenceWritable[indexPaths.length];
@@ -81,6 +92,10 @@ public class KmerIndexReader implements Closeable {
                     }
                 }
             }
+        }
+        
+        if(this.currentIndex < 0) {
+            LOG.info("Could not found min key");
         }
     }
     
@@ -121,9 +136,9 @@ public class KmerIndexReader implements Closeable {
     public KmerRecord[] getCurrentRecords() {
         int[] values = this.currentVal.get();
         KmerRecord[] records = new KmerRecord[values.length];
-        
+        String sequence = this.currentKey.getSequence();
         for(int i=0;i<values.length;i++) {
-            records[i] = new KmerRecord(this.currentKey.getSequence(), values[i]);
+            records[i] = new KmerRecord(sequence, values[i]);
         }
         
         return records;

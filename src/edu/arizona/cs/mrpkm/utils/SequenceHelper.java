@@ -1,6 +1,7 @@
 package edu.arizona.cs.mrpkm.utils;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 /**
  *
@@ -146,5 +147,47 @@ public class SequenceHelper {
         }
         
         return new String(byteArr);
+    }
+    
+    public static BigInteger convertToBigInteger(String sequence) {
+        BigInteger biSequence = BigInteger.ZERO;
+        int kmerSize = sequence.length();
+        for(int i=kmerSize-1;i>=0;i--) {
+            char ch = sequence.charAt(i);
+            if(ch == 'A') {
+                biSequence.add(BigInteger.valueOf(0));
+            } else if(ch == 'C') {
+                biSequence.add(BigInteger.valueOf(1));
+            } else if(ch == 'G') {
+                biSequence.add(BigInteger.valueOf(2));
+            } else if(ch == 'T') {
+                biSequence.add(BigInteger.valueOf(3));
+            }
+            
+            if(i > 0) {
+                biSequence = biSequence.multiply(BigInteger.valueOf(4));
+            }
+        }
+        
+        return biSequence;
+    }
+    
+    public static String convertToString(BigInteger biSequence, int kmerSize) {
+        String str = "";
+        for(int i=0;i<kmerSize;i++) {
+            int idx = biSequence.mod(BigInteger.valueOf(4)).intValue();
+            if(idx == 0) {
+                str = "A" + str;
+            } else if(idx == 1) {
+                str = "C" + str;
+            } else if(idx == 2) {
+                str = "G" + str;
+            } else if(idx == 3) {
+                str = "T" + str;
+            }
+            biSequence = biSequence.divide(BigInteger.valueOf(4));
+        }
+        
+        return str;
     }
 }

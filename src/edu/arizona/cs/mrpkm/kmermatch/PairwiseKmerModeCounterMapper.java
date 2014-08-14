@@ -19,12 +19,16 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
     private static final Log LOG = LogFactory.getLog(PairwiseKmerModeCounterMapper.class);
     
     private Hashtable<String, Integer> namedOutputIDCache;
+    private int matchFilterMin = 0;
+    private int matchFilterMax = 0;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         
         this.namedOutputIDCache = new Hashtable<String, Integer>();
+        this.matchFilterMin = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), 0);
+        this.matchFilterMax = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), 0);
     }
     
     @Override
@@ -35,13 +39,33 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
             throw new IOException("Number of pairwise match result must be larger than 1");
         }
         
+        int[] count_vals_pos = new int[vals.length];
+        int[] count_vals_neg = new int[vals.length];
+        
         for(int i=0;i<vals.length;i++) {
+            int pos = 0;
+            int neg = 0;
+            int[] ids = vals[i].get();
+            for(int j=0;j<ids.length;j++) {
+                if(j >= 0) {
+                    pos++;
+                } else {
+                    neg++;
+                }
+            }
+            count_vals_pos[i] = pos;
+            count_vals_neg[i] = neg;
+        }
+        
+        
+        for(int i=0;i<vals.length;i++) {
+            String thisFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[i][0]);
+            CompressedIntArrayWritable thisVal = vals[i];
+            int[] thisValInt = thisVal.get();
+            
             for(int j=0;j<vals.length;j++) {
                 if(i != j) {
-                    String thisFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[i][0]);
                     String thatFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[j][0]);
-                    
-                    CompressedIntArrayWritable thisVal = vals[i];
                     CompressedIntArrayWritable thatVal = vals[j];
                     
                     String matchOutputName = PairwiseKmerModeCounterHelper.getPairwiseModeCounterOutputName(thisFastaFileName, thatFastaFileName);
@@ -54,21 +78,13 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                         this.namedOutputIDCache.put(matchOutputName, namedoutputID);
                     }
                     
-                    int[] thisValInt = thisVal.get();
-                    int[] thatValInt = thatVal.get();
+                    int pos = count_vals_pos[j];
+                    int neg = count_vals_neg[j];
+                    
                     int forward = 0;
                     int backward = 0;
                     for(int k=0;k<thisValInt.length;k++) {
                         int readID = thisValInt[k];
-                        int pos = 0;
-                        int neg = 0;
-                        for(int l : thatValInt) {
-                            if(l >= 0) {
-                                pos++;
-                            } else {
-                                neg++;
-                            }
-                        }
                         
                         if(readID >= 0) {
                             forward = pos;
@@ -82,18 +98,15 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                         int bigger = Math.max(forward, backward);
                         
                         // apply filter
-                        int matchFilterMin = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), -1);
-                        int matchFilterMax = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), -1);
-                        
                         boolean filtered = false;
-                        if(matchFilterMin > 0) {
-                            if(bigger < matchFilterMin) {
+                        if(this.matchFilterMin > 0) {
+                            if(bigger < this.matchFilterMin) {
                                 filtered = true;
                             }
                         }
                         
-                        if(matchFilterMax > 0) {
-                            if(bigger > matchFilterMax) {
+                        if(this.matchFilterMax > 0) {
+                            if(bigger > this.matchFilterMax) {
                                 filtered = true;
                             }
                         }

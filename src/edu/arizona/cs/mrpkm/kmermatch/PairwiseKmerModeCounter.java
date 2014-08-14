@@ -10,6 +10,7 @@ import edu.arizona.cs.mrpkm.commandline.MatchHitMaxFilterArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.MatchHitMinFilterArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.NodeSizeArgumentParser;
+import edu.arizona.cs.mrpkm.commandline.SliceNumArgumentParser;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
@@ -52,6 +53,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         int kmerSize = 0;
         int nodeSize = 0;
+        int sliceNum = 0;
         int matchFilterMin = 0;
         int matchFilterMax = 0;
         String inputPath = null;
@@ -62,6 +64,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         HelpArgumentParser helpParser = new HelpArgumentParser();
         ClusterConfigurationArgumentParser clusterParser = new ClusterConfigurationArgumentParser();
         NodeSizeArgumentParser nodeSizeParser = new NodeSizeArgumentParser();
+        SliceNumArgumentParser sliceNumParser = new SliceNumArgumentParser();
         MatchHitMinFilterArgumentParser minFilterParser = new MatchHitMinFilterArgumentParser();
         MatchHitMaxFilterArgumentParser maxFilterParser = new MatchHitMaxFilterArgumentParser();
         MultiPathArgumentParser pathParser = new MultiPathArgumentParser(2);
@@ -70,6 +73,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         parser.addArgumentParser(helpParser);
         parser.addArgumentParser(clusterParser);
         parser.addArgumentParser(nodeSizeParser);
+        parser.addArgumentParser(sliceNumParser);
         parser.addArgumentParser(minFilterParser);
         parser.addArgumentParser(maxFilterParser);
         parser.addArgumentParser(pathParser);
@@ -95,6 +99,8 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
                 matchFilterMax = maxFilterParser.getValue();
             } else if(base == nodeSizeParser) {
                 nodeSize = nodeSizeParser.getValue();
+            } else if(base == sliceNumParser) {
+                sliceNum = sliceNumParser.getValue();
             } else if(base == pathParser) {
                 String[] paths = pathParser.getValue();
                 if (paths.length == 2) {
@@ -161,7 +167,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         KmerMatchInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         KmerMatchInputFormat.setKmerSize(job, kmerSize);
-        KmerMatchInputFormat.setSliceNum(job, nodeSize * 100);
+        KmerMatchInputFormat.setSliceNum(job, sliceNum);
         
         NamedOutputs namedOutputs = new NamedOutputs();
         Path[][] groups = KmerIndexHelper.groupKmerIndice(inputFiles);

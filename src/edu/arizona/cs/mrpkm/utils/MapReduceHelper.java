@@ -34,6 +34,8 @@ public class MapReduceHelper {
     public static boolean isLogFiles(Path path) {
         if(path.getName().equals("_SUCCESS")) {
             return true;
+        } else if(path.getName().equals("_logs")) {
+            return true;
         } else if(path.getName().startsWith("part-r-")) {
             return true;
         }

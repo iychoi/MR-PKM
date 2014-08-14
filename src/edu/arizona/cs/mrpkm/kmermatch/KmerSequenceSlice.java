@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -31,9 +32,6 @@ public class KmerSequenceSlice {
     }
     
     private void calc() {
-        String begin = "";
-        String end = "";
-        
         // calc 4^kmerSize
         BigInteger bi = BigInteger.valueOf(4).pow(this.kmerSize);
         
@@ -52,36 +50,8 @@ public class KmerSequenceSlice {
             slice_end = bi.subtract(BigInteger.ONE);
         }
         
-        for(int i=0;i<this.kmerSize;i++) {
-            int idx = slice_begin.mod(BigInteger.valueOf(4)).intValue();
-            if(idx == 0) {
-                begin = "A" + begin;
-            } else if(idx == 1) {
-                begin = "C" + begin;
-            } else if(idx == 2) {
-                begin = "G" + begin;
-            } else if(idx == 3) {
-                begin = "T" + begin;
-            }
-            slice_begin = slice_begin.divide(BigInteger.valueOf(4));
-        }
-        
-        for(int i=0;i<this.kmerSize;i++) {
-            int idx = slice_end.mod(BigInteger.valueOf(4)).intValue();
-            if(idx == 0) {
-                end = "A" + end;
-            } else if(idx == 1) {
-                end = "C" + end;
-            } else if(idx == 2) {
-                end = "G" + end;
-            } else if(idx == 3) {
-                end = "T" + end;
-            }
-            slice_end = slice_end.divide(BigInteger.valueOf(4));
-        }
-        
-        this.beginKmer = begin;
-        this.endKmer = end;
+        this.beginKmer = SequenceHelper.convertToString(slice_begin, this.kmerSize);
+        this.endKmer = SequenceHelper.convertToString(slice_end, this.kmerSize);
     }
     
     public int getKmerSize() {

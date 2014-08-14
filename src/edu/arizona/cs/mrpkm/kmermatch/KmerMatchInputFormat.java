@@ -57,9 +57,12 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         for (FileStatus file : files) {
             Path path = file.getPath();
             long length = file.getLen();
-            if(length > 0) {
-                indexFiles.add(path);
-            }
+            indexFiles.add(path);
+        }
+        
+        LOG.info("# of Split input file : " + indexFiles.size());
+        for(int i=0;i<indexFiles.size();i++) {
+            LOG.info("> " + indexFiles.get(i).toString());
         }
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);

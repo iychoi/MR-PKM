@@ -5,11 +5,14 @@ import edu.arizona.cs.mrpkm.kmeridx.KmerIndexReader;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
+import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -19,6 +22,11 @@ import org.apache.hadoop.fs.Path;
  * @author iychoi
  */
 public class KmerLinearMatcher {
+    
+    private static final Log LOG = LogFactory.getLog(KmerLinearMatcher.class);
+    
+    private static final int REPORT_FREQUENCY = 1000;
+    
     private Path[] inputIndexPaths;
     private KmerSequenceSlice slice;
     private Configuration conf;
@@ -26,6 +34,8 @@ public class KmerLinearMatcher {
     private KmerIndexReader[] readers;
     private BigInteger sliceSize;
     private BigInteger currentProgress;
+    private BigInteger beginSequence;
+    private CompressedSequenceWritable endSequence;
     
     private KmerMatchResult curMatch;
     private CompressedSequenceWritable[] stepKeys;
@@ -44,18 +54,24 @@ public class KmerLinearMatcher {
         
         Path[][] indice = KmerIndexHelper.groupKmerIndice(this.inputIndexPaths);
         this.readers = new KmerIndexReader[indice.length];
+        LOG.info("# of KmerIndexReader : " + indice.length);
         for(int i=0;i<indice.length;i++) {
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
-            this.readers[i] = new KmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.conf);
-            this.readers[i].seek(this.slice.getBeginKmer());
+            this.readers[i] = new KmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getBeginKmer(), this.conf);
         }
         
         this.sliceSize = slice.getSliceSize();
         this.currentProgress = BigInteger.ZERO;
+        this.beginSequence = SequenceHelper.convertToBigInteger(this.slice.getBeginKmer());
+        this.endSequence = new CompressedSequenceWritable(this.slice.getEndKmer());
         this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
         this.stepStarted = false;
+        
+        LOG.info("Matcher is initialized");
+        LOG.info("> Range " + this.slice.getBeginKmer() + " ~ " + this.slice.getEndKmer());
+        LOG.info("> Num of Slice Entries : " + this.slice.getSliceSize().longValue());
     }
     
     public void reset() throws IOException {
@@ -71,7 +87,8 @@ public class KmerLinearMatcher {
     }
     
     public boolean nextMatch() throws IOException {
-        while(this.sliceSize.compareTo(this.currentProgress) > 0) {
+        int report = 0;
+        while(true) {
             if(step()) {
                 // find min key to find matching keys
                 CompressedSequenceWritable minKey = null;
@@ -84,9 +101,12 @@ public class KmerLinearMatcher {
                             minKeyIndice.clear();
                             minKeyIndice.add(i);
                         } else {
-                            if (minKey.compareTo(this.stepKeys[i]) == 0) {
+                            int comp = minKey.compareTo(this.stepKeys[i]);
+                            if (comp == 0) {
+                                // found same min key
                                 minKeyIndice.add(i);
-                            } else if (minKey.compareTo(this.stepKeys[i]) > 0) {
+                            } else if (comp > 0) {
+                                // found smaller one
                                 minKey = this.stepKeys[i];
                                 minKeyIndice.clear();
                                 minKeyIndice.add(i);
@@ -98,9 +118,23 @@ public class KmerLinearMatcher {
                 if(minKey == null) {
                     //EOF
                     this.curMatch = null;
+                    this.currentProgress = this.sliceSize;
                     return false;
+                } else {
+                    if(minKey.compareTo(this.endSequence) > 0) {
+                        // no more
+                        this.curMatch = null;
+                        this.currentProgress = this.sliceSize;
+                        return false;
+                    }
                 }
 
+                report++;
+                if(report >= REPORT_FREQUENCY) {
+                    this.currentProgress = SequenceHelper.convertToBigInteger(minKey.getSequence()).subtract(this.beginSequence);
+                    report = 0;
+                }
+                
                 // check matching
                 if (minKeyIndice.size() > 1) {
                     CompressedIntArrayWritable[] minVals = new CompressedIntArrayWritable[minKeyIndice.size()];
@@ -118,12 +152,10 @@ public class KmerLinearMatcher {
                 }
             } else {
                 this.curMatch = null;
+                this.currentProgress = this.sliceSize;
                 return false;
             }
         }
-        
-        this.curMatch = null;
-        return false;
     }
     
     private boolean step() throws IOException {
@@ -157,9 +189,10 @@ public class KmerLinearMatcher {
                         minKeyIndice.clear();
                         minKeyIndice.add(i);
                     } else {
-                        if (minKey.compareTo(this.stepKeys[i]) == 0) {
+                        int comp = minKey.compareTo(this.stepKeys[i]);
+                        if (comp == 0) {
                             minKeyIndice.add(i);
-                        } else if (minKey.compareTo(this.stepKeys[i]) > 0) {
+                        } else if (comp > 0) {
                             minKey = this.stepKeys[i];
                             minKeyIndice.clear();
                             minKeyIndice.add(i);
@@ -176,14 +209,9 @@ public class KmerLinearMatcher {
                     CompressedSequenceWritable key = new CompressedSequenceWritable();
                     CompressedIntArrayWritable val = new CompressedIntArrayWritable();
                     if(this.readers[idx].next(key, val)) {
-                        if(this.slice.getEndKmer().compareTo(key.getSequence()) >= 0) {
-                            this.stepKeys[idx] = key;
-                            this.stepVals[idx] = val;
-                            hasKey = true;
-                        } else {
-                            this.stepKeys[idx] = null;
-                            this.stepVals[idx] = null;
-                        }
+                        this.stepKeys[idx] = key;
+                        this.stepVals[idx] = val;
+                        hasKey = true;
                     } else {
                         this.stepKeys[idx] = null;
                         this.stepVals[idx] = null;
