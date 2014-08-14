@@ -7,7 +7,6 @@ import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +40,7 @@ public class KmerLinearMatcher {
     private CompressedSequenceWritable[] stepKeys;
     private CompressedIntArrayWritable[] stepVals;
     private boolean stepStarted;
+    private int reportCounter;
 
     
     public KmerLinearMatcher(Path[] inputIndexPaths, KmerSequenceSlice slice, Configuration conf) throws IOException {
@@ -68,6 +68,7 @@ public class KmerLinearMatcher {
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
         this.stepStarted = false;
+        this.reportCounter = 0;
         
         LOG.info("Matcher is initialized");
         LOG.info("> Range " + this.slice.getBeginKmer() + " ~ " + this.slice.getEndKmer());
@@ -84,10 +85,10 @@ public class KmerLinearMatcher {
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
         this.stepStarted = false;
+        this.reportCounter = 0;
     }
     
     public boolean nextMatch() throws IOException {
-        int report = 0;
         while(true) {
             if(step()) {
                 // find min key to find matching keys
@@ -129,10 +130,10 @@ public class KmerLinearMatcher {
                     }
                 }
 
-                report++;
-                if(report >= REPORT_FREQUENCY) {
+                this.reportCounter++;
+                if(this.reportCounter >= REPORT_FREQUENCY) {
                     this.currentProgress = SequenceHelper.convertToBigInteger(minKey.getSequence()).subtract(this.beginSequence);
-                    report = 0;
+                    this.reportCounter = 0;
                 }
                 
                 // check matching
@@ -234,9 +235,11 @@ public class KmerLinearMatcher {
         if (this.sliceSize.compareTo(this.currentProgress) <= 0) {
             return 0.0f;
         } else {
-            BigDecimal off = new BigDecimal(this.currentProgress).setScale(2);
-            BigDecimal size = new BigDecimal(this.sliceSize).setScale(2);
-            return Math.min(1.0f, off.divide(size).floatValue());
+            BigInteger val100 = this.currentProgress.multiply(BigInteger.valueOf(100));
+            BigInteger divided = val100.divide(this.sliceSize);
+            float f = divided.floatValue();
+            
+            return Math.min(1.0f, f / 100.0f);
         }
     }
     
