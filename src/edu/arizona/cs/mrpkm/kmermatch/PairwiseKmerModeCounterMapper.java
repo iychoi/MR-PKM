@@ -9,13 +9,14 @@ import java.util.Hashtable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Mapper;
 
 /**
  *
  * @author iychoi
  */
-public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWritable, KmerMatchResult, MultiFileReadIDWritable, CompressedIntArrayWritable> {
+public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWritable, KmerMatchResult, MultiFileReadIDWritable, IntWritable> {
     private static final Log LOG = LogFactory.getLog(PairwiseKmerModeCounterMapper.class);
     
     private Hashtable<String, Integer> namedOutputIDCache;
@@ -112,10 +113,7 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                         }
                         
                         if(!filtered) {
-                            int[] arr = new int[2];
-                            arr[0] = bigger;
-                            arr[1] = 1;
-                            context.write(new MultiFileReadIDWritable(namedoutputID, readID), new CompressedIntArrayWritable(arr));
+                            context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(bigger));
                         }
                     }
                 }

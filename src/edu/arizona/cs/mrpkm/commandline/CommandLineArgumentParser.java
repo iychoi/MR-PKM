@@ -11,6 +11,7 @@ import java.util.List;
  */
 public class CommandLineArgumentParser {
     private Hashtable<String, ArgumentParserBase> argumentParserTable = new Hashtable<String, ArgumentParserBase>();
+    private List<ArgumentParserBase> argumentParserList = new ArrayList<ArgumentParserBase>();
     public final static String OPTION_PREFIX = "--";
     private final static String NULL_OPTION_KEY = "null";
     
@@ -30,6 +31,7 @@ public class CommandLineArgumentParser {
         }
 
         this.argumentParserTable.put(key, arg);
+        this.argumentParserList.add(arg);
     }
     
     private String getKeyFromOptionString(String option) throws ArgumentParseException {
@@ -66,7 +68,6 @@ public class CommandLineArgumentParser {
                 String[] argVals = new String[valLen];
                 System.arraycopy(args, i + 1, argVals, 0, valLen);
                 argParser.parse(argVals);
-                result.add(argParser);
                 processed.put(argParser.getKey(), argParser);
                 argsProcessed[i] = true;
                 for(int j=0;j<valLen;j++) {
@@ -81,7 +82,6 @@ public class CommandLineArgumentParser {
             if(argParser.getKey() != null) {
                 if(processed.get(argParser.getKey()) == null) {
                     if(argParser.hasDefault()) {
-                        result.add(argParser);
                         processed.put(argParser.getKey(), argParser);
                     }
                 }
@@ -104,7 +104,6 @@ public class CommandLineArgumentParser {
             }
             
             emptyKeyParser.parse(remains.toArray(new String[0]));
-            result.add(emptyKeyParser);
             processed.put(NULL_OPTION_KEY, emptyKeyParser);
         }
         
@@ -122,6 +121,18 @@ public class CommandLineArgumentParser {
                         throw new ArgumentParseException("mandatory option " + OPTION_PREFIX + argParser.getKey() + " is not given");
                     }
                 }
+            }
+        }
+        
+        // sort results to registered order
+        for(int i=0;i<this.argumentParserList.size();i++) {
+            String key = this.argumentParserList.get(i).getKey();
+            if(key == null) {
+                key = NULL_OPTION_KEY;
+            }
+            ArgumentParserBase apb = processed.get(key);
+            if(apb != null) {
+                result.add(apb);
             }
         }
         

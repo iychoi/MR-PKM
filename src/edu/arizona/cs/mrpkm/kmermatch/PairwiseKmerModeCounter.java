@@ -12,7 +12,6 @@ import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.NodeSizeArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.SliceNumArgumentParser;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
@@ -26,6 +25,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -99,6 +99,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
                 matchFilterMax = maxFilterParser.getValue();
             } else if(base == nodeSizeParser) {
                 nodeSize = nodeSizeParser.getValue();
+                sliceNumParser.setNodeSize(nodeSize);
             } else if(base == sliceNumParser) {
                 sliceNum = sliceNumParser.getValue();
             } else if(base == pathParser) {
@@ -130,12 +131,11 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
 
         // Identity Mapper & Reducer
         job.setMapperClass(PairwiseKmerModeCounterMapper.class);
-        job.setCombinerClass(PairwiseKmerModeCounterCombiner.class);
         job.setPartitionerClass(PairwiseKmerModeCounterPartitioner.class);
         job.setReducerClass(PairwiseKmerModeCounterReducer.class);
         
         job.setMapOutputKeyClass(MultiFileReadIDWritable.class);
-        job.setMapOutputValueClass(CompressedIntArrayWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
         
         // Specify key / value
         job.setOutputKeyClass(Text.class);

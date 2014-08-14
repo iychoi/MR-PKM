@@ -8,7 +8,9 @@ public class SliceNumArgumentParser extends ArgumentParserBase {
 
     private final static String KEY_STRING = "s";
     private final static int SLICE_NUM_DEFAULT = 1000;
+    private final static int SLICE_NUM_PER_NODE = 5;
     
+    private int nodeSize = 0;
     private int value;
     
     public SliceNumArgumentParser() {
@@ -58,11 +60,19 @@ public class SliceNumArgumentParser extends ArgumentParserBase {
 
     @Override
     public Integer getValue() {
-        return this.value;
+        if(this.nodeSize > 0) {
+            return this.nodeSize * SLICE_NUM_PER_NODE;
+        } else {
+            return this.value;
+        }
     }
 
     @Override
     public String getHelpMessage() {
         return CommandLineArgumentParser.OPTION_PREFIX + KEY_STRING + " : set slice num";
+    }
+
+    public void setNodeSize(int nodeSize) {
+        this.nodeSize = nodeSize;
     }
 }

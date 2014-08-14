@@ -1,12 +1,12 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.MutableInteger;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
@@ -15,7 +15,7 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
  *
  * @author iychoi
  */
-public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWritable, CompressedIntArrayWritable, Text, Text> {
+public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWritable, Text, Text> {
     private static final Log LOG = LogFactory.getLog(PairwiseKmerModeCounterReducer.class);
     
     private MultipleOutputs mos;
@@ -28,7 +28,7 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
     }
     
     @Override
-    protected void reduce(MultiFileReadIDWritable key, Iterable<CompressedIntArrayWritable> values, Context context) throws IOException, InterruptedException {
+    protected void reduce(MultiFileReadIDWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
         int namedoutputID = key.getFileID();
         String namedOutput = this.namedOutputCache.get(namedoutputID);
         if (namedOutput == null) {
@@ -45,14 +45,12 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
         // merge & find MODE
         Integer modeKey = null;
         MutableInteger modeVal = null;
-        for(CompressedIntArrayWritable value : values) {
-            int[] iValue = value.get();
-            int hit = iValue[0];
-            int cnt = iValue[1];
+        for(IntWritable value : values) {
+            int hit = value.get();
 
             MutableInteger cntExist = modeTable.get(hit);
             if(cntExist == null) {
-                MutableInteger mi = new MutableInteger(cnt);
+                MutableInteger mi = new MutableInteger(1);
                 modeTable.put(hit, mi);
                 if(modeKey == null) {
                     modeKey = hit;
@@ -65,7 +63,7 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
                 }
             } else {
                 // existing
-                cntExist.set(cntExist.get() + cnt);
+                cntExist.set(cntExist.get() + 1);
                 if(modeVal.get() < cntExist.get()) {
                     modeKey = hit;
                     modeVal = cntExist;

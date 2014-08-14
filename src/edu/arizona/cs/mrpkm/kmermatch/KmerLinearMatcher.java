@@ -133,8 +133,6 @@ public class KmerLinearMatcher {
                 this.reportCounter++;
                 if(this.reportCounter >= REPORT_FREQUENCY) {
                     this.currentProgress = SequenceHelper.convertToBigInteger(minKey.getSequence()).subtract(this.beginSequence);
-                    LOG.info("currentSequence : " + minKey.getSequence());
-                    LOG.info("currentProgress : " + this.currentProgress + "/" + this.sliceSize);
                     this.reportCounter = 0;
                 }
                 
@@ -235,7 +233,7 @@ public class KmerLinearMatcher {
     
     public float getProgress() {
         if (this.sliceSize.compareTo(this.currentProgress) <= 0) {
-            return 0.0f;
+            return 1.0f;
         } else {
             BigInteger val100 = this.currentProgress.multiply(BigInteger.valueOf(100));
             BigInteger divided = val100.divide(this.sliceSize);
