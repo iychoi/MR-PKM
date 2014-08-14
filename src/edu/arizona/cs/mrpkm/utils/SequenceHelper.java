@@ -152,19 +152,19 @@ public class SequenceHelper {
     public static BigInteger convertToBigInteger(String sequence) {
         BigInteger biSequence = BigInteger.ZERO;
         int kmerSize = sequence.length();
-        for(int i=kmerSize-1;i>=0;i--) {
+        for(int i=0;i<kmerSize;i++) {
             char ch = sequence.charAt(i);
             if(ch == 'A') {
-                biSequence.add(BigInteger.valueOf(0));
+                biSequence = biSequence.add(BigInteger.valueOf(0));
             } else if(ch == 'C') {
-                biSequence.add(BigInteger.valueOf(1));
+                biSequence = biSequence.add(BigInteger.valueOf(1));
             } else if(ch == 'G') {
-                biSequence.add(BigInteger.valueOf(2));
+                biSequence = biSequence.add(BigInteger.valueOf(2));
             } else if(ch == 'T') {
-                biSequence.add(BigInteger.valueOf(3));
+                biSequence = biSequence.add(BigInteger.valueOf(3));
             }
             
-            if(i > 0) {
+            if(i < kmerSize - 1) {
                 biSequence = biSequence.multiply(BigInteger.valueOf(4));
             }
         }

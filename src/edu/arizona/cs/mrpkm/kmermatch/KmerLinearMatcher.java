@@ -133,6 +133,8 @@ public class KmerLinearMatcher {
                 this.reportCounter++;
                 if(this.reportCounter >= REPORT_FREQUENCY) {
                     this.currentProgress = SequenceHelper.convertToBigInteger(minKey.getSequence()).subtract(this.beginSequence);
+                    LOG.info("currentSequence : " + minKey.getSequence());
+                    LOG.info("currentProgress : " + this.currentProgress + "/" + this.sliceSize);
                     this.reportCounter = 0;
                 }
                 
