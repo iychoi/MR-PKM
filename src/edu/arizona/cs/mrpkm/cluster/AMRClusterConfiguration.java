@@ -7,19 +7,19 @@ import org.apache.hadoop.conf.Configuration;
  *
  * @author iychoi
  */
-public abstract class MRClusterConfigurationBase {
+public abstract class AMRClusterConfiguration {
     
     private static String[] SEARCH_PACKAGES = {
         "edu.arizona.cs.mrpkm.cluster"
     };
     
-    public static MRClusterConfigurationBase findConfiguration(String configurationName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    public static AMRClusterConfiguration findConfiguration(String configurationName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         if(configurationName.equalsIgnoreCase("default")) {
             configurationName = "Default";
         }
         
         Class clazz = ClassHelper.findClass("MRClusterConfiguration_" + configurationName, SEARCH_PACKAGES);
-        return (MRClusterConfigurationBase) ClassHelper.getClassInstance(clazz);
+        return (AMRClusterConfiguration) ClassHelper.getClassInstance(clazz);
     }
     
     public void setConfiguration(Configuration conf) {

@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
-import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
@@ -42,7 +42,7 @@ public class KmerIndexChecker extends Configured implements Tool {
         CommandLineArgumentParser parser = new CommandLineArgumentParser();
         parser.addArgumentParser(helpParser);
         parser.addArgumentParser(pathParser);
-        ArgumentParserBase[] parsers = null;
+        AArgumentParser[] parsers = null;
         try {
             parsers = parser.parse(args);
         } catch(ArgumentParseException ex) {
@@ -50,7 +50,7 @@ public class KmerIndexChecker extends Configured implements Tool {
             return -1;
         }
         
-        for(ArgumentParserBase base : parsers) {
+        for(AArgumentParser base : parsers) {
             if(base == helpParser) {
                 if(helpParser.getValue()) {
                     printHelp(parser);
@@ -64,7 +64,7 @@ public class KmerIndexChecker extends Configured implements Tool {
         Path indexPath = new Path(indexPathStrings[0]);
         FileSystem fs = indexPath.getFileSystem(conf);
         
-        KmerIndexReader reader = new KmerIndexReader(fs, indexPathStrings, conf);
+        MultiKmerIndexReader reader = new MultiKmerIndexReader(fs, indexPathStrings, conf);
         
         LOG.info("Kmer Index Files : " + FileSystemHelper.makeCommaSeparated(reader.getIndexPaths()));
         

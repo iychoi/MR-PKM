@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class MatchHitMinFilterArgumentParser extends ArgumentParserBase {
+public class MatchHitMinFilterArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "min";
     private final static int MIN_DEFAULT = 0;

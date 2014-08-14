@@ -40,8 +40,7 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
             throw new IOException("Number of pairwise match result must be larger than 1");
         }
         
-        int[] count_vals_pos = new int[vals.length];
-        int[] count_vals_neg = new int[vals.length];
+        int[] count_vals_bigger = new int[vals.length];
         
         for(int i=0;i<vals.length;i++) {
             int pos = 0;
@@ -54,8 +53,7 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                     neg++;
                 }
             }
-            count_vals_pos[i] = pos;
-            count_vals_neg[i] = neg;
+            count_vals_bigger[i] = Math.max(pos, neg);
         }
         
         
@@ -67,7 +65,6 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
             for(int j=0;j<vals.length;j++) {
                 if(i != j) {
                     String thatFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[j][0]);
-                    CompressedIntArrayWritable thatVal = vals[j];
                     
                     String matchOutputName = PairwiseKmerModeCounterHelper.getPairwiseModeCounterOutputName(thisFastaFileName, thatFastaFileName);
                     Integer namedoutputID = this.namedOutputIDCache.get(matchOutputName);
@@ -79,40 +76,21 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                         this.namedOutputIDCache.put(matchOutputName, namedoutputID);
                     }
                     
-                    int pos = count_vals_pos[j];
-                    int neg = count_vals_neg[j];
+                    int bigger = count_vals_bigger[j];
                     
-                    int forward = 0;
-                    int backward = 0;
-                    for(int k=0;k<thisValInt.length;k++) {
-                        int readID = thisValInt[k];
-                        
-                        if(readID >= 0) {
-                            forward = pos;
-                            backward = neg;
-                        } else {
-                            forward = neg;
-                            backward = pos;
-                            readID *= -1;
-                        }
-                        
-                        int bigger = Math.max(forward, backward);
-                        
-                        // apply filter
-                        boolean filtered = false;
-                        if(this.matchFilterMin > 0) {
-                            if(bigger < this.matchFilterMin) {
-                                filtered = true;
-                            }
-                        }
-                        
-                        if(this.matchFilterMax > 0) {
-                            if(bigger > this.matchFilterMax) {
-                                filtered = true;
-                            }
-                        }
-                        
-                        if(!filtered) {
+                    // apply filter
+                    boolean filtered = false;
+                    if(this.matchFilterMin > 0 && bigger < this.matchFilterMin) {
+                        filtered = true;
+                    }
+
+                    if(this.matchFilterMax > 0 && bigger > this.matchFilterMax) {
+                        filtered = true;
+                    }
+                    
+                    if(!filtered) {
+                        for(int k=0;k<thisValInt.length;k++) {
+                            int readID = Math.abs(thisValInt[k]);
                             context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(bigger));
                         }
                     }

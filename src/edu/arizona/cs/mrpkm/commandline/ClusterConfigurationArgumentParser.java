@@ -1,16 +1,16 @@
 package edu.arizona.cs.mrpkm.commandline;
 
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfigurationBase;
+import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_Default;
 
 /**
  *
  * @author iychoi
  */
-public class ClusterConfigurationArgumentParser extends ArgumentParserBase {
+public class ClusterConfigurationArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "c";
-    private MRClusterConfigurationBase value;
+    private AMRClusterConfiguration value;
     
     public ClusterConfigurationArgumentParser() {
         this.value = new MRClusterConfiguration_Default();
@@ -23,7 +23,7 @@ public class ClusterConfigurationArgumentParser extends ArgumentParserBase {
 
     @Override
     public Class getValueType() {
-        return MRClusterConfigurationBase.class;
+        return AMRClusterConfiguration.class;
     }
 
     @Override
@@ -34,7 +34,7 @@ public class ClusterConfigurationArgumentParser extends ArgumentParserBase {
         
         try {
             String clusterConfigString = args[0];
-            this.value = MRClusterConfigurationBase.findConfiguration(clusterConfigString);
+            this.value = AMRClusterConfiguration.findConfiguration(clusterConfigString);
         } catch (NumberFormatException ex) {
             throw new ArgumentParseException("given arg is not in correct data type");
         } catch (ClassNotFoundException ex) {
@@ -62,7 +62,7 @@ public class ClusterConfigurationArgumentParser extends ArgumentParserBase {
     }
 
     @Override
-    public MRClusterConfigurationBase getValue() {
+    public AMRClusterConfiguration getValue() {
         return this.value;
     }
 

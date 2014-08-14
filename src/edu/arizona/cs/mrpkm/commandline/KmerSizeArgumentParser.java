@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class KmerSizeArgumentParser extends ArgumentParserBase {
+public class KmerSizeArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "k";
     private final static int KMER_SIZE_DEFAULT = 20;

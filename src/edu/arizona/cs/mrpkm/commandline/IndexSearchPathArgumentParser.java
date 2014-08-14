@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class IndexSearchPathArgumentParser extends ArgumentParserBase {
+public class IndexSearchPathArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "i";
     

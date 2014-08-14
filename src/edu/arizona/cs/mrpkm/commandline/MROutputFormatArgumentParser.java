@@ -7,7 +7,7 @@ import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
  *
  * @author iychoi
  */
-public class MROutputFormatArgumentParser extends ArgumentParserBase {
+public class MROutputFormatArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "f";
     private final static Class OUTPUT_FORMAT_CLASS_DEFAULT = MapFileOutputFormat.class;

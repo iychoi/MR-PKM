@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class MatchHitMaxFilterArgumentParser extends ArgumentParserBase {
+public class MatchHitMaxFilterArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "max";
     private final static int MAX_DEFAULT = 0;

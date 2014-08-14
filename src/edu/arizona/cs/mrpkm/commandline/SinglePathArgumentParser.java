@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class SinglePathArgumentParser extends EmptyKeyArgumentParserBase {
+public class SinglePathArgumentParser extends AEmptyKeyArgumentParser {
 
     private String value;
     

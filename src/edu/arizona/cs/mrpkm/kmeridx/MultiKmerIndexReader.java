@@ -1,9 +1,7 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.types.KmerRecord;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import java.io.Closeable;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,9 +13,9 @@ import org.apache.hadoop.io.MapFile;
  *
  * @author iychoi
  */
-public class KmerIndexReader implements Closeable {
+public class MultiKmerIndexReader extends AKmerIndexReader {
     
-    private static final Log LOG = LogFactory.getLog(KmerIndexReader.class);
+    private static final Log LOG = LogFactory.getLog(MultiKmerIndexReader.class);
         
     private FileSystem fs;
     private String[] indexPaths;
@@ -32,15 +30,15 @@ public class KmerIndexReader implements Closeable {
     
     private int currentIndex;
     
-    public KmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
         initialize(fs, indexPaths, null, conf);
     }
     
-    public KmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
         initialize(fs, indexPaths, beginKey, conf);
     }
     
-    public KmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, Configuration conf) throws IOException {
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, Configuration conf) throws IOException {
         initialize(fs, indexPaths, new CompressedSequenceWritable(beginKey), conf);
     }
     
@@ -49,7 +47,6 @@ public class KmerIndexReader implements Closeable {
         this.indexPaths = indexPaths;
         this.conf = conf;
 
-        // create new AugMapFile readers
         this.mapfileReaders = new MapFile.Reader[indexPaths.length];
         for(int i=0;i<indexPaths.length;i++) {
             this.mapfileReaders[i] = new MapFile.Reader(fs, indexPaths[i], conf);
@@ -68,7 +65,7 @@ public class KmerIndexReader implements Closeable {
         for(int i=0;i<this.indexPaths.length;i++) {
             CompressedSequenceWritable key = new CompressedSequenceWritable();
             CompressedIntArrayWritable val = new CompressedIntArrayWritable();
-            
+
             if(this.mapfileReaders[i].next(key, val)) {
                 this.keys[i] = key;
                 this.vals[i] = val;
@@ -77,7 +74,7 @@ public class KmerIndexReader implements Closeable {
                 this.vals[i] = null;
             }
         }
-        
+
         CompressedSequenceWritable minKey = null;
         this.currentIndex = -1;
         for(int i=0;i<this.keys.length;i++) {
@@ -99,6 +96,7 @@ public class KmerIndexReader implements Closeable {
         }
     }
     
+    @Override
     public void reset() throws IOException {
         for(int i=0;i<this.mapfileReaders.length;i++) {
             this.mapfileReaders[i].reset();
@@ -117,14 +115,17 @@ public class KmerIndexReader implements Closeable {
         }
     }
     
+    @Override
     public String[] getIndexPaths() {
         return this.indexPaths;
     }
     
+    @Override
     public void seek(String sequence) throws IOException {
         seek(new CompressedSequenceWritable(sequence));
     }
     
+    @Override
     public void seek(CompressedSequenceWritable key) throws IOException {
         for(MapFile.Reader reader : this.mapfileReaders) {
             reader.seek(key);
@@ -133,17 +134,7 @@ public class KmerIndexReader implements Closeable {
         fillKV();
     }
     
-    public KmerRecord[] getCurrentRecords() {
-        int[] values = this.currentVal.get();
-        KmerRecord[] records = new KmerRecord[values.length];
-        String sequence = this.currentKey.getSequence();
-        for(int i=0;i<values.length;i++) {
-            records[i] = new KmerRecord(sequence, values[i]);
-        }
-        
-        return records;
-    }
-    
+    @Override
     public boolean next(CompressedSequenceWritable key, CompressedIntArrayWritable val) throws IOException {
         if(this.currentIndex < 0) {
             this.currentKey = null;
@@ -164,7 +155,7 @@ public class KmerIndexReader implements Closeable {
             this.keys[this.currentIndex] = null;
             this.vals[this.currentIndex] = null;
         }
-        
+
         CompressedSequenceWritable minKey = null;
         this.currentIndex = -1;
         for(int i=0;i<this.keys.length;i++) {

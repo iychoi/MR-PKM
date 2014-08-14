@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class MultiPathArgumentParser extends EmptyKeyArgumentParserBase {
+public class MultiPathArgumentParser extends AEmptyKeyArgumentParser {
 
     private int minNum = 0;
     private int maxNum = 0; // unlimited

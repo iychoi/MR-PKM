@@ -1,8 +1,8 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfigurationBase;
+import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
-import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
@@ -58,7 +58,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         int matchFilterMax = 0;
         String inputPath = null;
         String outputPath = null;
-        MRClusterConfigurationBase clusterConfig = null;
+        AMRClusterConfiguration clusterConfig = null;
         
         // parse command line
         HelpArgumentParser helpParser = new HelpArgumentParser();
@@ -77,7 +77,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         parser.addArgumentParser(minFilterParser);
         parser.addArgumentParser(maxFilterParser);
         parser.addArgumentParser(pathParser);
-        ArgumentParserBase[] parsers = null;
+        AArgumentParser[] parsers = null;
         try {
             parsers = parser.parse(args);
         } catch(ArgumentParseException ex) {
@@ -85,7 +85,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             return -1;
         }
         
-        for(ArgumentParserBase base : parsers) {
+        for(AArgumentParser base : parsers) {
             if(base == helpParser) {
                 if(helpParser.getValue()) {
                     printHelp(parser);
@@ -99,7 +99,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
                 matchFilterMax = maxFilterParser.getValue();
             } else if(base == nodeSizeParser) {
                 nodeSize = nodeSizeParser.getValue();
-                sliceNumParser.setNodeSize(nodeSize);
+                sliceNumParser.setCoreSize(nodeSize*clusterConfig.getCoresPerMachine());
             } else if(base == sliceNumParser) {
                 sliceNum = sliceNumParser.getValue();
             } else if(base == pathParser) {

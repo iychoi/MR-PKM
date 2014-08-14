@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class HelpArgumentParser extends ArgumentParserBase {
+public class HelpArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "h";
     

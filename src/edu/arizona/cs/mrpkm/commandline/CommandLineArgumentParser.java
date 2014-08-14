@@ -10,8 +10,8 @@ import java.util.List;
  * @author iychoi
  */
 public class CommandLineArgumentParser {
-    private Hashtable<String, ArgumentParserBase> argumentParserTable = new Hashtable<String, ArgumentParserBase>();
-    private List<ArgumentParserBase> argumentParserList = new ArrayList<ArgumentParserBase>();
+    private Hashtable<String, AArgumentParser> argumentParserTable = new Hashtable<String, AArgumentParser>();
+    private List<AArgumentParser> argumentParserList = new ArrayList<AArgumentParser>();
     public final static String OPTION_PREFIX = "--";
     private final static String NULL_OPTION_KEY = "null";
     
@@ -19,13 +19,13 @@ public class CommandLineArgumentParser {
     
     }
     
-    public void addArgumentParser(ArgumentParserBase arg) throws Exception {
+    public void addArgumentParser(AArgumentParser arg) throws Exception {
         String key = arg.getKey();
         if(key == null) {
             key = NULL_OPTION_KEY;
         }
         
-        ArgumentParserBase existing = this.argumentParserTable.get(key);
+        AArgumentParser existing = this.argumentParserTable.get(key);
         if(existing != null) {
             throw new Exception("the same argument key (" + key + ") is already defined");
         }
@@ -42,20 +42,20 @@ public class CommandLineArgumentParser {
         return option.substring(OPTION_PREFIX.length());
     }
     
-    public ArgumentParserBase[] parse(String[] args) throws ArgumentParseException {
+    public AArgumentParser[] parse(String[] args) throws ArgumentParseException {
         boolean[] argsProcessed = new boolean[args.length];
         for(int i=0;i<argsProcessed.length;i++) {
             argsProcessed[i] = false;
         }
         
-        Hashtable<String, ArgumentParserBase> processed = new Hashtable<String, ArgumentParserBase>();
+        Hashtable<String, AArgumentParser> processed = new Hashtable<String, AArgumentParser>();
         
         // parse -- key
-        List<ArgumentParserBase> result = new ArrayList<ArgumentParserBase>();
+        List<AArgumentParser> result = new ArrayList<AArgumentParser>();
         for(int i=0;i<args.length;i++) {
             if(args[i].startsWith(OPTION_PREFIX)) {
                 String key = getKeyFromOptionString(args[i]);
-                ArgumentParserBase argParser = this.argumentParserTable.get(key);
+                AArgumentParser argParser = this.argumentParserTable.get(key);
                 if(argParser == null) {
                     throw new ArgumentParseException("a parser for an argument " + args[i] + " is not registered");
                 }
@@ -77,8 +77,8 @@ public class CommandLineArgumentParser {
         }
         
         // check default
-        Collection<ArgumentParserBase> values = this.argumentParserTable.values();
-        for(ArgumentParserBase argParser : values) {
+        Collection<AArgumentParser> values = this.argumentParserTable.values();
+        for(AArgumentParser argParser : values) {
             if(argParser.getKey() != null) {
                 if(processed.get(argParser.getKey()) == null) {
                     if(argParser.hasDefault()) {
@@ -98,7 +98,7 @@ public class CommandLineArgumentParser {
         }
         
         if(remains.size() > 0) {
-            ArgumentParserBase emptyKeyParser = this.argumentParserTable.get(NULL_OPTION_KEY);
+            AArgumentParser emptyKeyParser = this.argumentParserTable.get(NULL_OPTION_KEY);
             if(emptyKeyParser == null) {
                 throw new ArgumentParseException("empty key parser is not registered");
             }
@@ -108,8 +108,8 @@ public class CommandLineArgumentParser {
         }
         
         // check mandatory arguments
-        Collection<ArgumentParserBase> mandatories = this.argumentParserTable.values();
-        for(ArgumentParserBase argParser : mandatories) {
+        Collection<AArgumentParser> mandatories = this.argumentParserTable.values();
+        for(AArgumentParser argParser : mandatories) {
             if(argParser.isMandatory()) {
                 // check it exists in result
                 if(argParser.getKey() == null) {
@@ -130,18 +130,18 @@ public class CommandLineArgumentParser {
             if(key == null) {
                 key = NULL_OPTION_KEY;
             }
-            ArgumentParserBase apb = processed.get(key);
+            AArgumentParser apb = processed.get(key);
             if(apb != null) {
                 result.add(apb);
             }
         }
         
-        return result.toArray(new ArgumentParserBase[0]);
+        return result.toArray(new AArgumentParser[0]);
     }
 
     public String getHelpMessage() {
         StringBuilder sb = new StringBuilder();
-        ArgumentParserBase nullParser = this.argumentParserTable.get(NULL_OPTION_KEY);
+        AArgumentParser nullParser = this.argumentParserTable.get(NULL_OPTION_KEY);
         sb.append("Usage : <options> ");
         if(nullParser != null) {
             sb.append(nullParser.getHelpMessage());
@@ -150,8 +150,8 @@ public class CommandLineArgumentParser {
         sb.append("\n");
         
         sb.append("Options\n");
-        Collection<ArgumentParserBase> values = this.argumentParserTable.values();
-        for(ArgumentParserBase argParser : values) {
+        Collection<AArgumentParser> values = this.argumentParserTable.values();
+        for(AArgumentParser argParser : values) {
             if(argParser.getKey() != null) {
                 sb.append(argParser.getHelpMessage());
                 sb.append("\n");

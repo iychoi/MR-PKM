@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public abstract class EmptyKeyArgumentParserBase extends ArgumentParserBase {
+public abstract class AEmptyKeyArgumentParser extends AArgumentParser {
 
     @Override
     public String getKey() {

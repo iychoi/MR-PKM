@@ -1,8 +1,8 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfigurationBase;
+import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
-import edu.arizona.cs.mrpkm.commandline.ArgumentParserBase;
+import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
 import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
@@ -51,7 +51,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         String inputPath = null;
         String outputPath = null;
-        MRClusterConfigurationBase clusterConfig = null;
+        AMRClusterConfiguration clusterConfig = null;
         
         // parse command line
         HelpArgumentParser helpParser = new HelpArgumentParser();
@@ -62,7 +62,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         parser.addArgumentParser(helpParser);
         parser.addArgumentParser(clusterParser);
         parser.addArgumentParser(pathParser);
-        ArgumentParserBase[] parsers = null;
+        AArgumentParser[] parsers = null;
         try {
             parsers = parser.parse(args);
         } catch(ArgumentParseException ex) {
@@ -70,7 +70,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             return -1;
         }
         
-        for(ArgumentParserBase base : parsers) {
+        for(AArgumentParser base : parsers) {
             if(base == helpParser) {
                 if(helpParser.getValue()) {
                     printHelp(parser);

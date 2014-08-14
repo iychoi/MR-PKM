@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class NodeSizeArgumentParser extends ArgumentParserBase {
+public class NodeSizeArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "n";
     private final static int NODE_SIZE_DEFAULT = 1;

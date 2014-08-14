@@ -4,13 +4,13 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public class SliceNumArgumentParser extends ArgumentParserBase {
+public class SliceNumArgumentParser extends AArgumentParser {
 
     private final static String KEY_STRING = "s";
     private final static int SLICE_NUM_DEFAULT = 1000;
-    private final static int SLICE_NUM_PER_NODE = 5;
+    private final static int SLICE_NUM_PER_CORE = 3;
     
-    private int nodeSize = 0;
+    private int coreSize = 0;
     private int value;
     
     public SliceNumArgumentParser() {
@@ -60,8 +60,8 @@ public class SliceNumArgumentParser extends ArgumentParserBase {
 
     @Override
     public Integer getValue() {
-        if(this.nodeSize > 0) {
-            return this.nodeSize * SLICE_NUM_PER_NODE;
+        if(this.coreSize > 0) {
+            return this.coreSize * SLICE_NUM_PER_CORE;
         } else {
             return this.value;
         }
@@ -72,7 +72,7 @@ public class SliceNumArgumentParser extends ArgumentParserBase {
         return CommandLineArgumentParser.OPTION_PREFIX + KEY_STRING + " : set slice num";
     }
 
-    public void setNodeSize(int nodeSize) {
-        this.nodeSize = nodeSize;
+    public void setCoreSize(int coreSize) {
+        this.coreSize = coreSize;
     }
 }

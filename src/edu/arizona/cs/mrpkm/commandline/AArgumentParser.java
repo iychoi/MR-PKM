@@ -4,7 +4,7 @@ package edu.arizona.cs.mrpkm.commandline;
  *
  * @author iychoi
  */
-public abstract class ArgumentParserBase {
+public abstract class AArgumentParser {
     public abstract String getKey();
     public abstract Class getValueType();
 
