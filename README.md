@@ -65,6 +65,7 @@ ReadID Index Builder
 Num. of MapReduce Comp. Nodes | FASTA File Size | Generated Index Size | Time Taken
 --- | --- | --- | ---
 3 | 22.14GB(4 files) | 2.19GB | 9m47s
+4 | 22.14GB(4 files) | 2.19GB | 9m35s
 
 
 Kmer Index Builder
@@ -72,3 +73,11 @@ Kmer Index Builder
 Num. of MapReduce Comp. Nodes | FASTA File Size | Generated Index Size | Time Taken
 --- | --- | --- | ---
 3 | 22.14GB(4 files) | 80.65GB | 5h44m46s
+4 | 22.14GB(4 files) | 80.65GB | 3h44m53s
+
+
+Pairwise Kmer Mode Counter
+
+Num. of MapReduce Comp. Nodes | Kmer Index Size | Num. of Outputs | Time Taken
+--- | --- | --- | ---
+3 | 80.65GB(4 files) | 12 | 9h26m5s
