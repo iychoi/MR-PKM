@@ -60,6 +60,8 @@ java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeC
 Performance Metrics
 -------------------
 
+Atmosphere - Small1 type Instance (2 CPUs, 8 GB memory, 60 GB disk + 500GB EBS volume)
+
 ReadID Index Builder
 
 Num. of MapReduce Comp. Nodes | FASTA File Size | Generated Index Size | Time Taken
