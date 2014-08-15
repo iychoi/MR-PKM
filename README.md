@@ -83,3 +83,4 @@ Pairwise Kmer Mode Counter
 Num. of MapReduce Comp. Nodes | Kmer Index Size | Num. of Outputs | Time Taken
 --- | --- | --- | ---
 3 | 80.65GB(4 files) | 12 | 9h26m5s
+4 | 80.65GB(4 files) | 12 | 7h21m3s
