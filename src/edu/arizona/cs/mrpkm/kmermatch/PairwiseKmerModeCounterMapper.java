@@ -34,7 +34,6 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
     
     @Override
     protected void map(CompressedSequenceWritable key, KmerMatchResult value, Context context) throws IOException, InterruptedException {
-        Configuration conf = context.getConfiguration();
         CompressedIntArrayWritable[] vals = value.getVals();
         if(vals.length <= 1) {
             throw new IOException("Number of pairwise match result must be larger than 1");
