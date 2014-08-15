@@ -73,6 +73,7 @@ Kmer Index Builder
 Num. of MapReduce Comp. Nodes | FASTA File Size | Generated Index Size | Time Taken
 --- | --- | --- | ---
 3 | 22.14GB(4 files) | 80.65GB | 5h44m46s
+4 | 22.14GB(4 files) | 80.65GB | 3h44m53s
 
 
 Pairwise Kmer Mode Counter
