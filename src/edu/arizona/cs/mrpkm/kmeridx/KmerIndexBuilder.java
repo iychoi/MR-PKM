@@ -1,5 +1,11 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
+import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
+import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
+import edu.arizona.cs.mrpkm.augment.HirodsBloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
 import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
@@ -19,6 +25,7 @@ import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
+import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,6 +37,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -155,7 +163,26 @@ public class KmerIndexBuilder extends Configured implements Tool {
         
         job.setInputFormatClass(FastaReadInputFormat.class);
 
-        FileOutputFormat.setOutputPath(job, new Path(outputPath));
+        Path outputHadoopPath = new Path(outputPath);
+        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(conf);
+        if(outputFileSystem instanceof HirodsFileSystem) {
+            LOG.info("Use H-iRODS");
+            HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
+            if(outputFormat.equals(MapFileOutputFormat.class)) {
+                job.setOutputFormatClass(HirodsMapFileOutputFormat.class);
+            } else if(outputFormat.equals(BloomMapFileOutputFormat.class)) {
+                job.setOutputFormatClass(HirodsBloomMapFileOutputFormat.class);
+            }
+            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
+        } else {
+            FileOutputFormat.setOutputPath(job, outputHadoopPath);
+            if(outputFormat.equals(MapFileOutputFormat.class)) {
+                job.setOutputFormatClass(MapFileOutputFormat.class);
+            } else if(outputFormat.equals(BloomMapFileOutputFormat.class)) {
+                job.setOutputFormatClass(BloomMapFileOutputFormat.class);
+            }
+            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
+        }
         
         int id = 0;
         for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
@@ -167,7 +194,16 @@ public class KmerIndexBuilder extends Configured implements Tool {
             job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
             LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
             
-            MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+            if(outputFileSystem instanceof HirodsFileSystem) {
+                if(outputFormat.equals(MapFileOutputFormat.class)) {
+                    HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                } else if(outputFormat.equals(BloomMapFileOutputFormat.class)) {
+                    HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsBloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                }
+            } else {
+                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+            }
+            
             id++;
         }
         

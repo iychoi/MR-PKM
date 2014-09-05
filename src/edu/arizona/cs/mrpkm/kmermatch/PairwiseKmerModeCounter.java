@@ -1,5 +1,9 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsTextOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
 import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
@@ -17,6 +21,7 @@ import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
+import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -192,7 +197,18 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         job.setInputFormatClass(KmerMatchInputFormat.class);
 
-        FileOutputFormat.setOutputPath(job, new Path(outputPath));
+        Path outputHadoopPath = new Path(outputPath);
+        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(conf);
+        if(outputFileSystem instanceof HirodsFileSystem) {
+            LOG.info("Use H-iRODS");
+            HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
+            job.setOutputFormatClass(HirodsTextOutputFormat.class);
+            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
+        } else {
+            FileOutputFormat.setOutputPath(job, outputHadoopPath);
+            job.setOutputFormatClass(TextOutputFormat.class);
+            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
+        }
         
         int id = 0;
         for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
@@ -204,7 +220,11 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             job.getConfiguration().setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
             LOG.info("regist new ConfigString : " + PairwiseKmerModeCounterHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
             
-            MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), TextOutputFormat.class, Text.class, Text.class);
+            if(outputFileSystem instanceof HirodsFileSystem) {
+                HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsTextOutputFormat.class, Text.class, Text.class);
+            } else {
+                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), TextOutputFormat.class, Text.class, Text.class);
+            }
             id++;
         }
         

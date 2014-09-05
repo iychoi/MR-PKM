@@ -1,6 +1,8 @@
 package edu.arizona.cs.mrpkm.readididx;
 
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
+import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;
@@ -19,13 +21,21 @@ public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, 
     
     private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderReducer.class);
     
-    private MultipleOutputs mos;
+    private MultipleOutputs mos = null;
+    private HirodsMultipleOutputs hmos = null;
     private Hashtable<Integer, String> namedOutputCache;
     private int[] readIDs;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
-        this.mos = new MultipleOutputs(context);
+        if(MultipleOutputsHelper.isMultipleOutputs(context.getConfiguration())) {
+            this.mos = new MultipleOutputs(context);
+        }
+        
+        if(MultipleOutputsHelper.isHirodsMultipleOutputs(context.getConfiguration())) {
+            this.hmos = new HirodsMultipleOutputs(context);
+        }
+        
         this.namedOutputCache = new Hashtable<Integer, String>();
         int numberOfOutputs = context.getConfiguration().getInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), -1);
         if(numberOfOutputs <= 0) {
@@ -55,13 +65,26 @@ public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, 
             this.namedOutputCache.put(namedoutputID, namedOutput);
         }
         
-        this.mos.write(namedOutput, new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
-        //context.write(key, new Text(sb.toString()));
+        if(this.mos != null) {
+            this.mos.write(namedOutput, new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
+        }
+        
+        if(this.hmos != null) {
+            this.hmos.write(namedOutput, new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
+        }
+        //context.write(new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
     }
     
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        this.mos.close();
+        if(this.mos != null) {
+            this.mos.close();
+        }
+        
+        if(this.hmos != null) {
+            this.hmos.close();
+        }
+        
         this.namedOutputCache = null;
     }
 }

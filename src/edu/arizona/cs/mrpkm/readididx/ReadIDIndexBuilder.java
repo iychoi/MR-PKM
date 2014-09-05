@@ -1,5 +1,9 @@
 package edu.arizona.cs.mrpkm.readididx;
 
+import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
+import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
 import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
@@ -13,6 +17,7 @@ import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
+import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -128,7 +133,18 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         job.setInputFormatClass(FastaReadDescriptionInputFormat.class);
         
-        FileOutputFormat.setOutputPath(job, new Path(outputPath));
+        Path outputHadoopPath = new Path(outputPath);
+        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(conf);
+        if(outputFileSystem instanceof HirodsFileSystem) {
+            LOG.info("Use H-iRODS");
+            HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
+            job.setOutputFormatClass(HirodsMapFileOutputFormat.class);
+            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
+        } else {
+            FileOutputFormat.setOutputPath(job, outputHadoopPath);
+            job.setOutputFormatClass(MapFileOutputFormat.class);
+            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
+        }
         
         LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum());
         job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), namedOutputs.getSize());
@@ -143,7 +159,11 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
             LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
             
-            MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, LongWritable.class, IntWritable.class);
+            if(outputFileSystem instanceof HirodsFileSystem) {
+                HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, LongWritable.class, IntWritable.class);
+            } else {
+                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, LongWritable.class, IntWritable.class);
+            }
             id++;
         }
         
@@ -153,7 +173,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         boolean result = job.waitForCompletion(true);
         
         // commit results
-        commit(new Path(outputPath), conf, namedOutputs);
+        if(result) {
+            commit(outputHadoopPath, conf, namedOutputs);
+        }
         
         return result ? 0 : 1;
     }
