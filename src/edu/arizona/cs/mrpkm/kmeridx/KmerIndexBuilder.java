@@ -7,16 +7,8 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.augment.HirodsBloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
-import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
-import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
+import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_Default;
 import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.IndexSearchPathArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.KmerSizeArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.NodeSizeArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.MROutputFormatArgumentParser;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -27,6 +19,8 @@ import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -41,6 +35,10 @@ import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 /**
  *
@@ -50,6 +48,121 @@ public class KmerIndexBuilder extends Configured implements Tool {
     
     private static final Log LOG = LogFactory.getLog(KmerIndexBuilder.class);
     
+    private static class KmerIndexBuilder_Cmd_Args {
+        @Option(name = "-h", aliases = "--help", usage = "print this message") 
+        private boolean help = false;
+        
+        private AMRClusterConfiguration cluster = new MRClusterConfiguration_Default();
+        
+        @Option(name = "-c", aliases = "--cluster", usage = "specify cluster configuration")
+        public void setCluster(String clusterConf) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+            this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
+        }
+        
+        @Option(name = "-k", aliases = "--kmersize", usage = "specify kmer size")
+        private int kmersize = 20;
+        
+        @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
+        private int nodes = 1;
+        
+        private Class outputFormat = MapFileOutputFormat.class;
+        
+        @Option(name = "-f", aliases = "--outputformat", usage = "specify output format")
+        public void setOutputFormat(String outputFormat) throws Exception {
+            if (outputFormat.equalsIgnoreCase(MapFileOutputFormat.class.getName())) {
+                this.outputFormat = MapFileOutputFormat.class;
+            } else if (outputFormat.equalsIgnoreCase(BloomMapFileOutputFormat.class.getName())) {
+                this.outputFormat = BloomMapFileOutputFormat.class;
+            } else if (outputFormat.equalsIgnoreCase("map") || outputFormat.equalsIgnoreCase("mapfile")) {
+                this.outputFormat = MapFileOutputFormat.class;
+            } else if (outputFormat.equalsIgnoreCase("bloom") || outputFormat.equalsIgnoreCase("bloommap") || outputFormat.equalsIgnoreCase("bloommapfile")) {
+                this.outputFormat = BloomMapFileOutputFormat.class;
+            } else {
+                throw new Exception("given arg is not in correct data type");
+            }
+        }
+        
+        @Option(name = "-i", aliases = "--readidpath", required = true, usage = "specify ReadID index path")
+        private String ridPath = null;
+        
+        @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
+        private List<String> paths = new ArrayList<String>();
+        
+        public boolean isHelp() {
+            return this.help;
+        }
+        
+        public AMRClusterConfiguration getConfiguration() {
+            return this.cluster;
+        }
+        
+        public int getKmerSize() {
+            return this.kmersize;
+        }
+        
+        public int getNodes() {
+            return this.nodes;
+        }
+        
+        public Class getOutputFormat() {
+            return this.outputFormat;
+        }
+        
+        public String getReadIDIndexPath() {
+            return this.ridPath;
+        }
+        
+        public String getOutputPath() {
+            if(this.paths.size() > 1) {
+                return this.paths.get(this.paths.size()-1);
+            }
+            
+            return null;
+        }
+        
+        public String[] getInputPaths() {
+            if(this.paths.isEmpty()) {
+                return new String[0];
+            }
+            
+            String[] inpaths = new String[this.paths.size()-1];
+            for(int i=0;i<this.paths.size()-1;i++) {
+                inpaths[i] = this.paths.get(i);
+            }
+            
+            return inpaths;
+        }
+        
+        public String getCommaSeparatedInputPath() {
+            String[] inputPaths = getInputPaths();
+            StringBuilder CSInputPath = new StringBuilder();
+            for(String inputpath : inputPaths) {
+                if(CSInputPath.length() != 0) {
+                    CSInputPath.append(",");
+                }
+                
+                CSInputPath.append(inputpath);
+            }
+            
+            return CSInputPath.toString();
+        }
+        
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for(String arg : this.paths) {
+                if(sb.length() != 0) {
+                    sb.append(", ");
+                }
+                
+                sb.append(arg);
+            }
+            
+            return "help = " + this.help + "\n" +
+                    "paths = " + sb.toString();
+        }
+    }
+    
     public static void main(String[] args) throws Exception {
         int res = ToolRunner.run(new Configuration(), new KmerIndexBuilder(), args);
         System.exit(res);
@@ -57,76 +170,47 @@ public class KmerIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        Configuration conf = this.getConf();
-        
-        int kmerSize = 0;
-        int nodeSize = 0;
-        Class outputFormat = null;
-        String readIDIndexPath = null;
-        String inputPath = null;
-        String outputPath = null;
-        AMRClusterConfiguration clusterConfig = null;
-        
         // parse command line
-        HelpArgumentParser helpParser = new HelpArgumentParser();
-        ClusterConfigurationArgumentParser clusterParser = new ClusterConfigurationArgumentParser();
-        KmerSizeArgumentParser kmerSizeParser = new KmerSizeArgumentParser();
-        NodeSizeArgumentParser nodeSizeParser = new NodeSizeArgumentParser();
-        MROutputFormatArgumentParser outputFormatParser = new MROutputFormatArgumentParser();
-        IndexSearchPathArgumentParser indexSearchPathParser = new IndexSearchPathArgumentParser();
-        MultiPathArgumentParser pathParser = new MultiPathArgumentParser(2);
-        
-        CommandLineArgumentParser parser = new CommandLineArgumentParser();
-        parser.addArgumentParser(helpParser);
-        parser.addArgumentParser(clusterParser);
-        parser.addArgumentParser(kmerSizeParser);
-        parser.addArgumentParser(nodeSizeParser);
-        parser.addArgumentParser(outputFormatParser);
-        parser.addArgumentParser(indexSearchPathParser);
-        parser.addArgumentParser(pathParser);
-        AArgumentParser[] parsers = null;
+        KmerIndexBuilder_Cmd_Args cmdargs = new KmerIndexBuilder_Cmd_Args();
+        CmdLineParser parser = new CmdLineParser(cmdargs);
         try {
-            parsers = parser.parse(args);
-        } catch(ArgumentParseException ex) {
-            System.err.println(ex);
-            return -1;
+            parser.parseArgument(args);
+        } catch (CmdLineException e) {
+            // handling of wrong arguments
+            System.err.println(e.getMessage());
+            parser.printUsage(System.err);
         }
         
-        for(AArgumentParser base : parsers) {
-            if(base == helpParser) {
-                if(helpParser.getValue()) {
-                    printHelp(parser);
-                    return 0;
-                }
-            } else if(base == clusterParser) {
-                clusterConfig = clusterParser.getValue();
-            } else if(base == kmerSizeParser) {
-                kmerSize = kmerSizeParser.getValue();
-            } else if(base == nodeSizeParser) {
-                nodeSize = nodeSizeParser.getValue();
-            } else if(base == outputFormatParser) {
-                outputFormat = outputFormatParser.getValue();
-            } else if(base == indexSearchPathParser) {
-                readIDIndexPath = indexSearchPathParser.getValue();
-            } else if(base == pathParser) {
-                String[] paths = pathParser.getValue();
-                if (paths.length == 2) {
-                    inputPath = paths[0];
-                    outputPath = paths[1];
-                } else if (paths.length >= 3) {
-                    inputPath = "";
-                    for (int i = 0; i < paths.length - 2; i++) {
-                        if (!inputPath.equals("")) {
-                            inputPath += ",";
-                        }
-                        inputPath += paths[i];
-                    }
-                    outputPath = paths[paths.length - 1];
-                }
-            }
+        if(cmdargs.isHelp()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        int kmerSize = cmdargs.getKmerSize();
+        int nodeSize = cmdargs.getNodes();
+        Class outputFormat = cmdargs.getOutputFormat();
+        String readIDIndexPath = cmdargs.getReadIDIndexPath();
+        String inputPath = cmdargs.getCommaSeparatedInputPath();
+        String outputPath = cmdargs.getOutputPath();
+        AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
+        
+        if(readIDIndexPath == null || readIDIndexPath.isEmpty()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        if(inputPath == null || inputPath.isEmpty()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        if(outputPath == null || outputPath.isEmpty()) {
+            parser.printUsage(System.err);
+            return 1;
         }
         
         // configuration
+        Configuration conf = this.getConf();
         clusterConfig.setConfiguration(conf);
 
         conf.setInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), kmerSize);

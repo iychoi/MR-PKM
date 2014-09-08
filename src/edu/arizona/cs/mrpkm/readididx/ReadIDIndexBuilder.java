@@ -5,12 +5,7 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
-import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
-import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.ClusterConfigurationArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.MultiPathArgumentParser;
+import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_Default;
 import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
@@ -19,6 +14,8 @@ import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +33,10 @@ import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 /**
  *
@@ -45,6 +46,79 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilder.class);
     
+    private static class ReadIDIndexBuilder_Cmd_Args {
+        @Option(name = "-h", aliases = "--help", usage = "print this message") 
+        private boolean help = false;
+        
+        private AMRClusterConfiguration cluster = new MRClusterConfiguration_Default();
+        
+        @Option(name = "-c", aliases = "--cluster", usage = "specify cluster configuration")
+        public void setCluster(String clusterConf) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+            this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
+        }
+        
+        @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
+        private List<String> paths = new ArrayList<String>();
+        
+        public boolean isHelp() {
+            return this.help;
+        }
+        
+        public AMRClusterConfiguration getConfiguration() {
+            return this.cluster;
+        }
+        
+        public String getOutputPath() {
+            if(this.paths.size() > 1) {
+                return this.paths.get(this.paths.size()-1);
+            }
+            
+            return null;
+        }
+        
+        public String[] getInputPaths() {
+            if(this.paths.isEmpty()) {
+                return new String[0];
+            }
+            
+            String[] inpaths = new String[this.paths.size()-1];
+            for(int i=0;i<this.paths.size()-1;i++) {
+                inpaths[i] = this.paths.get(i);
+            }
+            
+            return inpaths;
+        }
+        
+        public String getCommaSeparatedInputPath() {
+            String[] inputPaths = getInputPaths();
+            StringBuilder CSInputPath = new StringBuilder();
+            for(String inputpath : inputPaths) {
+                if(CSInputPath.length() != 0) {
+                    CSInputPath.append(",");
+                }
+                
+                CSInputPath.append(inputpath);
+            }
+            
+            return CSInputPath.toString();
+        }
+        
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for(String arg : this.paths) {
+                if(sb.length() != 0) {
+                    sb.append(", ");
+                }
+                
+                sb.append(arg);
+            }
+            
+            return "help = " + this.help + "\n" +
+                    "paths = " + sb.toString();
+        }
+    }
+    
     public static void main(String[] args) throws Exception {
         int res = ToolRunner.run(new Configuration(), new ReadIDIndexBuilder(), args);
         System.exit(res);
@@ -52,56 +126,38 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        Configuration conf = this.getConf();
-        
-        String inputPath = null;
-        String outputPath = null;
-        AMRClusterConfiguration clusterConfig = null;
-        
         // parse command line
-        HelpArgumentParser helpParser = new HelpArgumentParser();
-        ClusterConfigurationArgumentParser clusterParser = new ClusterConfigurationArgumentParser();
-        MultiPathArgumentParser pathParser = new MultiPathArgumentParser(2);
-        
-        CommandLineArgumentParser parser = new CommandLineArgumentParser();
-        parser.addArgumentParser(helpParser);
-        parser.addArgumentParser(clusterParser);
-        parser.addArgumentParser(pathParser);
-        AArgumentParser[] parsers = null;
+        ReadIDIndexBuilder_Cmd_Args cmdargs = new ReadIDIndexBuilder_Cmd_Args();
+        CmdLineParser parser = new CmdLineParser(cmdargs);
         try {
-            parsers = parser.parse(args);
-        } catch(ArgumentParseException ex) {
-            System.err.println(ex);
-            return -1;
+            parser.parseArgument(args);
+        } catch (CmdLineException e) {
+            // handling of wrong arguments
+            System.err.println(e.getMessage());
+            parser.printUsage(System.err);
         }
         
-        for(AArgumentParser base : parsers) {
-            if(base == helpParser) {
-                if(helpParser.getValue()) {
-                    printHelp(parser);
-                    return 0;
-                }
-            } else if(base == clusterParser) {
-                clusterConfig = clusterParser.getValue();
-            } else if(base == pathParser) {
-                String[] paths = pathParser.getValue();
-                if (paths.length == 2) {
-                    inputPath = paths[0];
-                    outputPath = paths[1];
-                } else if (paths.length >= 3) {
-                    inputPath = "";
-                    for (int i = 0; i < paths.length - 2; i++) {
-                        if (!inputPath.equals("")) {
-                            inputPath += ",";
-                        }
-                        inputPath += paths[i];
-                    }
-                    outputPath = paths[paths.length - 1];
-                }
-            }
+        if(cmdargs.isHelp()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        String inputPath = cmdargs.getCommaSeparatedInputPath();
+        String outputPath = cmdargs.getOutputPath();
+        AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
+        
+        if(inputPath == null || inputPath.isEmpty()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        if(outputPath == null || outputPath.isEmpty()) {
+            parser.printUsage(System.err);
+            return 1;
         }
         
         // configuration
+        Configuration conf = this.getConf();
         clusterConfig.setConfiguration(conf);
         
         Job job = new Job(conf, "ReadID Index Builder");
@@ -207,9 +263,5 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         } else {
             throw new IOException("path not found : " + outputPath.toString());
         }
-    }
-
-    private void printHelp(CommandLineArgumentParser parser) {
-        System.out.println(parser.getHelpMessage());
     }
 }

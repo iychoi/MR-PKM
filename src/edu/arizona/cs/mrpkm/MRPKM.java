@@ -48,7 +48,7 @@ public class MRPKM {
         
         public String[] getTargetClassArgs() {
             if(this.arguments.isEmpty()) {
-                return null;
+                return new String[0];
             }
             
             String[] newArgs = new String[this.arguments.size()-1];
@@ -88,7 +88,6 @@ public class MRPKM {
         CmdLineParser parser = new CmdLineParser(cmdargs);
         try {
             parser.parseArgument(args);
-            
         } catch (CmdLineException e) {
             // handling of wrong arguments
             System.err.println(e.getMessage());
@@ -99,28 +98,32 @@ public class MRPKM {
             printHelp();
         } else {
             String potentialClassName = cmdargs.getTargetClass();
-            Class clazz = null;
-            try {
-                clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
-            } catch (ClassNotFoundException ex) {
-            }
-
-            if(clazz == null) {
-                if(potentialClassName.equalsIgnoreCase("ridx")) {
-                    clazz = ReadIDIndexBuilder.class;
-                } else if(potentialClassName.equalsIgnoreCase("kidx")) {
-                    clazz = KmerIndexBuilder.class;
-                } else if(potentialClassName.equalsIgnoreCase("pkm")) {
-                    clazz = PairwiseKmerModeCounter.class;
+            if(potentialClassName != null) {
+                Class clazz = null;
+                try {
+                    clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
+                } catch (ClassNotFoundException ex) {
                 }
-            }
 
-            if(clazz != null) {
-                String[] classArg = cmdargs.getTargetClassArgs();
-                // call a main function in the class
-                invokeClass(clazz, classArg);
+                if(clazz == null) {
+                    if(potentialClassName.equalsIgnoreCase("ridx")) {
+                        clazz = ReadIDIndexBuilder.class;
+                    } else if(potentialClassName.equalsIgnoreCase("kidx")) {
+                        clazz = KmerIndexBuilder.class;
+                    } else if(potentialClassName.equalsIgnoreCase("pkm")) {
+                        clazz = PairwiseKmerModeCounter.class;
+                    }
+                }
+
+                if(clazz != null) {
+                    String[] classArg = cmdargs.getTargetClassArgs();
+                    // call a main function in the class
+                    invokeClass(clazz, classArg);
+                } else {
+                    System.err.println("Class name is not given properly");
+                }
             } else {
-                System.err.println("Class name is not given properly");
+                System.err.println("Class name is not given");
             }
         }
     }

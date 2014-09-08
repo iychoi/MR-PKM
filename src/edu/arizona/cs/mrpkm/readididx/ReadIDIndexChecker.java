@@ -1,10 +1,5 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.commandline.ArgumentParseException;
-import edu.arizona.cs.mrpkm.commandline.AArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.HelpArgumentParser;
-import edu.arizona.cs.mrpkm.commandline.SinglePathArgumentParser;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -15,6 +10,10 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 /**
  *
@@ -23,6 +22,28 @@ import org.apache.hadoop.util.ToolRunner;
 public class ReadIDIndexChecker extends Configured implements Tool {
     private static final Log LOG = LogFactory.getLog(ReadIDIndexChecker.class);
     
+    private static class ReadIDIndexChecker_Cmd_Args {
+        @Option(name = "-h", aliases = "--help", usage = "print this message") 
+        private boolean help = false;
+        
+        @Argument(metaVar = "input-path", usage = "input-path")
+        private String inputPath = null;
+        
+        public boolean isHelp() {
+            return this.help;
+        }
+        
+        public String getInputPath() {
+            return inputPath;
+        }
+        
+        @Override
+        public String toString() {
+            return "help = " + this.help + "\n" +
+                    "inputPath = " + this.inputPath;
+        }
+    }
+    
     public static void main(String[] args) throws Exception {
         int res = ToolRunner.run(new Configuration(), new ReadIDIndexChecker(), args);
         System.exit(res);
@@ -30,35 +51,30 @@ public class ReadIDIndexChecker extends Configured implements Tool {
 
     @Override
     public int run(String[] args) throws Exception {
-        Configuration conf = this.getConf();
-        
-        String indexPathString = null;
-        
         // parse command line
-        HelpArgumentParser helpParser = new HelpArgumentParser();
-        SinglePathArgumentParser pathParser = new SinglePathArgumentParser();
-        
-        CommandLineArgumentParser parser = new CommandLineArgumentParser();
-        parser.addArgumentParser(helpParser);
-        parser.addArgumentParser(pathParser);
-        AArgumentParser[] parsers = null;
+        ReadIDIndexChecker_Cmd_Args cmdargs = new ReadIDIndexChecker_Cmd_Args();
+        CmdLineParser parser = new CmdLineParser(cmdargs);
         try {
-            parsers = parser.parse(args);
-        } catch(ArgumentParseException ex) {
-            System.err.println(ex);
-            return -1;
+            parser.parseArgument(args);
+        } catch (CmdLineException e) {
+            // handling of wrong arguments
+            System.err.println(e.getMessage());
+            parser.printUsage(System.err);
         }
         
-        for(AArgumentParser base : parsers) {
-            if(base == helpParser) {
-                if(helpParser.getValue()) {
-                    printHelp(parser);
-                    return 0;
-                }
-            } else if(base == pathParser) {
-                indexPathString = pathParser.getValue();
-            }
+        if(cmdargs.isHelp()) {
+            parser.printUsage(System.err);
+            return 1;
         }
+        
+        String indexPathString = cmdargs.getInputPath();
+        if(indexPathString == null || indexPathString.isEmpty()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        // configuration
+        Configuration conf = this.getConf();
         
         Path indexPath = new Path(indexPathString);
         FileSystem fs = indexPath.getFileSystem(conf);
@@ -85,9 +101,5 @@ public class ReadIDIndexChecker extends Configured implements Tool {
         
         reader.close();
         return 0;
-    }
-
-    private void printHelp(CommandLineArgumentParser parser) {
-        System.out.println(parser.getHelpMessage());
     }
 }
