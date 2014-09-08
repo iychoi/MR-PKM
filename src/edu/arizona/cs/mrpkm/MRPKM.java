@@ -4,8 +4,14 @@ import edu.arizona.cs.mrpkm.kmeridx.KmerIndexBuilder;
 import edu.arizona.cs.mrpkm.kmermatch.PairwiseKmerModeCounter;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexBuilder;
 import edu.arizona.cs.mrpkm.utils.ClassHelper;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 /**
  *
@@ -20,6 +26,54 @@ public class MRPKM {
         "edu.arizona.cs.mrpkm.readididx",
         "edu.arizona.cs.mrpkm.kmermatch"
     };
+    
+    private static class MRPKM_Cmd_Args {
+        @Option(name = "-h", aliases = "--help", usage = "print this message") 
+        private boolean help = false;
+        
+        @Argument(metaVar = "[target-class [arguments ...]]", usage = "target-class and arguments")
+        private List<String> arguments = new ArrayList<String>();
+        
+        public boolean isHelp() {
+            return this.help;
+        }
+        
+        public String getTargetClass() {
+            if(this.arguments.isEmpty()) {
+                return null;
+            }
+            
+            return this.arguments.get(0);
+        }
+        
+        public String[] getTargetClassArgs() {
+            if(this.arguments.isEmpty()) {
+                return null;
+            }
+            
+            String[] newArgs = new String[this.arguments.size()-1];
+            for(int i=1;i<this.arguments.size();i++) {
+                newArgs[i-1] = this.arguments.get(i);
+            }
+            
+            return newArgs;
+        }
+        
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for(String arg : this.arguments) {
+                if(sb.length() != 0) {
+                    sb.append(", ");
+                }
+                
+                sb.append(arg);
+            }
+            
+            return "help = " + this.help + "\n" +
+                    "arguments = " + sb.toString();
+        }
+    }
 
     private static void invokeClass(Class clazz, String[] args) throws Exception {
         if(clazz == null) {
@@ -30,16 +84,21 @@ public class MRPKM {
     }
     
     public static void main(String[] args) throws Exception {
-        parseCommandLineArguments(args);
-    }
-
-    private static void parseCommandLineArguments(String[] args) throws Exception {
-        if(args.length == 0 || args[0].equalsIgnoreCase("h") || args[0].equalsIgnoreCase("help") 
-                || args[0].equalsIgnoreCase("-h") 
-                || args[0].equalsIgnoreCase("--h") || args[0].equalsIgnoreCase("--help")) {
+        MRPKM_Cmd_Args cmdargs = new MRPKM_Cmd_Args();
+        CmdLineParser parser = new CmdLineParser(cmdargs);
+        try {
+            parser.parseArgument(args);
+            
+        } catch (CmdLineException e) {
+            // handling of wrong arguments
+            System.err.println(e.getMessage());
+            parser.printUsage(System.err);
+        }
+        
+        if(cmdargs.isHelp()) {
             printHelp();
         } else {
-            String potentialClassName = args[0];
+            String potentialClassName = cmdargs.getTargetClass();
             Class clazz = null;
             try {
                 clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
@@ -47,22 +106,21 @@ public class MRPKM {
             }
 
             if(clazz == null) {
-                if(args[0].equalsIgnoreCase("ridx")) {
+                if(potentialClassName.equalsIgnoreCase("ridx")) {
                     clazz = ReadIDIndexBuilder.class;
-                } else if(args[0].equalsIgnoreCase("kidx")) {
+                } else if(potentialClassName.equalsIgnoreCase("kidx")) {
                     clazz = KmerIndexBuilder.class;
-                } else if(args[0].equalsIgnoreCase("pkm")) {
+                } else if(potentialClassName.equalsIgnoreCase("pkm")) {
                     clazz = PairwiseKmerModeCounter.class;
                 }
             }
 
             if(clazz != null) {
-                String[] newArgs = new String[args.length-1];
-                System.arraycopy(args, 1, newArgs, 0, args.length-1);
+                String[] classArg = cmdargs.getTargetClassArgs();
                 // call a main function in the class
-                invokeClass(clazz, newArgs);
+                invokeClass(clazz, classArg);
             } else {
-                throw new Exception("Class name is not given properly");
+                System.err.println("Class name is not given properly");
             }
         }
     }
