@@ -1,6 +1,5 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -31,18 +30,18 @@ public class KmerIndexChecker extends Configured implements Tool {
         private boolean help = false;
         
         @Argument(metaVar = "input-path [input-path ...]", usage = "input-paths")
-        private List<String> paths = new ArrayList<String>();
+        private List<String> inputPath = new ArrayList<String>();
         
         public boolean isHelp() {
             return this.help;
         }
         
         public String[] getInputPaths() {
-            if(this.paths.isEmpty()) {
+            if(this.inputPath.isEmpty()) {
                 return new String[0];
             }
             
-            return this.paths.toArray(new String[0]);
+            return this.inputPath.toArray(new String[0]);
         }
         
         public String getCommaSeparatedInputPath() {
@@ -62,7 +61,7 @@ public class KmerIndexChecker extends Configured implements Tool {
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            for(String arg : this.paths) {
+            for(String arg : this.inputPath) {
                 if(sb.length() != 0) {
                     sb.append(", ");
                 }
@@ -72,6 +71,13 @@ public class KmerIndexChecker extends Configured implements Tool {
             
             return "help = " + this.help + "\n" +
                     "paths = " + sb.toString();
+        }
+        
+        public boolean checkValidity() {
+            if(this.inputPath == null || this.inputPath.isEmpty()) {
+                return false;
+            }
+            return true;
         }
     }
     
@@ -93,17 +99,13 @@ public class KmerIndexChecker extends Configured implements Tool {
             parser.printUsage(System.err);
         }
         
-        if(cmdargs.isHelp()) {
+        if(cmdargs.isHelp() || !cmdargs.checkValidity()) {
             parser.printUsage(System.err);
             return 1;
         }
         
         String indexPathStrings[] = cmdargs.getInputPaths();
-        if(indexPathStrings == null || indexPathStrings.length == 0) {
-            parser.printUsage(System.err);
-            return 1;
-        }
-
+        
         // configuration
         Configuration conf = this.getConf();
         
@@ -132,9 +134,5 @@ public class KmerIndexChecker extends Configured implements Tool {
         
         reader.close();
         return 0;
-    }
-
-    private void printHelp(CommandLineArgumentParser parser) {
-        System.out.println(parser.getHelpMessage());
     }
 }

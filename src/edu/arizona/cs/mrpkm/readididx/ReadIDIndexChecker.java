@@ -34,13 +34,20 @@ public class ReadIDIndexChecker extends Configured implements Tool {
         }
         
         public String getInputPath() {
-            return inputPath;
+            return this.inputPath;
         }
         
         @Override
         public String toString() {
             return "help = " + this.help + "\n" +
                     "inputPath = " + this.inputPath;
+        }
+        
+        public boolean checkValidity() {
+            if(this.inputPath == null || this.inputPath.isEmpty()) {
+                return false;
+            }
+            return true;
         }
     }
     
@@ -62,16 +69,12 @@ public class ReadIDIndexChecker extends Configured implements Tool {
             parser.printUsage(System.err);
         }
         
-        if(cmdargs.isHelp()) {
+        if(cmdargs.isHelp() || !cmdargs.checkValidity()) {
             parser.printUsage(System.err);
             return 1;
         }
         
         String indexPathString = cmdargs.getInputPath();
-        if(indexPathString == null || indexPathString.isEmpty()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
         
         // configuration
         Configuration conf = this.getConf();

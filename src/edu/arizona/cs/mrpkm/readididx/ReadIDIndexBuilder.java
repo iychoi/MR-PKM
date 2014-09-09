@@ -117,6 +117,15 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             return "help = " + this.help + "\n" +
                     "paths = " + sb.toString();
         }
+        
+        public boolean checkValidity() {
+            if(this.cluster == null || 
+                    this.paths == null || this.paths.isEmpty() ||
+                    this.paths.size() < 2) {
+                return false;
+            }
+            return true;
+        }
     }
     
     public static void main(String[] args) throws Exception {
@@ -137,7 +146,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             parser.printUsage(System.err);
         }
         
-        if(cmdargs.isHelp()) {
+        if(cmdargs.isHelp() || !cmdargs.checkValidity()) {
             parser.printUsage(System.err);
             return 1;
         }
@@ -145,16 +154,6 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         String inputPath = cmdargs.getCommaSeparatedInputPath();
         String outputPath = cmdargs.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
-        
-        if(inputPath == null || inputPath.isEmpty()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
-        
-        if(outputPath == null || outputPath.isEmpty()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
         
         // configuration
         Configuration conf = this.getConf();

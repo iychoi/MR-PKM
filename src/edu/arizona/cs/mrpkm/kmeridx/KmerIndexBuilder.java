@@ -8,7 +8,6 @@ import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.augment.HirodsBloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_Default;
-import edu.arizona.cs.mrpkm.commandline.CommandLineArgumentParser;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -49,6 +48,9 @@ public class KmerIndexBuilder extends Configured implements Tool {
     private static final Log LOG = LogFactory.getLog(KmerIndexBuilder.class);
     
     private static class KmerIndexBuilder_Cmd_Args {
+        
+        private static final int DEFAULT_KMERSIZE = 20;
+        
         @Option(name = "-h", aliases = "--help", usage = "print this message") 
         private boolean help = false;
         
@@ -60,7 +62,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         }
         
         @Option(name = "-k", aliases = "--kmersize", usage = "specify kmer size")
-        private int kmersize = 20;
+        private int kmersize = DEFAULT_KMERSIZE;
         
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
@@ -161,6 +163,19 @@ public class KmerIndexBuilder extends Configured implements Tool {
             return "help = " + this.help + "\n" +
                     "paths = " + sb.toString();
         }
+        
+        public boolean checkValidity() {
+            if(this.cluster == null || 
+                    this.kmersize <= 0 ||
+                    this.nodes <= 0 ||
+                    this.outputFormat == null ||
+                    this.ridPath == null || this.ridPath.isEmpty() ||
+                    this.paths == null || this.paths.isEmpty() ||
+                    this.paths.size() < 2) {
+                return false;
+            }
+            return true;
+        }
     }
     
     public static void main(String[] args) throws Exception {
@@ -181,7 +196,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
             parser.printUsage(System.err);
         }
         
-        if(cmdargs.isHelp()) {
+        if(cmdargs.isHelp() || !cmdargs.checkValidity()) {
             parser.printUsage(System.err);
             return 1;
         }
@@ -193,21 +208,6 @@ public class KmerIndexBuilder extends Configured implements Tool {
         String inputPath = cmdargs.getCommaSeparatedInputPath();
         String outputPath = cmdargs.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
-        
-        if(readIDIndexPath == null || readIDIndexPath.isEmpty()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
-        
-        if(inputPath == null || inputPath.isEmpty()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
-        
-        if(outputPath == null || outputPath.isEmpty()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
         
         // configuration
         Configuration conf = this.getConf();
@@ -330,9 +330,5 @@ public class KmerIndexBuilder extends Configured implements Tool {
         } else {
             throw new IOException("path not found : " + outputPath.toString());
         }
-    }
-
-    private void printHelp(CommandLineArgumentParser parser) {
-        System.out.println(parser.getHelpMessage());
     }
 }
