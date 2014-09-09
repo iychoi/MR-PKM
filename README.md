@@ -8,6 +8,13 @@ Pairwise K-mer Mode Pipeline Overview
 
 Pairwise K-mer Mode Pipeline computes MODE number of pairwise K-mer matches per a metagenomics DNA/RNA read. To match partial DNA/RNA sequence among the given FASTA files, the pipeline uses K-mer. To provide fast K-mer match(search) against another given FASTA file, the pipeline pre-computes K-mers of given FASTA files and generates ReadID Index and Kmer Index of the FASTA file. By using these pre-computed indice, it does fast K-mer match among a group of FASTA files. Once the pipeline found all K-mer matches per a read, it computes MODE number of K-mer hit count per a read.
 
+Build
+-----
+
+To build, just type "ant". Without any options, this command will create a light jar package that doesn't include any dependencies.
+
+If you want to build all-in-one jar package file for easy distribution, type "ant package-for-store". This command will create a new "store" directory and create an all-in-one jar package file in it. 
+
 ReadID Index Builder
 --------------------
 
