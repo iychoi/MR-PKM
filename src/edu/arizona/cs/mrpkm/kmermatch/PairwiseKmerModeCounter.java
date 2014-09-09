@@ -77,9 +77,6 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         @Option(name = "--max", usage = "specify the maximum bound of hit")
         private int maxHit = 0;
         
-        @Option(name = "-i", aliases = "--readidpath", required = true, usage = "specify ReadID index path")
-        private String ridPath = null;
-        
         @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
         private List<String> paths = new ArrayList<String>();
         
@@ -113,10 +110,6 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         public int getMaxHit() {
             return this.maxHit;
-        }
-        
-        public String getReadIDIndexPath() {
-            return this.ridPath;
         }
         
         public String getOutputPath() {
@@ -172,7 +165,9 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         public boolean checkValidity() {
             if(this.cluster == null || 
                     this.nodes <= 0 ||
-                    this.ridPath == null || this.ridPath.isEmpty() ||
+                    this.slices <= 0 ||
+                    this.minHit < 0 ||
+                    this.maxHit < 0 ||
                     this.paths == null || this.paths.isEmpty() ||
                     this.paths.size() < 2) {
                 return false;
