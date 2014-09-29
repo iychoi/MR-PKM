@@ -48,7 +48,7 @@ def runReadIDIndexBuilder():
 
 def runKmerIndexBuilder():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder --k 20 --i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
 def runPairwiseKmerModeCounter():
     removeOutDir();

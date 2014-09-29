@@ -186,15 +186,21 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         // parse command line
         PairwiseKmerModeCounter_Cmd_Args cmdargs = new PairwiseKmerModeCounter_Cmd_Args();
         CmdLineParser parser = new CmdLineParser(cmdargs);
+        CmdLineException parseException = null;
         try {
             parser.parseArgument(args);
         } catch (CmdLineException e) {
             // handling of wrong arguments
-            System.err.println(e.getMessage());
-            parser.printUsage(System.err);
+            parseException = e;
         }
         
         if(cmdargs.isHelp() || !cmdargs.checkValidity()) {
+            parser.printUsage(System.err);
+            return 1;
+        }
+        
+        if(parseException != null) {
+            System.err.println(parseException.getMessage());
             parser.printUsage(System.err);
             return 1;
         }

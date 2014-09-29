@@ -94,7 +94,7 @@ public class MRPKM {
             parser.printUsage(System.err);
         }
         
-        if(cmdargs.isHelp()) {
+        if(cmdargs.isHelp() && cmdargs.getTargetClass() == null) {
             printHelp();
         } else {
             String potentialClassName = cmdargs.getTargetClass();
