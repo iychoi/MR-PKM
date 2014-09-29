@@ -225,16 +225,18 @@ public class KmerLinearMatcher {
                         this.stepVals[i] = null;
                     }
                 } else {
-                    if(minKey.compareTo(this.stepKeys[i]) == 0) {
-                        CompressedSequenceWritable key = new CompressedSequenceWritable();
-                        CompressedIntArrayWritable val = new CompressedIntArrayWritable();
-                        if(this.readers[i].next(key, val)) {
-                            this.stepKeys[i] = key;
-                            this.stepVals[i] = val;
-                            hasKey = true;
-                        } else {
-                            this.stepKeys[i] = null;
-                            this.stepVals[i] = null;
+                    if(this.stepKeys[i] != null) {
+                        if(minKey.compareTo(this.stepKeys[i]) == 0) {
+                            CompressedSequenceWritable key = new CompressedSequenceWritable();
+                            CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+                            if(this.readers[i].next(key, val)) {
+                                this.stepKeys[i] = key;
+                                this.stepVals[i] = val;
+                                hasKey = true;
+                            } else {
+                                this.stepKeys[i] = null;
+                                this.stepVals[i] = null;
+                            }
                         }
                     }
                 }
