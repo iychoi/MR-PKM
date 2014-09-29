@@ -8,10 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
 
 /**
  *
@@ -27,54 +23,6 @@ public class MRPKM {
         "edu.arizona.cs.mrpkm.kmermatch"
     };
     
-    private static class MRPKM_Cmd_Args {
-        @Option(name = "-h", aliases = "--help", usage = "print this message") 
-        private boolean help = false;
-        
-        @Argument(metaVar = "[target-class [arguments ...]]", usage = "target-class and arguments")
-        private List<String> arguments = new ArrayList<String>();
-        
-        public boolean isHelp() {
-            return this.help;
-        }
-        
-        public String getTargetClass() {
-            if(this.arguments.isEmpty()) {
-                return null;
-            }
-            
-            return this.arguments.get(0);
-        }
-        
-        public String[] getTargetClassArgs() {
-            if(this.arguments.isEmpty()) {
-                return new String[0];
-            }
-            
-            String[] newArgs = new String[this.arguments.size()-1];
-            for(int i=1;i<this.arguments.size();i++) {
-                newArgs[i-1] = this.arguments.get(i);
-            }
-            
-            return newArgs;
-        }
-        
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            for(String arg : this.arguments) {
-                if(sb.length() != 0) {
-                    sb.append(", ");
-                }
-                
-                sb.append(arg);
-            }
-            
-            return "help = " + this.help + "\n" +
-                    "arguments = " + sb.toString();
-        }
-    }
-
     private static void invokeClass(Class clazz, String[] args) throws Exception {
         if(clazz == null) {
             throw new IllegalArgumentException("clazz is not given");
@@ -83,48 +31,78 @@ public class MRPKM {
         ClassHelper.invokeMain(clazz, args);
     }
     
-    public static void main(String[] args) throws Exception {
-        MRPKM_Cmd_Args cmdargs = new MRPKM_Cmd_Args();
-        CmdLineParser parser = new CmdLineParser(cmdargs);
-        try {
-            parser.parseArgument(args);
-        } catch (CmdLineException e) {
-            // handling of wrong arguments
-            System.err.println(e.getMessage());
-            parser.printUsage(System.err);
+    private static String[] filteroutSubParams(String[] args) {
+        List<String> filteredParams = new ArrayList<String>();
+        
+        for(String arg : args) {
+            filteredParams.add(arg);
+            break;
         }
         
-        if(cmdargs.isHelp() && cmdargs.getTargetClass() == null) {
-            printHelp();
-        } else {
-            String potentialClassName = cmdargs.getTargetClass();
-            if(potentialClassName != null) {
-                Class clazz = null;
-                try {
-                    clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
-                } catch (ClassNotFoundException ex) {
-                }
-
-                if(clazz == null) {
-                    if(potentialClassName.equalsIgnoreCase("ridx")) {
-                        clazz = ReadIDIndexBuilder.class;
-                    } else if(potentialClassName.equalsIgnoreCase("kidx")) {
-                        clazz = KmerIndexBuilder.class;
-                    } else if(potentialClassName.equalsIgnoreCase("pkm")) {
-                        clazz = PairwiseKmerModeCounter.class;
-                    }
-                }
-
-                if(clazz != null) {
-                    String[] classArg = cmdargs.getTargetClassArgs();
-                    // call a main function in the class
-                    invokeClass(clazz, classArg);
-                } else {
-                    System.err.println("Class name is not given properly");
-                }
-            } else {
-                System.err.println("Class name is not given");
+        return filteredParams.toArray(new String[0]);
+    }
+    
+    private static boolean isHelpParam(String[] args) {
+        if(args.length < 1 || 
+                args[0].equalsIgnoreCase("-h") ||
+                args[0].equalsIgnoreCase("--help")) {
+            return true;
+        }
+        return false;
+    }
+    
+    private static String getTargetClassName(String[] args) {
+        if(args.length < 1) {
+            return null;
+        }
+        
+        return args[0];
+    }
+    
+    private static String[] getTargetClassArguments(String[] args) {
+        List<String> targetClassArguments = new ArrayList<String>();
+        if(args.length > 1) {
+            for(int i=1; i<args.length; i++) {
+                targetClassArguments.add(args[i]);
             }
+        }
+        
+        return targetClassArguments.toArray(new String[0]);
+    }
+    
+    public static void main(String[] args) throws Exception {
+        if(isHelpParam(args)) {
+            printHelp();
+            return;
+        } 
+        
+        String potentialClassName = getTargetClassName(args);
+        if(potentialClassName != null) {
+            Class clazz = null;
+            try {
+                clazz = ClassHelper.findClass(potentialClassName, SEARCH_PACKAGES);
+            } catch (ClassNotFoundException ex) {
+            }
+
+            if(clazz == null) {
+                if(potentialClassName.equalsIgnoreCase("ridx")) {
+                    clazz = ReadIDIndexBuilder.class;
+                } else if(potentialClassName.equalsIgnoreCase("kidx")) {
+                    clazz = KmerIndexBuilder.class;
+                } else if(potentialClassName.equalsIgnoreCase("pkm")) {
+                    clazz = PairwiseKmerModeCounter.class;
+                }
+            }
+
+            if(clazz != null) {
+                String[] classArg = getTargetClassArguments(args);
+                // call a main function in the class
+                invokeClass(clazz, classArg);
+            } else {
+                System.err.println("Class name is not given properly");
+            }
+        } else {
+            printHelp();
         }
     }
 
