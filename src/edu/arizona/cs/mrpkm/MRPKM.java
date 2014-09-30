@@ -99,7 +99,7 @@ public class MRPKM {
                 // call a main function in the class
                 invokeClass(clazz, classArg);
             } else {
-                System.err.println("Class name is not given properly");
+                System.err.println("Class name is not given properly : " + potentialClassName);
             }
         } else {
             printHelp();
