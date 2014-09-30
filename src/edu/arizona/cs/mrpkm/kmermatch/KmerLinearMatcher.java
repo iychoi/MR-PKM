@@ -61,16 +61,16 @@ public class KmerLinearMatcher {
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
             if(indice[i].length == 1) {
                 // better performance
-                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getBeginKmer(), this.conf);
+                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getSliceBeginKmer(), this.conf);
             } else {
-                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getBeginKmer(), this.conf);
+                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getSliceBeginKmer(), this.conf);
             }
         }
         
         this.sliceSize = slice.getSliceSize();
         this.currentProgress = BigInteger.ZERO;
-        this.beginSequence = SequenceHelper.convertToBigInteger(this.slice.getBeginKmer());
-        this.endSequence = new CompressedSequenceWritable(this.slice.getEndKmer());
+        this.beginSequence = SequenceHelper.convertToBigInteger(this.slice.getSliceBeginKmer());
+        this.endSequence = new CompressedSequenceWritable(this.slice.getSliceEndKmer());
         this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
@@ -78,13 +78,13 @@ public class KmerLinearMatcher {
         this.reportCounter = 0;
         
         LOG.info("Matcher is initialized");
-        LOG.info("> Range " + this.slice.getBeginKmer() + " ~ " + this.slice.getEndKmer());
+        LOG.info("> Range " + this.slice.getSliceBeginKmer() + " ~ " + this.slice.getSliceEndKmer());
         LOG.info("> Num of Slice Entries : " + this.slice.getSliceSize().longValue());
     }
     
     public void reset() throws IOException {
         for(AKmerIndexReader reader : this.readers) {
-            reader.seek(this.slice.getBeginKmer());
+            reader.seek(this.slice.getSliceBeginKmer());
         }
         
         this.currentProgress = BigInteger.ZERO;

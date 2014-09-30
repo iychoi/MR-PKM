@@ -15,43 +15,20 @@ public class KmerSequenceSlice {
     private int kmerSize;
     private int numSlices;
     private int sliceIndex;
-    
     private BigInteger sliceSize;
-    private String beginKmer;
-    private String endKmer;
+    private BigInteger sliceBegin;
+    private BigInteger sliceEnd;
     
     public KmerSequenceSlice() {
     }
     
-    public KmerSequenceSlice(int kmerSize, int numSlices, int sliceIndex) {
+    public KmerSequenceSlice(int kmerSize, int numSlices, int sliceIndex, BigInteger sliceSize, BigInteger sliceBegin, BigInteger sliceEnd) {
         this.kmerSize = kmerSize;
         this.numSlices = numSlices;
         this.sliceIndex = sliceIndex;
-        
-        calc();
-    }
-    
-    private void calc() {
-        // calc 4^kmerSize
-        BigInteger bi = BigInteger.valueOf(4).pow(this.kmerSize);
-        
-        BigInteger slice_width = bi.divide(BigInteger.valueOf(this.numSlices));
-        if(bi.mod(BigInteger.valueOf(this.numSlices)).intValue() != 0) {
-            slice_width = slice_width.add(BigInteger.ONE);
-        }
-        
-        this.sliceSize = slice_width;
-        
-        
-        BigInteger slice_begin = slice_width.multiply(BigInteger.valueOf(this.sliceIndex));
-        BigInteger slice_end = slice_begin.add(slice_width).subtract(BigInteger.ONE);
-        
-        if(slice_end.compareTo(bi) >= 0) {
-            slice_end = bi.subtract(BigInteger.ONE);
-        }
-        
-        this.beginKmer = SequenceHelper.convertToString(slice_begin, this.kmerSize);
-        this.endKmer = SequenceHelper.convertToString(slice_end, this.kmerSize);
+        this.sliceSize = sliceSize;
+        this.sliceBegin = sliceBegin;
+        this.sliceEnd = sliceEnd;
     }
     
     public int getKmerSize() {
@@ -70,12 +47,20 @@ public class KmerSequenceSlice {
         return this.sliceSize;
     }
     
-    public String getBeginKmer() {
-        return this.beginKmer;
+    public BigInteger getSliceBegin() {
+        return this.sliceBegin;
     }
     
-    public String getEndKmer() {
-        return this.endKmer;
+    public String getSliceBeginKmer() {
+        return SequenceHelper.convertToString(this.sliceBegin, this.kmerSize);
+    }
+    
+    public BigInteger getSliceEnd() {
+        return this.sliceEnd;
+    }
+    
+    public String getSliceEndKmer() {
+        return SequenceHelper.convertToString(this.sliceEnd, this.kmerSize);
     }
 
     public void write(DataOutput out) throws IOException {
@@ -83,8 +68,8 @@ public class KmerSequenceSlice {
         out.writeInt(this.numSlices);
         out.writeInt(this.sliceIndex);
         Text.writeString(out, this.sliceSize.toString());
-        Text.writeString(out, this.beginKmer);
-        Text.writeString(out, this.endKmer);
+        Text.writeString(out, this.sliceBegin.toString());
+        Text.writeString(out, this.sliceEnd.toString());
     }
 
     public void read(DataInput in) throws IOException {
@@ -92,13 +77,13 @@ public class KmerSequenceSlice {
         this.numSlices = in.readInt();
         this.sliceIndex = in.readInt();
         this.sliceSize = new BigInteger(Text.readString(in));
-        this.beginKmer = Text.readString(in);
-        this.endKmer = Text.readString(in);
+        this.sliceBegin = new BigInteger(Text.readString(in));
+        this.sliceEnd = new BigInteger(Text.readString(in));
     }
     
     @Override
     public String toString() {
         return "kmerSize : " + this.kmerSize + ", numSlices : " + this.numSlices + ", sliceIndex : " + this.sliceIndex +
-                ", sliceSize : " + this.sliceSize.toString() + ", beginKmer : " + this.beginKmer + ", endKmer : " + this.endKmer;
+                ", sliceSize : " + this.sliceSize.toString() + ", beginKmer : " + SequenceHelper.convertToString(this.sliceBegin, this.kmerSize) + ", endKmer : " + SequenceHelper.convertToString(this.sliceEnd, this.kmerSize);
     }
 }

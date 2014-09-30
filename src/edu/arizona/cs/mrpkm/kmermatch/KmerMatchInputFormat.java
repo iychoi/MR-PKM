@@ -67,8 +67,10 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);
         
-        for (int i=0;i<numSlices;i++) {
-            KmerSequenceSlice slice = new KmerSequenceSlice(kmerSize, numSlices, i);
+        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices);
+        KmerSequenceSlice[] slices = slicer.getSlices();
+        
+        for(KmerSequenceSlice slice : slices) {
             splits.add(new KmerIndexSplit(indexFilePaths, slice));
         }
         

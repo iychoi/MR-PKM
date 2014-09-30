@@ -54,6 +54,8 @@ def runPairwiseKmerModeCounter():
     removeOutDir();
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter test/sample/kidx test/sample/output", shell=True)
 
+def runTestKmerSequenceSlice(kmer, nslices):
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.kmermatch.test.KmerSequenceSliceTester " + str(kmer) + " " + str(nslices), shell=True)
 
 def main():
     if len(sys.argv) < 2:
@@ -62,6 +64,7 @@ def main():
         print "command : ./test.py ridx"
         print "command : ./test.py kidx"
         print "command : ./test.py pkm"
+        print "command : ./test.py test_kslice <kmer size> <num of slices>"
     else:
         command = sys.argv[1]
 
@@ -73,8 +76,10 @@ def main():
             runReadIDIndexBuilder()
         elif command == "kidx":
             runKmerIndexBuilder()
-        elif command == "pkm" :
+        elif command == "pkm":
             runPairwiseKmerModeCounter()
+        elif command == "test_kslice":
+            runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]))
         else:
             print "invalid command"
 

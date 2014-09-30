@@ -122,7 +122,9 @@ public class PairwiseKmerMatchChecker extends Configured implements Tool {
             }
         }
         
-        KmerSequenceSlice slice = new KmerSequenceSlice(kmerSize, 1, 0);
+        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, 1);
+        KmerSequenceSlice slices[] = slicer.getSlices();
+        KmerSequenceSlice slice = slices[0];
         KmerLinearMatcher matcher = new KmerLinearMatcher(indexPaths, slice, conf);
         
         LOG.info("Kmer Index Files : " + FileSystemHelper.makeCommaSeparated(indexPathStrings));
