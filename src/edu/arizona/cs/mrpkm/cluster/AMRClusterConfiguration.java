@@ -14,11 +14,7 @@ public abstract class AMRClusterConfiguration {
     };
     
     public static AMRClusterConfiguration findConfiguration(String configurationName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-        if(configurationName.equalsIgnoreCase("default")) {
-            configurationName = "Default";
-        }
-        
-        Class clazz = ClassHelper.findClass("MRClusterConfiguration_" + configurationName, SEARCH_PACKAGES);
+        Class clazz = ClassHelper.findClass("MRClusterConfiguration_" + configurationName.toLowerCase(), SEARCH_PACKAGES);
         return (AMRClusterConfiguration) ClassHelper.getClassInstance(clazz);
     }
     

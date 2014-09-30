@@ -7,7 +7,7 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.augment.HirodsBloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_Default;
+import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_default;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -54,7 +54,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         @Option(name = "-h", aliases = "--help", usage = "print this message") 
         private boolean help = false;
         
-        private AMRClusterConfiguration cluster = new MRClusterConfiguration_Default();
+        private AMRClusterConfiguration cluster = new MRClusterConfiguration_default();
         
         @Option(name = "-c", aliases = "--cluster", usage = "specify cluster configuration")
         public void setCluster(String clusterConf) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
