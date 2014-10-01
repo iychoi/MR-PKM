@@ -8,6 +8,8 @@ import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_default;
 import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
+import edu.arizona.cs.mrpkm.notification.EmailNotification;
+import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -57,6 +59,12 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
         }
         
+        @Option(name = "--notifyemail", usage = "specify email address for job notification")
+        private String notificationEmail;
+        
+        @Option(name = "--notifypassword", usage = "specify email password for job notification")
+        private String notificationPassword;
+        
         @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
         private List<String> paths = new ArrayList<String>();
         
@@ -101,6 +109,18 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             }
             
             return CSInputPath.toString();
+        }
+        
+        public boolean needNotification() {
+            return (notificationEmail != null);
+        }
+        
+        public String getNotificationEmail() {
+            return notificationEmail;
+        }
+        
+        public String getNotificationPassword() {
+            return notificationPassword;
         }
         
         @Override
@@ -236,6 +256,17 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         // commit results
         if(result) {
             commit(outputHadoopPath, conf, namedOutputs);
+        }
+        
+        // notify
+        if(cmdargs.needNotification()) {
+            EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
+            emailNotification.setJob(job);
+            try {
+                emailNotification.send();
+            } catch(EmailNotificationException ex) {
+                LOG.error(ex);
+            }
         }
         
         return result ? 0 : 1;

@@ -12,6 +12,8 @@ import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
+import edu.arizona.cs.mrpkm.notification.EmailNotification;
+import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -87,6 +89,12 @@ public class KmerIndexBuilder extends Configured implements Tool {
         @Option(name = "-i", aliases = "--readidpath", required = true, usage = "specify ReadID index path")
         private String ridPath = null;
         
+        @Option(name = "--notifyemail", usage = "specify email address for job notification")
+        private String notificationEmail;
+        
+        @Option(name = "--notifypassword", usage = "specify email password for job notification")
+        private String notificationPassword;
+        
         @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
         private List<String> paths = new ArrayList<String>();
         
@@ -147,6 +155,18 @@ public class KmerIndexBuilder extends Configured implements Tool {
             }
             
             return CSInputPath.toString();
+        }
+        
+        public boolean needNotification() {
+            return (notificationEmail != null);
+        }
+        
+        public String getNotificationEmail() {
+            return notificationEmail;
+        }
+        
+        public String getNotificationPassword() {
+            return notificationPassword;
         }
         
         @Override
@@ -302,7 +322,20 @@ public class KmerIndexBuilder extends Configured implements Tool {
         boolean result = job.waitForCompletion(true);
 
         // commit results
-        commit(new Path(outputPath), conf, namedOutputs, kmerSize);
+        if(result) {
+            commit(new Path(outputPath), conf, namedOutputs, kmerSize);
+        }
+        
+        // notify
+        if(cmdargs.needNotification()) {
+            EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
+            emailNotification.setJob(job);
+            try {
+                emailNotification.send();
+            } catch(EmailNotificationException ex) {
+                LOG.error(ex);
+            }
+        }
         
         return result ? 0 : 1;
     }
