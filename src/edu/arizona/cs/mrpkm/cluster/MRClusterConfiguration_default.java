@@ -14,7 +14,17 @@ public class MRClusterConfiguration_default extends AMRClusterConfiguration {
     }
 
     @Override
-    public int getReducerNumber(int nodes) {
+    public int getReadIndexBuilderReducerNumber(int nodes) {
+        return nodes;
+    }
+    
+    @Override
+    public int getKmerIndexBuilderReducerNumber(int nodes) {
+        return nodes;
+    }
+
+    @Override
+    public int getPairwiseKmerModeCounterReducerNumber(int nodes) {
         return nodes;
     }
 

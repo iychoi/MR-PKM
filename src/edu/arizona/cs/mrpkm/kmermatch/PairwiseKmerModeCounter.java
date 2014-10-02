@@ -337,7 +337,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             id++;
         }
         
-        job.setNumReduceTasks(clusterConfig.getReducerNumber(nodeSize));
+        job.setNumReduceTasks(clusterConfig.getPairwiseKmerModeCounterReducerNumber(nodeSize));
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);

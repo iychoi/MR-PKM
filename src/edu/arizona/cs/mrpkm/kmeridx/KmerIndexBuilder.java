@@ -69,6 +69,9 @@ public class KmerIndexBuilder extends Configured implements Tool {
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
         
+        @Option(name = "-d", aliases = "--distindex", usage = "make distributed indice")
+        private boolean distributed_index = false;
+        
         private Class outputFormat = MapFileOutputFormat.class;
         
         @Option(name = "-f", aliases = "--outputformat", usage = "specify output format")
@@ -112,6 +115,10 @@ public class KmerIndexBuilder extends Configured implements Tool {
         
         public int getNodes() {
             return this.nodes;
+        }
+        
+        public boolean getDistributedNode() {
+            return this.distributed_index;
         }
         
         public Class getOutputFormat() {
@@ -247,7 +254,10 @@ public class KmerIndexBuilder extends Configured implements Tool {
         // Identity Mapper & Reducer
         job.setMapperClass(KmerIndexBuilderMapper.class);
         job.setCombinerClass(KmerIndexBuilderCombiner.class);
-        job.setPartitionerClass(KmerIndexBuilderPartitioner.class);
+        if(!cmdargs.getDistributedNode()) {
+            // aggregation
+            job.setPartitionerClass(KmerIndexBuilderPartitioner.class);
+        }
         job.setReducerClass(KmerIndexBuilderReducer.class);
         
         job.setMapOutputKeyClass(MultiFileCompressedSequenceWritable.class);
@@ -316,7 +326,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
             id++;
         }
         
-        job.setNumReduceTasks(clusterConfig.getReducerNumber(nodeSize));
+        job.setNumReduceTasks(clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize));
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);

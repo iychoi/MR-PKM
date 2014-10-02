@@ -59,6 +59,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
         }
         
+        @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
+        private int nodes = 1;
+        
         @Option(name = "--notifyemail", usage = "specify email address for job notification")
         private String notificationEmail;
         
@@ -74,6 +77,10 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         public AMRClusterConfiguration getConfiguration() {
             return this.cluster;
+        }
+        
+        public int getNodes() {
+            return this.nodes;
         }
         
         public String getOutputPath() {
@@ -140,6 +147,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         public boolean checkValidity() {
             if(this.cluster == null || 
+                    this.nodes <= 0 ||
                     this.paths == null || this.paths.isEmpty() ||
                     this.paths.size() < 2) {
                 return false;
@@ -177,6 +185,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             return 1;
         }
         
+        int nodeSize = cmdargs.getNodes();
         String inputPath = cmdargs.getCommaSeparatedInputPath();
         String outputPath = cmdargs.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
@@ -190,6 +199,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
 
         // Identity Mapper & Reducer
         job.setMapperClass(ReadIDIndexBuilderMapper.class);
+        job.setPartitionerClass(ReadIDIndexBuilderPartitioner.class);
         job.setReducerClass(ReadIDIndexBuilderReducer.class);
 
         job.setMapOutputKeyClass(MultiFileOffsetWritable.class);
@@ -248,7 +258,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             id++;
         }
         
-        job.setNumReduceTasks(1);
+        job.setNumReduceTasks(clusterConfig.getReadIndexBuilderReducerNumber(nodeSize));
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);

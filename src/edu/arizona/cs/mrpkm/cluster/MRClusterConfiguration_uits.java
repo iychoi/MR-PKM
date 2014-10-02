@@ -16,8 +16,18 @@ public class MRClusterConfiguration_uits extends AMRClusterConfiguration {
     }
 
     @Override
-    public int getReducerNumber(int nodes) {
+    public int getReadIndexBuilderReducerNumber(int nodes) {
         return nodes;
+    }
+    
+    @Override
+    public int getKmerIndexBuilderReducerNumber(int nodes) {
+        return nodes * (CPU_CORE_PER_NODE / 4);
+    }
+
+    @Override
+    public int getPairwiseKmerModeCounterReducerNumber(int nodes) {
+        return nodes * (CPU_CORE_PER_NODE / 4);
     }
 
     @Override
