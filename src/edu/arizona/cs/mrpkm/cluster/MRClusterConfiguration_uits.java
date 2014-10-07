@@ -7,7 +7,7 @@ package edu.arizona.cs.mrpkm.cluster;
 public class MRClusterConfiguration_uits extends AMRClusterConfiguration {
     
     private static final int CPU_CORE_PER_NODE = 12;
-    private static final int CHILD_MEM_SIZE = 8*1024; // 8GB
+    private static final int CHILD_MEM_SIZE = 1024; // 1GB
     private static final int FILE_BUFFER_SIZE = 4096; // 4KB
     
     @Override
@@ -38,5 +38,10 @@ public class MRClusterConfiguration_uits extends AMRClusterConfiguration {
     @Override
     public int getMapReduceFileBufferSize() {
         return FILE_BUFFER_SIZE;
+    }
+
+    @Override
+    public boolean isMapReduce2() {
+        return true;
     }
 }

@@ -50,6 +50,8 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
             throw new IOException("number of slices must be a positive number");
         }
         
+        KmerSequenceSlicer.SlicerMode slicerMode = job.getConfiguration().getEnum(KmerMatchHelper.getConfigurationSlicerMode(), KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
+        
         // generate splits
         List<InputSplit> splits = new ArrayList<InputSplit>();
         List<FileStatus> files = listStatus(job);
@@ -67,7 +69,7 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);
         
-        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices);
+        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices, slicerMode);
         KmerSequenceSlice[] slices = slicer.getSlices();
         
         for(KmerSequenceSlice slice : slices) {

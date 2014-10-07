@@ -6,11 +6,16 @@ package edu.arizona.cs.mrpkm.kmermatch;
  */
 public class KmerMatchHelper {
     private final static String CONF_KMER_SIZE = "edu.arizona.cs.mrpkm.kmermatch.kmer_size";
-    private static final String CONF_NUM_SLICES = "edu.arizona.cs.mrpkm.kmermatch.slices";
-    private static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
+    private final static String CONF_SLICER_MODE = "edu.arizona.cs.mrpkm.kmermatch.slicer.mode";
+    private final static String CONF_NUM_SLICES = "edu.arizona.cs.mrpkm.kmermatch.slices";
+    private final static String NUM_INPUT_FILES = "mapreduce.input.num.files";
     
     public static String getConfigurationKeyOfSliceNum() {
         return CONF_NUM_SLICES;
+    }
+    
+    public static String getConfigurationSlicerMode() {
+        return CONF_SLICER_MODE;
     }
     
     public static String getConfigurationKeyOfKmerSize() {

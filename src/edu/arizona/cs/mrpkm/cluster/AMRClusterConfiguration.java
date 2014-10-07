@@ -20,13 +20,15 @@ public abstract class AMRClusterConfiguration {
     
     public void setConfiguration(Configuration conf) {
         // set memory
-        if(getMapReduceChildMemSize() != 0) {
-            String memsize = getMapReduceChildMemSize() + "M";
-            conf.set("mapred.child.java.opts", "-Xms" + memsize + " -Xmx" + memsize);
-        }
-        
-        if(getMapReduceFileBufferSize() != 0) {
-            conf.setInt("io.file.buffer.size", getMapReduceFileBufferSize());
+        if(!isMapReduce2()) {
+            if(getMapReduceChildMemSize() != 0) {
+                String memsize = getMapReduceChildMemSize() + "M";
+                conf.set("mapred.child.java.opts", "-Xms" + memsize + " -Xmx" + memsize);
+            }
+
+            if(getMapReduceFileBufferSize() != 0) {
+                conf.setInt("io.file.buffer.size", getMapReduceFileBufferSize());
+            }
         }
     }
     
@@ -36,4 +38,5 @@ public abstract class AMRClusterConfiguration {
     public abstract int getPairwiseKmerModeCounterReducerNumber(int nodes);
     public abstract int getMapReduceChildMemSize();
     public abstract int getMapReduceFileBufferSize();
+    public abstract boolean isMapReduce2();
 }

@@ -12,7 +12,7 @@ public class KmerSequenceSliceTester {
         int kmerSize = Integer.parseInt(args[0]);
         int numSlices = Integer.parseInt(args[1]);
         
-        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices);
+        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices, KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
         KmerSequenceSlice slices[] = slicer.getSlices();
         for(KmerSequenceSlice slice : slices) {
             System.out.println(slice.toString());

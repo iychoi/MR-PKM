@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  *
@@ -11,24 +13,41 @@ import java.util.List;
  */
 public class KmerSequenceSlicer {
     
+    private static final Log LOG = LogFactory.getLog(KmerSequenceSlicer.class);
+    
     private int kmerSize;
     private int numSlices;
+    private SlicerMode mode;
     
     private List<KmerSequenceSlice> slices = new ArrayList<KmerSequenceSlice>();
+    
+    public enum SlicerMode {
+        MODE_EQUAL_RANGE,
+        MODE_EQUAL_ENTRIES
+    }
 
-    public KmerSequenceSlicer(int kmerSize, int numSlices) {
+    public KmerSequenceSlicer(int kmerSize, int numSlices, SlicerMode mode) {
         this.kmerSize = kmerSize;
         this.numSlices = numSlices;
+        this.mode = mode;
         
-        //calc_equal_width();
-        calc_equal_area();
+        if(mode.equals(SlicerMode.MODE_EQUAL_RANGE)) {
+            LOG.info("Slicer - Equal Kmer Range Mode");
+            calc_equal_range();
+        } else if(mode.equals(SlicerMode.MODE_EQUAL_ENTRIES)) {
+            LOG.info("Slicer - Equal Kmer Entries Mode");
+            calc_equal_area();
+        } else {
+            LOG.info("Slicer - Equal Kmer Range Mode");
+            calc_equal_range();
+        }
     }
 
     public KmerSequenceSlice[] getSlices() {
         return this.slices.toArray(new KmerSequenceSlice[0]);
     }
     
-    private void calc_equal_width() {
+    private void calc_equal_range() {
         // calc 4^kmerSize
         BigInteger kmerend = BigInteger.valueOf(4).pow(this.kmerSize);
         

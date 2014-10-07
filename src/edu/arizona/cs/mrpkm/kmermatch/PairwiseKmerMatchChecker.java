@@ -122,7 +122,7 @@ public class PairwiseKmerMatchChecker extends Configured implements Tool {
             }
         }
         
-        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, 1);
+        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, 1, KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
         KmerSequenceSlice slices[] = slicer.getSlices();
         KmerSequenceSlice slice = slices[0];
         KmerLinearMatcher matcher = new KmerLinearMatcher(indexPaths, slice, conf);

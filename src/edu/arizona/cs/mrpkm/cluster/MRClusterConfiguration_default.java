@@ -37,4 +37,9 @@ public class MRClusterConfiguration_default extends AMRClusterConfiguration {
     public int getMapReduceFileBufferSize() {
         return 0;
     }
+
+    @Override
+    public boolean isMapReduce2() {
+        return false;
+    }
 }

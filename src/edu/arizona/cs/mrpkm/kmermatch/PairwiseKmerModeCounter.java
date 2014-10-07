@@ -73,6 +73,24 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             this.slices = slices;
         }
         
+        private KmerSequenceSlicer.SlicerMode slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+        
+        @Option(name = "--slicermode", usage = "specify how to slice")
+        public void setSlicerMode(String slicerMode) {
+            if(slicerMode == null) {
+                this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+            } else if(slicerMode.equalsIgnoreCase("entries")) {
+                this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+            } else if(slicerMode.equalsIgnoreCase("range")) {
+                this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_RANGE;
+            } else {
+                this.slicerMode = KmerSequenceSlicer.SlicerMode.valueOf(slicerMode);
+                if(this.slicerMode == null) {
+                    this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+                }
+            }
+        }
+        
         @Option(name = "--min", usage = "specify the minimum bound of hit")
         private int minHit = 0;
         

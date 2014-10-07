@@ -39,4 +39,9 @@ public class MRClusterConfiguration_atmosmall1 extends AMRClusterConfiguration {
     public int getMapReduceFileBufferSize() {
         return FILE_BUFFER_SIZE;
     }
+
+    @Override
+    public boolean isMapReduce2() {
+        return false;
+    }
 }
