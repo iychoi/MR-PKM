@@ -91,8 +91,8 @@ def runPairwiseKmerModeCounter_2_3_0():
     removeOutDir();
     subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* test/sample/kidx test/sample/output", shell=True)
 
-def runTestKmerSequenceSlice(kmer, nslices):
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.kmermatch.test.KmerSequenceSliceTester " + str(kmer) + " " + str(nslices), shell=True)
+def runTestKmerSequenceSlice(kmer, nslices, mode):
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.kmermatch.test.KmerSequenceSliceTester " + str(kmer) + " " + str(nslices) + " " + str(mode), shell=True)
 
 def main():
     if len(sys.argv) < 2:
@@ -105,7 +105,8 @@ def main():
         print "command : ./test.py kidx_2.3.0"
         print "command : ./test.py pkm_0.20.2"
         print "command : ./test.py pkm_2.3.0"
-        print "command : ./test.py test_kslice <kmer size> <num of slices>"
+        print "command : ./test.py test_kslice_es <kmer size> <num of slices>"
+        print "command : ./test.py test_kslice_er <kmer size> <num of slices>"
     else:
         command = sys.argv[1]
 
@@ -127,8 +128,10 @@ def main():
             runPairwiseKmerModeCounter_0_20_2()
         elif command == "pkm_2.3.0":
             runPairwiseKmerModeCounter_2_3_0()
-        elif command == "test_kslice":
-            runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]))
+        elif command == "test_kslice_es":
+            runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 1)
+        elif command == "test_kslice_er":
+            runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 0)
         else:
             print "invalid command"
 

@@ -69,7 +69,7 @@ public class KmerLinearMatcher {
         
         this.sliceSize = slice.getSliceSize();
         this.currentProgress = BigInteger.ZERO;
-        this.beginSequence = SequenceHelper.convertToBigInteger(this.slice.getSliceBeginKmer());
+        this.beginSequence = this.slice.getSliceBegin();
         this.endSequence = new CompressedSequenceWritable(this.slice.getSliceEndKmer());
         this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
@@ -174,9 +174,14 @@ public class KmerLinearMatcher {
                 CompressedSequenceWritable key = new CompressedSequenceWritable();
                 CompressedIntArrayWritable val = new CompressedIntArrayWritable();
                 if(this.readers[i].next(key, val)) {
-                    this.stepKeys[i] = key;
-                    this.stepVals[i] = val;
-                    hasKey = true;
+                    if(key.compareTo(this.endSequence) <= 0) {
+                        this.stepKeys[i] = key;
+                        this.stepVals[i] = val;
+                        hasKey = true;
+                    } else {
+                        this.stepKeys[i] = null;
+                        this.stepVals[i] = null;    
+                    }
                 } else {
                     this.stepKeys[i] = null;
                     this.stepVals[i] = null;
@@ -217,9 +222,14 @@ public class KmerLinearMatcher {
                     CompressedSequenceWritable key = new CompressedSequenceWritable();
                     CompressedIntArrayWritable val = new CompressedIntArrayWritable();
                     if(this.readers[i].next(key, val)) {
-                        this.stepKeys[i] = key;
-                        this.stepVals[i] = val;
-                        hasKey = true;
+                        if(key.compareTo(this.endSequence) <= 0) {
+                            this.stepKeys[i] = key;
+                            this.stepVals[i] = val;
+                            hasKey = true;
+                        } else {
+                            this.stepKeys[i] = null;
+                            this.stepVals[i] = null;
+                        }
                     } else {
                         this.stepKeys[i] = null;
                         this.stepVals[i] = null;

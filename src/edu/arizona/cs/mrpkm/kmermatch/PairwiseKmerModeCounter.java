@@ -130,6 +130,10 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             }
         }
         
+        public KmerSequenceSlicer.SlicerMode getSlicerMode() {
+            return this.slicerMode;
+        }
+        
         public int getMinHit() {
             return this.minHit;
         }
@@ -246,6 +250,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
         int nodeSize = cmdargs.getNodes();
         int sliceNum = cmdargs.getSlices(nodeSize * clusterConfig.getCoresPerMachine());
+        KmerSequenceSlicer.SlicerMode slicerMode = cmdargs.getSlicerMode();
         int matchFilterMin = cmdargs.getMinHit();
         int matchFilterMax = cmdargs.getMaxHit();
         String inputPath = cmdargs.getCommaSeparatedInputPath();
@@ -255,6 +260,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         Configuration conf = this.getConf();
         clusterConfig.setConfiguration(conf);
         
+        conf.setEnum(KmerMatchHelper.getConfigurationSlicerMode(), slicerMode);
         conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), matchFilterMin);
         conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), matchFilterMax);
 
