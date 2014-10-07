@@ -83,13 +83,23 @@ def runKmerIndexBuilder_2_3_0():
     removeOutDir()
     subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexBuilder -libjars dist/lib/* -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
-def runPairwiseKmerModeCounter_0_20_2():
+def runPairwiseKmerModeCounter_0_20_2(mode):
     removeOutDir();
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter test/sample/kidx test/sample/output", shell=True)
+    smode = "range"
+    if mode == 0:
+        smode = "range"
+    else:
+        smode = "entries"
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter --slicermode " + smode + " test/sample/kidx test/sample/output", shell=True)
 
-def runPairwiseKmerModeCounter_2_3_0():
+def runPairwiseKmerModeCounter_2_3_0(mode):
     removeOutDir();
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* test/sample/kidx test/sample/output", shell=True)
+    smode = "range"
+    if mode == 0:
+        smode = "range"
+    else:
+        smode = "entries"
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* --slicermode " + smode + " test/sample/kidx test/sample/output", shell=True)
 
 def runTestKmerSequenceSlice(kmer, nslices, mode):
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.kmermatch.test.KmerSequenceSliceTester " + str(kmer) + " " + str(nslices) + " " + str(mode), shell=True)
@@ -103,9 +113,11 @@ def main():
         print "command : ./test.py ridx_2.3.0"
         print "command : ./test.py kidx_0.20.2"
         print "command : ./test.py kidx_2.3.0"
-        print "command : ./test.py pkm_0.20.2"
-        print "command : ./test.py pkm_2.3.0"
-        print "command : ./test.py test_kslice_es <kmer size> <num of slices>"
+        print "command : ./test.py pkm_ee_0.20.2"
+        print "command : ./test.py pkm_ee_2.3.0"
+        print "command : ./test.py pkm_er_0.20.2"
+        print "command : ./test.py pkm_er_2.3.0"
+        print "command : ./test.py test_kslice_ee <kmer size> <num of slices>"
         print "command : ./test.py test_kslice_er <kmer size> <num of slices>"
     else:
         command = sys.argv[1]
@@ -124,11 +136,15 @@ def main():
             runKmerIndexBuilder_0_20_2()
         elif command == "kidx_2.3.0":
             runKmerIndexBuilder_2_3_0()
-        elif command == "pkm_0.20.2":
-            runPairwiseKmerModeCounter_0_20_2()
-        elif command == "pkm_2.3.0":
-            runPairwiseKmerModeCounter_2_3_0()
-        elif command == "test_kslice_es":
+        elif command == "pkm_ee_0.20.2":
+            runPairwiseKmerModeCounter_0_20_2(1)
+        elif command == "pkm_ee_2.3.0":
+            runPairwiseKmerModeCounter_2_3_0(1)
+        elif command == "pkm_er_0.20.2":
+            runPairwiseKmerModeCounter_0_20_2(0)
+        elif command == "pkm_er_2.3.0":
+            runPairwiseKmerModeCounter_2_3_0(0)
+        elif command == "test_kslice_ee":
             runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 1)
         elif command == "test_kslice_er":
             runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 0)

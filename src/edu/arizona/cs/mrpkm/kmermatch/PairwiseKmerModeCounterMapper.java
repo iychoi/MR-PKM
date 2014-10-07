@@ -46,7 +46,7 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
             int neg = 0;
             int[] ids = vals[i].get();
             for(int j=0;j<ids.length;j++) {
-                if(j >= 0) {
+                if(ids[j] >= 0) {
                     pos++;
                 } else {
                     neg++;
