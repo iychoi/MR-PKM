@@ -9,7 +9,6 @@ import java.util.Hashtable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
@@ -70,14 +69,23 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
                     if(modeVal.get() < mi.get()) {
                         modeKey = hit;
                         modeVal = mi;
+                    } else if(modeVal.get() == mi.get() && modeKey < hit) {
+                        modeKey = hit;
+                        modeVal = mi;
                     }
                 }
             } else {
                 // existing
                 cntExist.set(cntExist.get() + 1);
-                if(modeVal.get() < cntExist.get()) {
-                    modeKey = hit;
-                    modeVal = cntExist;
+                
+                if(hit != modeKey) {
+                    if(modeVal.get() < cntExist.get()) {
+                        modeKey = hit;
+                        modeVal = cntExist;
+                    } else if(modeVal.get() == cntExist.get() && modeKey < hit) {
+                        modeKey = hit;
+                        modeVal = cntExist;
+                    }
                 }
             }
         }

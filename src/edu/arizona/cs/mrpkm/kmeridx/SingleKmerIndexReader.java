@@ -25,26 +25,29 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     private String indexPath;
     private Configuration conf;
     private MapFile.Reader mapfileReader;
+    private CompressedSequenceWritable beginKey;
+    private CompressedSequenceWritable endKey;
     private BlockingQueue<BufferEntry> buffer = new LinkedBlockingQueue<BufferEntry>();
     private boolean eof;
     
     public SingleKmerIndexReader(FileSystem fs, String indexPath, Configuration conf) throws IOException {
-        initialize(fs, indexPath, null, conf);
+        initialize(fs, indexPath, null, null, conf);
     }
     
-    public SingleKmerIndexReader(FileSystem fs, String indexPath, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
-        initialize(fs, indexPath, beginKey, conf);
+    public SingleKmerIndexReader(FileSystem fs, String indexPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
+        initialize(fs, indexPath, beginKey, endKey, conf);
     }
     
-    public SingleKmerIndexReader(FileSystem fs, String indexPath, String beginKey, Configuration conf) throws IOException {
-        initialize(fs, indexPath, new CompressedSequenceWritable(beginKey), conf);
+    public SingleKmerIndexReader(FileSystem fs, String indexPath, String beginKey, String endKey, Configuration conf) throws IOException {
+        initialize(fs, indexPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf);
     }
     
-    private void initialize(FileSystem fs, String indexPath, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
+    private void initialize(FileSystem fs, String indexPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
         this.fs = fs;
         this.indexPath = indexPath;
         this.conf = conf;
-
+        this.beginKey = beginKey;
+        this.endKey = endKey;
         this.mapfileReader = new MapFile.Reader(fs, indexPath, conf);
         if(beginKey != null) {
             mapfileReader.seek(beginKey);
@@ -56,6 +59,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     
     private void fillBuffer() throws IOException {
         if(!this.eof) {
+            CompressedSequenceWritable lastBufferedKey = null;
             for(int i=0;i<BUFFER_SIZE;i++) {
                 CompressedSequenceWritable key = new CompressedSequenceWritable();
                 CompressedIntArrayWritable val = new CompressedIntArrayWritable();
@@ -64,18 +68,45 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
                     if(!this.buffer.offer(entry)) {
                         throw new IOException("buffer is full");
                     }
+                    
+                    lastBufferedKey = key;
                 } else {
                     // EOF
                     this.eof = true;
+                    break;
                 }
             }
-            this.eof = false;
+            
+            if(this.endKey != null) {
+                if(lastBufferedKey.compareTo(this.endKey) > 0) {
+                    // recheck buffer
+                    BlockingQueue<BufferEntry> new_buffer = new LinkedBlockingQueue<BufferEntry>();
+
+                    BufferEntry entry = this.buffer.poll();
+                    while(entry != null) {
+                        if(entry.getKey().compareTo(this.endKey) <= 0) {
+                            if(!new_buffer.offer(entry)) {
+                                throw new IOException("buffer is full");
+                            }
+                        }
+
+                        entry = this.buffer.poll();
+                    }
+
+                    this.buffer = new_buffer;
+                    this.eof = true;
+                }
+            }
         }
     }
     
     @Override
     public void reset() throws IOException {
-        this.mapfileReader.reset();
+        if(this.beginKey != null) {
+            this.mapfileReader.seek(this.beginKey);
+        } else {
+            this.mapfileReader.reset();
+        }
         this.buffer.clear();
         this.eof = false;
         fillBuffer();
@@ -106,6 +137,18 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     
     @Override
     public void seek(CompressedSequenceWritable key) throws IOException {
+        if(this.beginKey != null) {
+            if(key.compareTo(this.beginKey) < 0) {
+                throw new IOException("Seek range is out of bound");
+            }
+        }
+        
+        if(this.endKey != null) {
+            if(key.compareTo(this.endKey) > 0) {
+                throw new IOException("Seek range is out of bound");
+            }
+        }
+        
         this.mapfileReader.seek(key);
         this.buffer.clear();
         this.eof = false;

@@ -36,7 +36,6 @@ public class KmerLinearMatcher {
     private BigInteger sliceSize;
     private BigInteger currentProgress;
     private BigInteger beginSequence;
-    private CompressedSequenceWritable endSequence;
     
     private KmerMatchResult curMatch;
     private CompressedSequenceWritable[] stepKeys;
@@ -61,16 +60,15 @@ public class KmerLinearMatcher {
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
             if(indice[i].length == 1) {
                 // better performance
-                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getSliceBeginKmer(), this.conf);
+                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getSliceBeginKmer(), this.slice.getSliceEndKmer(), this.conf);
             } else {
-                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getSliceBeginKmer(), this.conf);
+                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getSliceBeginKmer(), this.slice.getSliceEndKmer(), this.conf);
             }
         }
         
         this.sliceSize = slice.getSliceSize();
         this.currentProgress = BigInteger.ZERO;
         this.beginSequence = this.slice.getSliceBegin();
-        this.endSequence = new CompressedSequenceWritable(this.slice.getSliceEndKmer());
         this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
@@ -84,7 +82,7 @@ public class KmerLinearMatcher {
     
     public void reset() throws IOException {
         for(AKmerIndexReader reader : this.readers) {
-            reader.seek(this.slice.getSliceBeginKmer());
+            reader.reset();
         }
         
         this.currentProgress = BigInteger.ZERO;
@@ -127,13 +125,6 @@ public class KmerLinearMatcher {
                 this.curMatch = null;
                 this.currentProgress = this.sliceSize;
                 return false;
-            } else {
-                if(minKey.compareTo(this.endSequence) > 0) {
-                    // no more
-                    this.curMatch = null;
-                    this.currentProgress = this.sliceSize;
-                    return false;
-                }
             }
 
             this.reportCounter++;
@@ -174,14 +165,9 @@ public class KmerLinearMatcher {
                 CompressedSequenceWritable key = new CompressedSequenceWritable();
                 CompressedIntArrayWritable val = new CompressedIntArrayWritable();
                 if(this.readers[i].next(key, val)) {
-                    if(key.compareTo(this.endSequence) <= 0) {
-                        this.stepKeys[i] = key;
-                        this.stepVals[i] = val;
-                        hasKey = true;
-                    } else {
-                        this.stepKeys[i] = null;
-                        this.stepVals[i] = null;    
-                    }
+                    this.stepKeys[i] = key;
+                    this.stepVals[i] = val;
+                    hasKey = true;
                 } else {
                     this.stepKeys[i] = null;
                     this.stepVals[i] = null;
@@ -227,14 +213,9 @@ public class KmerLinearMatcher {
                 CompressedSequenceWritable key = new CompressedSequenceWritable();
                 CompressedIntArrayWritable val = new CompressedIntArrayWritable();
                 if(this.readers[idx].next(key, val)) {
-                    if(key.compareTo(this.endSequence) <= 0) {
-                        this.stepKeys[idx] = key;
-                        this.stepVals[idx] = val;
-                        hasKey = true;
-                    } else {
-                        this.stepKeys[idx] = null;
-                        this.stepVals[idx] = null;
-                    }
+                    this.stepKeys[idx] = key;
+                    this.stepVals[idx] = val;
+                    hasKey = true;
                 } else {
                     this.stepKeys[idx] = null;
                     this.stepVals[idx] = null;
@@ -253,11 +234,10 @@ public class KmerLinearMatcher {
         if (this.sliceSize.compareTo(this.currentProgress) <= 0) {
             return 1.0f;
         } else {
-            BigInteger val100 = this.currentProgress.multiply(BigInteger.valueOf(100));
-            BigInteger divided = val100.divide(this.sliceSize);
+            BigInteger divided = this.currentProgress.divide(this.sliceSize);
             float f = divided.floatValue();
             
-            return Math.min(1.0f, f / 100.0f);
+            return Math.min(1.0f, f);
         }
     }
     

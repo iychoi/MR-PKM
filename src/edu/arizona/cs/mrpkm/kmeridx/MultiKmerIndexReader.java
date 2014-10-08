@@ -21,6 +21,8 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     private String[] indexPaths;
     private Configuration conf;
     private MapFile.Reader[] mapfileReaders;
+    private CompressedSequenceWritable beginKey;
+    private CompressedSequenceWritable endKey;
     
     private CompressedSequenceWritable currentKey = null;
     private CompressedIntArrayWritable currentVal = null;
@@ -31,21 +33,23 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     private int currentIndex;
     
     public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, null, conf);
+        initialize(fs, indexPaths, null, null, conf);
     }
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, beginKey, conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, beginKey, endKey, conf);
     }
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, new CompressedSequenceWritable(beginKey), conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, String endKey, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf);
     }
     
-    private void initialize(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, Configuration conf) throws IOException {
+    private void initialize(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
         this.fs = fs;
         this.indexPaths = indexPaths;
         this.conf = conf;
+        this.beginKey = beginKey;
+        this.endKey = endKey;
 
         this.mapfileReaders = new MapFile.Reader[indexPaths.length];
         for(int i=0;i<indexPaths.length;i++) {
@@ -67,8 +71,18 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
             CompressedIntArrayWritable val = new CompressedIntArrayWritable();
 
             if(this.mapfileReaders[i].next(key, val)) {
-                this.keys[i] = key;
-                this.vals[i] = val;
+                if(this.endKey != null) {
+                    if(key.compareTo(this.endKey) > 0) {
+                        this.keys[i] = null;
+                        this.vals[i] = null;
+                    } else {
+                        this.keys[i] = key;
+                        this.vals[i] = val;
+                    }
+                } else {
+                    this.keys[i] = key;
+                    this.vals[i] = val;
+                }
             } else {
                 this.keys[i] = null;
                 this.vals[i] = null;
@@ -98,9 +112,16 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     
     @Override
     public void reset() throws IOException {
-        for(int i=0;i<this.mapfileReaders.length;i++) {
-            this.mapfileReaders[i].reset();
+        if(this.beginKey != null) {
+            for(int i=0;i<this.mapfileReaders.length;i++) {
+                this.mapfileReaders[i].seek(this.beginKey);
+            }
+        } else {
+            for(int i=0;i<this.mapfileReaders.length;i++) {
+                this.mapfileReaders[i].reset();
+            }
         }
+        
         fillKV();
     }
 
@@ -127,10 +148,22 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     
     @Override
     public void seek(CompressedSequenceWritable key) throws IOException {
+        if(this.beginKey != null) {
+            if(key.compareTo(this.beginKey) < 0) {
+                throw new IOException("Seek range is out of bound");
+            }
+        }
+        
+        if(this.endKey != null) {
+            if(key.compareTo(this.endKey) > 0) {
+                throw new IOException("Seek range is out of bound");
+            }
+        }
+        
         for(MapFile.Reader reader : this.mapfileReaders) {
             reader.seek(key);
         }
-        
+            
         fillKV();
     }
     
@@ -149,8 +182,18 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         CompressedIntArrayWritable myVal = new CompressedIntArrayWritable();
         
         if(this.mapfileReaders[this.currentIndex].next(myKey, myVal)) {
-            this.keys[this.currentIndex] = myKey;
-            this.vals[this.currentIndex] = myVal;
+            if(this.endKey != null) {
+                if(myKey.compareTo(this.endKey) > 0) {
+                    this.keys[this.currentIndex] = null;
+                    this.vals[this.currentIndex] = null;
+                } else {
+                    this.keys[this.currentIndex] = myKey;
+                    this.vals[this.currentIndex] = myVal;
+                }
+            } else {
+                this.keys[this.currentIndex] = myKey;
+                this.vals[this.currentIndex] = myVal;
+            }
         } else {
             this.keys[this.currentIndex] = null;
             this.vals[this.currentIndex] = null;
