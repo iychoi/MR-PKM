@@ -28,6 +28,8 @@ public class KmerSequenceSliceTester {
                 if(lastEnd.compareTo(slice.getSliceBegin().subtract(BigInteger.ONE)) != 0) {
                     System.err.println("Error! lastend and begin not matching");
                     return;
+                } else {
+                    System.out.println("prev : " + SequenceHelper.convertToString(lastEnd, kmerSize));
                 }
             }
             System.out.println(slice.toString());
@@ -41,7 +43,6 @@ public class KmerSequenceSliceTester {
         
         if(lastEnd.compareTo(SequenceHelper.convertToBigInteger(kmerLast)) != 0) {
             System.err.println("Error! range end is not real end");
-            return;
         }
     }
 }
