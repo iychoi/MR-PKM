@@ -18,4 +18,8 @@ public class MutableInteger {
     public int get() {
         return this.value;
     }
+    
+    public void increase() {
+        this.value++;
+    }
 }

@@ -39,7 +39,8 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
             throw new IOException("Number of pairwise match result must be larger than 1");
         }
         
-        int[] count_vals_bigger = new int[vals.length];
+        int[] count_pos_vals = new int[vals.length];
+        int[] count_neg_vals = new int[vals.length];
         
         for(int i=0;i<vals.length;i++) {
             int pos = 0;
@@ -52,7 +53,36 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                     neg++;
                 }
             }
-            count_vals_bigger[i] = Math.max(pos, neg);
+            
+            boolean pos_filtered = false;
+            boolean neg_filtered = false;
+            if(this.matchFilterMin > 0 && pos < this.matchFilterMin) {
+                pos_filtered = true;
+            }
+
+            if(this.matchFilterMax > 0 && pos > this.matchFilterMax) {
+                pos_filtered = true;
+            }
+
+            if(this.matchFilterMin > 0 && neg < this.matchFilterMin) {
+                neg_filtered = true;
+            }
+
+            if(this.matchFilterMax > 0 && neg > this.matchFilterMax) {
+                neg_filtered = true;
+            }
+            
+            if(pos_filtered) {
+                count_pos_vals[i] = 0;
+            } else {
+                count_pos_vals[i] = pos;
+            }
+            
+            if(neg_filtered) {
+                count_neg_vals[i] = 0;
+            } else {
+                count_neg_vals[i] = neg;
+            }
         }
         
         
@@ -75,22 +105,30 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                         this.namedOutputIDCache.put(matchOutputName, namedoutputID);
                     }
                     
-                    int bigger = count_vals_bigger[j];
-                    
-                    // apply filter
-                    boolean filtered = false;
-                    if(this.matchFilterMin > 0 && bigger < this.matchFilterMin) {
-                        filtered = true;
-                    }
-
-                    if(this.matchFilterMax > 0 && bigger > this.matchFilterMax) {
-                        filtered = true;
-                    }
-                    
-                    if(!filtered) {
-                        for(int k=0;k<thisValInt.length;k++) {
-                            int readID = Math.abs(thisValInt[k]);
-                            context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(bigger));
+                    for(int k=0;k<thisValInt.length;k++) {
+                        int readID = thisValInt[k];
+                        if(readID >= 0) {
+                            // pos
+                            if(count_pos_vals[j] > 0) {
+                                // forward match
+                                context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(count_pos_vals[j]));
+                            }
+                            
+                            if(count_neg_vals[j] > 0) {
+                                // reverse match
+                                context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(-1 * count_neg_vals[j]));
+                            }
+                        } else {
+                            // neg
+                            if(count_pos_vals[j] > 0) {
+                                // reverse match
+                                context.write(new MultiFileReadIDWritable(namedoutputID, Math.abs(readID)), new IntWritable(-1 * count_pos_vals[j]));
+                            }
+                            
+                            if(count_neg_vals[j] > 0) {
+                                // forward match
+                                context.write(new MultiFileReadIDWritable(namedoutputID, Math.abs(readID)), new IntWritable(count_neg_vals[j]));
+                            }
                         }
                     }
                 }

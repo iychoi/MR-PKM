@@ -5,7 +5,9 @@ import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.MutableInteger;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.IntWritable;
@@ -50,58 +52,90 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
             this.namedOutputCache.put(namedoutputID, namedOutput);
         }
         
-        Hashtable<Integer, MutableInteger> modeTable = new Hashtable<Integer, MutableInteger>();
-        
-        // merge & find MODE
-        Integer modeKey = null;
-        MutableInteger modeVal = null;
+        List<Integer> forward_list = new ArrayList<Integer>();
+        List<Integer> reverse_list = new ArrayList<Integer>();
         for(IntWritable value : values) {
             int hit = value.get();
+            if(hit > 0) {
+                forward_list.add(hit);
+            } else if(hit < 0) {
+                reverse_list.add(-1 * hit);
+            }
+        }
+        
+        int[] forward_mode = getMode(forward_list);
+        int[] reverse_mode = getMode(reverse_list);
+        
+        // TODO: pick max count
+        
+        String forward_val = String.valueOf(forward_mode[0]) + "," + String.valueOf(forward_mode[1]);
+        String reverse_val = String.valueOf(reverse_mode[0]) + "," + String.valueOf(reverse_mode[1]);
+        
+        String out_value = "f:" + forward_val + "," + "r:" + reverse_val;
+        
+        if(this.mos != null) {
+            this.mos.write(namedOutput, new Text(String.valueOf(key.getReadID())), new Text(out_value));
+        }
+
+        if(this.hmos != null) {
+            this.hmos.write(namedOutput, new Text(String.valueOf(key.getReadID())), new Text(out_value));
+        }
+        //context.write(key, value);
+    }
+    
+    private int[] getMode(List<Integer> values) throws IOException {
+        Hashtable<Integer, MutableInteger> modeTable = new Hashtable<Integer, MutableInteger>();
+        
+        int mode_hit = 0;
+        int mode_count = 0;
+        for(Integer value : values) {
+            int hit = value.intValue();
+            
+            if(hit == 0) {
+                continue;
+            }
 
             MutableInteger cntExist = modeTable.get(hit);
             if(cntExist == null) {
-                MutableInteger mi = new MutableInteger(1);
-                modeTable.put(hit, mi);
-                if(modeKey == null) {
-                    modeKey = hit;
-                    modeVal = mi;
+                MutableInteger new_cnt = new MutableInteger(1);
+                modeTable.put(hit, new_cnt);
+                if(mode_hit == 0) {
+                    mode_hit = hit;
+                    mode_count = new_cnt.get();
                 } else {
-                    if(modeVal.get() < mi.get()) {
-                        modeKey = hit;
-                        modeVal = mi;
-                    } else if(modeVal.get() == mi.get() && modeKey < hit) {
-                        modeKey = hit;
-                        modeVal = mi;
+                    if(mode_count < new_cnt.get()) {
+                        mode_hit = hit;
+                        mode_count = new_cnt.get();
+                    } else if(mode_count == new_cnt.get() && mode_hit < hit) {
+                        mode_hit = hit;
+                        mode_count = new_cnt.get();
                     }
                 }
             } else {
                 // existing
-                cntExist.set(cntExist.get() + 1);
+                cntExist.increase();
                 
-                if(hit != modeKey) {
-                    if(modeVal.get() < cntExist.get()) {
-                        modeKey = hit;
-                        modeVal = cntExist;
-                    } else if(modeVal.get() == cntExist.get() && modeKey < hit) {
-                        modeKey = hit;
-                        modeVal = cntExist;
+                if(hit == mode_hit) {
+                    mode_count = cntExist.get();
+                } else {
+                    if(mode_count < cntExist.get()) {
+                        mode_hit = hit;
+                        mode_count = cntExist.get();
+                    } else if(mode_count == cntExist.get() && mode_hit < hit) {
+                        mode_hit = hit;
+                        mode_count = cntExist.get();
                     }
                 }
             }
         }
         
-        if(modeKey != null) {
-            if(this.mos != null) {
-                this.mos.write(namedOutput, new Text(String.valueOf(key.getReadID())), new Text(String.valueOf(modeKey)));
-            }
-
-            if(this.hmos != null) {
-                this.hmos.write(namedOutput, new Text(String.valueOf(key.getReadID())), new Text(String.valueOf(modeKey)));
-            }
-            //context.write(key, value);
-        }
-        
         modeTable.clear();
+        
+        int[] mode = new int[2];
+        mode[0] = mode_hit;
+        mode[1] = mode_count;
+        
+        return mode;
     }
     
     @Override
