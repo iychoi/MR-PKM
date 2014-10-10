@@ -50,11 +50,11 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
         this.endKey = endKey;
         this.mapfileReader = new MapFile.Reader(fs, indexPath, conf);
         if(beginKey != null) {
-            mapfileReader.seek(beginKey);
+            seek(beginKey);
+        } else {
+            this.eof = false;
+            fillBuffer();
         }
-        
-        this.eof = false;
-        fillBuffer();
     }
     
     private void fillBuffer() throws IOException {
@@ -103,13 +103,13 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     @Override
     public void reset() throws IOException {
         if(this.beginKey != null) {
-            this.mapfileReader.seek(this.beginKey);
+            seek(this.beginKey);
         } else {
             this.mapfileReader.reset();
+            this.buffer.clear();
+            this.eof = false;
+            fillBuffer();
         }
-        this.buffer.clear();
-        this.eof = false;
-        fillBuffer();
     }
 
     @Override
@@ -149,10 +149,35 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
             }
         }
         
-        this.mapfileReader.seek(key);
         this.buffer.clear();
-        this.eof = false;
-        fillBuffer();
+        
+        CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+        CompressedSequenceWritable nextKey = (CompressedSequenceWritable)this.mapfileReader.getClosest(key, val);
+        if(nextKey == null) {
+            this.eof = true;
+        } else {
+            this.eof = false;
+            
+            if(this.endKey != null) {
+                if(nextKey.compareTo(this.endKey) <= 0) {
+                    BufferEntry entry = new BufferEntry(nextKey, val);
+                    if(!this.buffer.offer(entry)) {
+                        throw new IOException("buffer is full");
+                    }
+
+                    fillBuffer();
+                } else {
+                    this.eof = true;
+                }
+            } else {
+                BufferEntry entry = new BufferEntry(nextKey, val);
+                if(!this.buffer.offer(entry)) {
+                    throw new IOException("buffer is full");
+                }
+
+                fillBuffer();
+            }
+        }
     }
     
     @Override

@@ -67,11 +67,14 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
         int[] reverse_mode = getMode(reverse_list);
         
         // TODO: pick max count
+        int larger_mode = 0;
+        if(forward_mode[1] >= reverse_mode[1]) {
+            larger_mode = forward_mode[0];
+        } else {
+            larger_mode = reverse_mode[0];
+        }
         
-        String forward_val = String.valueOf(forward_mode[0]) + "," + String.valueOf(forward_mode[1]);
-        String reverse_val = String.valueOf(reverse_mode[0]) + "," + String.valueOf(reverse_mode[1]);
-        
-        String out_value = "f:" + forward_val + "," + "r:" + reverse_val;
+        String out_value = String.valueOf(larger_mode);
         
         if(this.mos != null) {
             this.mos.write(namedOutput, new Text(String.valueOf(key.getReadID())), new Text(out_value));

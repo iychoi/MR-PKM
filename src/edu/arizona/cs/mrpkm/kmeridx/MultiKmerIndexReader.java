@@ -52,17 +52,19 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         this.endKey = endKey;
 
         this.mapfileReaders = new MapFile.Reader[indexPaths.length];
-        for(int i=0;i<indexPaths.length;i++) {
-            this.mapfileReaders[i] = new MapFile.Reader(fs, indexPaths[i], conf);
-            if(beginKey != null) {
-                mapfileReaders[i].seek(beginKey);
-            }
-        }
-        
         this.keys = new CompressedSequenceWritable[indexPaths.length];
         this.vals = new CompressedIntArrayWritable[indexPaths.length];
         
-        fillKV();
+        for(int i=0;i<indexPaths.length;i++) {
+            this.mapfileReaders[i] = new MapFile.Reader(fs, indexPaths[i], conf);
+            if(beginKey != null) {
+                seek(beginKey);
+            }
+        }
+        
+        if(beginKey == null) {
+            fillKV();
+        }
     }
     
     private void fillKV() throws IOException {
@@ -113,16 +115,13 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     @Override
     public void reset() throws IOException {
         if(this.beginKey != null) {
-            for(int i=0;i<this.mapfileReaders.length;i++) {
-                this.mapfileReaders[i].seek(this.beginKey);
-            }
+            seek(this.beginKey);
         } else {
             for(int i=0;i<this.mapfileReaders.length;i++) {
                 this.mapfileReaders[i].reset();
             }
+            fillKV();
         }
-        
-        fillKV();
     }
 
     @Override
@@ -160,11 +159,30 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
             }
         }
         
-        for(MapFile.Reader reader : this.mapfileReaders) {
-            reader.seek(key);
-        }
+        for(int i=0;i<this.mapfileReaders.length;i++) {
+            MapFile.Reader reader = this.mapfileReaders[i];
+
+            CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+            CompressedSequenceWritable nextKey = (CompressedSequenceWritable)reader.getClosest(key, val);
             
-        fillKV();
+            if(nextKey == null) {
+                this.keys[i] = null;
+                this.vals[i] = null;
+            } else {
+                if(this.endKey != null) {
+                    if(nextKey.compareTo(this.endKey) > 0) {
+                        this.keys[i] = null;
+                        this.vals[i] = null;
+                    } else {
+                        this.keys[i] = nextKey;
+                        this.vals[i] = val;
+                    }
+                } else {
+                    this.keys[i] = nextKey;
+                    this.vals[i] = val;
+                }
+            }
+        }
     }
     
     @Override

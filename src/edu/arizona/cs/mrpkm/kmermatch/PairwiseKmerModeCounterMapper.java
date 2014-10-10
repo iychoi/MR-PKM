@@ -120,14 +120,15 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
                             }
                         } else {
                             // neg
+                            readID *= -1;
                             if(count_pos_vals[j] > 0) {
                                 // reverse match
-                                context.write(new MultiFileReadIDWritable(namedoutputID, Math.abs(readID)), new IntWritable(-1 * count_pos_vals[j]));
+                                context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(-1 * count_pos_vals[j]));
                             }
                             
                             if(count_neg_vals[j] > 0) {
                                 // forward match
-                                context.write(new MultiFileReadIDWritable(namedoutputID, Math.abs(readID)), new IntWritable(count_neg_vals[j]));
+                                context.write(new MultiFileReadIDWritable(namedoutputID, readID), new IntWritable(count_neg_vals[j]));
                             }
                         }
                     }
