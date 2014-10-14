@@ -81,6 +81,7 @@ public class KmerLinearMatcher {
         LOG.info("> Num of Slice Entries : " + this.slice.getSliceSize().longValue());
     }
     
+    /*
     public void reset() throws IOException {
         for(AKmerIndexReader reader : this.readers) {
             reader.reset();
@@ -93,6 +94,7 @@ public class KmerLinearMatcher {
         this.stepStarted = false;
         this.reportCounter = 0;
     }
+    */
     
     public boolean nextMatch() throws IOException {
         List<Integer> minKeyIndice = getNextMinKeys();

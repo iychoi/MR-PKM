@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
+import edu.arizona.cs.mrpkm.augment.IndexCloseableMapFileReader;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import java.io.IOException;
@@ -9,7 +10,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.MapFile;
 
 /**
  *
@@ -24,7 +24,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     private FileSystem fs;
     private String indexPath;
     private Configuration conf;
-    private MapFile.Reader mapfileReader;
+    private IndexCloseableMapFileReader mapfileReader;
     private CompressedSequenceWritable beginKey;
     private CompressedSequenceWritable endKey;
     private BlockingQueue<BufferEntry> buffer = new LinkedBlockingQueue<BufferEntry>();
@@ -48,13 +48,14 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
         this.conf = conf;
         this.beginKey = beginKey;
         this.endKey = endKey;
-        this.mapfileReader = new MapFile.Reader(fs, indexPath, conf);
+        this.mapfileReader = new IndexCloseableMapFileReader(fs, indexPath, conf);
         if(beginKey != null) {
             seek(beginKey);
         } else {
             this.eof = false;
             fillBuffer();
         }
+        this.mapfileReader.closeIndex();
     }
     
     private void fillBuffer() throws IOException {
@@ -100,8 +101,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
         }
     }
     
-    @Override
-    public void reset() throws IOException {
+    private void reset() throws IOException {
         if(this.beginKey != null) {
             seek(this.beginKey);
         } else {
@@ -130,13 +130,11 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
         return new String[] {this.indexPath};
     }
     
-    @Override
-    public void seek(String sequence) throws IOException {
+    private void seek(String sequence) throws IOException {
         seek(new CompressedSequenceWritable(sequence));
     }
     
-    @Override
-    public void seek(CompressedSequenceWritable key) throws IOException {
+    private void seek(CompressedSequenceWritable key) throws IOException {
         if(this.beginKey != null) {
             if(key.compareTo(this.beginKey) < 0) {
                 throw new IOException("Seek range is out of bound");

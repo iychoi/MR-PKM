@@ -118,6 +118,7 @@ public class KmerIndexChecker extends Configured implements Tool {
         
         CompressedSequenceWritable key = new CompressedSequenceWritable();
         CompressedIntArrayWritable val = new CompressedIntArrayWritable();
+        /*
         int count = 0;
         while(reader.next(key, val)) {
             count++;
@@ -127,7 +128,7 @@ public class KmerIndexChecker extends Configured implements Tool {
         LOG.info("Entry Info");
         
         reader.reset();
-        
+        */
         while(reader.next(key, val)) {
             LOG.info("> " + key.getSequence() + " : " + val.toString());
         }
