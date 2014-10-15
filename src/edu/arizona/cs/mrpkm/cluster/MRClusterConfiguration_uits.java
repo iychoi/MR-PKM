@@ -17,7 +17,7 @@ public class MRClusterConfiguration_uits extends AMRClusterConfiguration {
 
     @Override
     public int getReadIndexBuilderReducerNumber(int nodes) {
-        return nodes;
+        return nodes * (CPU_CORE_PER_NODE / 4);
     }
     
     @Override
