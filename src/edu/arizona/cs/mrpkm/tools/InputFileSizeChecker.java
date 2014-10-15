@@ -40,7 +40,14 @@ public class InputFileSizeChecker extends Configured implements Tool {
             count++;
         }
         
+        double accuSizeKb = accuSize / 1024;
+        double accuSizeMb = accuSizeKb / 1024;
+        double accuSizeGb = accuSizeMb / 1024;
+        
         System.out.println("Sum " + count + " files : " + accuSize);
+        System.out.println("in KB " + accuSizeKb);
+        System.out.println("in MB " + accuSizeMb);
+        System.out.println("in GB " + accuSizeGb);
         return 0;
     }
 }

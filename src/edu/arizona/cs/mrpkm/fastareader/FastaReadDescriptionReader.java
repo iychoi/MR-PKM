@@ -44,6 +44,7 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
     private long prevSize;
     private boolean isCompressed;
     private long uncompressedSize;
+    private boolean firstRead = true;
 
     @Override
     public LongWritable getCurrentKey() throws IOException, InterruptedException {
@@ -69,6 +70,8 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
         final CompressionCodec codec = this.compressionCodecs.getCodec(file);
         
         this.filename = file.getName();
+        
+        this.firstRead = true;
         
         // open the file and seek to the start of the split
         FileSystem fs = file.getFileSystem(job);
@@ -199,6 +202,12 @@ public class FastaReadDescriptionReader extends RecordReader<LongWritable, Fasta
             this.value.setReadOffset(readStartOffset);
             this.value.setDescription(description.toString());
             this.value.setSequence(null);
+            if(this.firstRead) {
+                this.value.setContinuousRead(false);
+                this.firstRead = false;
+            } else {
+                this.value.setContinuousRead(true);
+            }
             
             this.hasNextRecord = foundNextRead;
             return true;

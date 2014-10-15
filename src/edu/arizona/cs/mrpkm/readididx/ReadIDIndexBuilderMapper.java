@@ -2,23 +2,24 @@ package edu.arizona.cs.mrpkm.readididx;
 
 import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.CompressedLongArrayWritable;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Mapper;
 
 /**
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, MultiFileOffsetWritable, NullWritable> {
+public class ReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, MultiFileOffsetWritable, CompressedLongArrayWritable> {
     
     private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderMapper.class);
     
     private Hashtable<String, Integer> namedOutputIDCache;
+    private long firstOffset = -1;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -39,8 +40,17 @@ public class ReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mu
             }
             this.namedOutputIDCache.put(value.getFileName(), namedoutputID);
         }
+        
+        if(!value.getContinuousRead()) {
+            // first
+            // memorize
+            this.firstOffset = value.getReadOffset();
+        }
+        
+        long[] off_arr = new long[1];
+        off_arr[0] = value.getReadOffset();
 
-        context.write(new MultiFileOffsetWritable(namedoutputID, value.getReadOffset()), NullWritable.get());
+        context.write(new MultiFileOffsetWritable(namedoutputID, this.firstOffset), new CompressedLongArrayWritable(off_arr));
     }
     
     @Override

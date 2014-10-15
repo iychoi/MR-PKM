@@ -1,15 +1,18 @@
 package edu.arizona.cs.mrpkm.readididx;
 
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
+import edu.arizona.cs.mrpkm.types.CompressedLongArrayWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
@@ -17,7 +20,7 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, NullWritable, LongWritable, IntWritable> {
+public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, CompressedLongArrayWritable, LongWritable, IntWritable> {
     
     private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderReducer.class);
     
@@ -49,11 +52,18 @@ public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, 
     }
     
     @Override
-    protected void reduce(MultiFileOffsetWritable key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
-        int namedoutputID = key.getFileID();
-        long offset = key.getOffset();
+    protected void reduce(MultiFileOffsetWritable key, Iterable<CompressedLongArrayWritable> values, Context context) throws IOException, InterruptedException {
+        List<Long> offsets = new ArrayList<Long>();
         
-        this.readIDs[namedoutputID]++;
+        for(CompressedLongArrayWritable value : values) {
+            for(long lvalue : value.get()) {
+                offsets.add(lvalue);
+            }
+        }
+        
+        Collections.sort(offsets);
+        
+        int namedoutputID = key.getFileID();
         
         String namedOutput = this.namedOutputCache.get(namedoutputID);
         if (namedOutput == null) {
@@ -65,14 +75,18 @@ public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, 
             this.namedOutputCache.put(namedoutputID, namedOutput);
         }
         
-        if(this.mos != null) {
-            this.mos.write(namedOutput, new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
+        for(long lvalue : offsets) {
+            this.readIDs[namedoutputID]++;
+            
+            if (this.mos != null) {
+                this.mos.write(namedOutput, new LongWritable(lvalue), new IntWritable(this.readIDs[namedoutputID]));
+            }
+
+            if (this.hmos != null) {
+                this.hmos.write(namedOutput, new LongWritable(lvalue), new IntWritable(this.readIDs[namedoutputID]));
+            }
+            //context.write(new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
         }
-        
-        if(this.hmos != null) {
-            this.hmos.write(namedOutput, new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
-        }
-        //context.write(new LongWritable(offset), new IntWritable(this.readIDs[namedoutputID]));
     }
     
     @Override
