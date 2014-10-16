@@ -10,9 +10,9 @@ import org.apache.hadoop.mapreduce.Partitioner;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderPartitioner extends Partitioner<MultiFileOffsetWritable, CompressedLongArrayWritable> {
+public class SplitableReadIDIndexBuilderPartitioner extends Partitioner<MultiFileOffsetWritable, CompressedLongArrayWritable> {
 
-    private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderPartitioner.class);
+    private static final Log LOG = LogFactory.getLog(SplitableReadIDIndexBuilderPartitioner.class);
 
     @Override
     public int getPartition(MultiFileOffsetWritable key, CompressedLongArrayWritable value, int numReduceTasks) {

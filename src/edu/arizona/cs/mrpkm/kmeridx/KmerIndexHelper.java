@@ -50,12 +50,12 @@ public class KmerIndexHelper {
         return false;
     }
     
-    public static String getKmerIndexFileName(Path inputFilePath, int kmerSize, int reducerID) {
-        return getKmerIndexFileName(inputFilePath.getName(), kmerSize, reducerID);
+    public static String getKmerIndexFileName(Path inputFilePath, int kmerSize, int mapreduceID) {
+        return getKmerIndexFileName(inputFilePath.getName(), kmerSize, mapreduceID);
     }
     
-    public static String getKmerIndexFileName(String inputFileName, int kmerSize, int reducerID) {
-        return inputFileName + "." + kmerSize + "." + OUTPUT_NAME_SUFFIX + "." + reducerID;
+    public static String getKmerIndexFileName(String inputFileName, int kmerSize, int mapreduceID) {
+        return inputFileName + "." + kmerSize + "." + OUTPUT_NAME_SUFFIX + "." + mapreduceID;
     }
     
     public static String getFastaFileName(Path indexFilePath) {

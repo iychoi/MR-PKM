@@ -13,9 +13,9 @@ import org.apache.hadoop.mapreduce.Reducer;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderCombiner extends Reducer<MultiFileOffsetWritable, CompressedLongArrayWritable, MultiFileOffsetWritable, CompressedLongArrayWritable> {
+public class SplitableReadIDIndexBuilderCombiner extends Reducer<MultiFileOffsetWritable, CompressedLongArrayWritable, MultiFileOffsetWritable, CompressedLongArrayWritable> {
     
-    private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderCombiner.class);
+    private static final Log LOG = LogFactory.getLog(SplitableReadIDIndexBuilderCombiner.class);
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {

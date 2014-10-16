@@ -14,9 +14,9 @@ import org.apache.hadoop.mapreduce.Mapper;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, MultiFileOffsetWritable, CompressedLongArrayWritable> {
+public class SplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, FastaRead, MultiFileOffsetWritable, CompressedLongArrayWritable> {
     
-    private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderMapper.class);
+    private static final Log LOG = LogFactory.getLog(SplitableReadIDIndexBuilderMapper.class);
     
     private Hashtable<String, Integer> namedOutputIDCache;
     private long firstOffset = -1;

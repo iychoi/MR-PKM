@@ -20,9 +20,9 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, CompressedLongArrayWritable, LongWritable, IntWritable> {
+public class SplitableReadIDIndexBuilderReducer extends Reducer<MultiFileOffsetWritable, CompressedLongArrayWritable, LongWritable, IntWritable> {
     
-    private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilderReducer.class);
+    private static final Log LOG = LogFactory.getLog(SplitableReadIDIndexBuilderReducer.class);
     
     private MultipleOutputs mos = null;
     private HirodsMultipleOutputs hmos = null;

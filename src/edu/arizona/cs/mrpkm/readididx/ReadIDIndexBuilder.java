@@ -59,6 +59,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
         }
         
+        @Option(name = "--splitable", usage = "split input files")
+        private boolean splitable = false;
+        
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
         
@@ -73,6 +76,10 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         public boolean isHelp() {
             return this.help;
+        }
+        
+        public boolean isSplitable() {
+            return this.splitable;
         }
         
         public AMRClusterConfiguration getConfiguration() {
@@ -198,13 +205,20 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         job.setJarByClass(ReadIDIndexBuilder.class);
 
         // Identity Mapper & Reducer
-        job.setMapperClass(ReadIDIndexBuilderMapper.class);
-        job.setCombinerClass(ReadIDIndexBuilderCombiner.class);
-        job.setPartitionerClass(ReadIDIndexBuilderPartitioner.class);
-        job.setReducerClass(ReadIDIndexBuilderReducer.class);
+        if(cmdargs.isSplitable()) {
+            job.setMapperClass(SplitableReadIDIndexBuilderMapper.class);
+            job.setCombinerClass(SplitableReadIDIndexBuilderCombiner.class);
+            job.setPartitionerClass(SplitableReadIDIndexBuilderPartitioner.class);
+            job.setReducerClass(SplitableReadIDIndexBuilderReducer.class);
 
-        job.setMapOutputKeyClass(MultiFileOffsetWritable.class);
-        job.setMapOutputValueClass(CompressedLongArrayWritable.class);
+            job.setMapOutputKeyClass(MultiFileOffsetWritable.class);
+            job.setMapOutputValueClass(CompressedLongArrayWritable.class);
+        } else {
+            job.setMapperClass(UnsplitableReadIDIndexBuilderMapper.class);
+            
+            job.setMapOutputKeyClass(LongWritable.class);
+            job.setMapOutputValueClass(IntWritable.class);
+        }
         
         // Specify key / value
         job.setOutputKeyClass(LongWritable.class);
@@ -212,7 +226,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
+        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(job.getConfiguration(), paths);
         
         FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         
@@ -223,10 +237,11 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             namedOutputs.addNamedOutput(inputFiles[i]);
         }
         
+        FastaReadDescriptionInputFormat.setSplitable(job.getConfiguration(), cmdargs.isSplitable());
         job.setInputFormatClass(FastaReadDescriptionInputFormat.class);
         
         Path outputHadoopPath = new Path(outputPath);
-        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(conf);
+        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
         if(outputFileSystem instanceof HirodsFileSystem) {
             LOG.info("Use H-iRODS");
             HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
@@ -259,14 +274,18 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             id++;
         }
         
-        job.setNumReduceTasks(clusterConfig.getReadIndexBuilderReducerNumber(nodeSize));
+        if(cmdargs.isSplitable()) {
+            job.setNumReduceTasks(clusterConfig.getReadIndexBuilderReducerNumber(nodeSize));
+        } else {
+            job.setNumReduceTasks(0);
+        }
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);
         
         // commit results
         if(result) {
-            commit(outputHadoopPath, conf, namedOutputs);
+            commit(outputHadoopPath, job.getConfiguration(), namedOutputs);
         }
         
         // notify

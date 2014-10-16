@@ -48,11 +48,11 @@ public class NamedOutputs {
     }
     
     public NamedOutput getNamedOutputByMROutput(Path outputFilePath) {
-        return this.table.get(MapReduceHelper.getNameFromReduceOutput(outputFilePath));
+        return this.table.get(MapReduceHelper.getNameFromMapReduceOutput(outputFilePath));
     }
     
     public NamedOutput getNamedOutputByMROutput(String outputFileName) {
-        return this.table.get(MapReduceHelper.getNameFromReduceOutput(outputFileName));
+        return this.table.get(MapReduceHelper.getNameFromMapReduceOutput(outputFileName));
     }
     
     public NamedOutput[] getAllNamedOutput() {

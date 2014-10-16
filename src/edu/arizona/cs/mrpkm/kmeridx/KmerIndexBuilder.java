@@ -269,7 +269,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         
         // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
+        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(job.getConfiguration(), paths);
         
         FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         
@@ -283,7 +283,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         job.setInputFormatClass(FastaReadInputFormat.class);
 
         Path outputHadoopPath = new Path(outputPath);
-        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(conf);
+        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
         if(outputFileSystem instanceof HirodsFileSystem) {
             LOG.info("Use H-iRODS");
             HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
@@ -333,7 +333,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
 
         // commit results
         if(result) {
-            commit(new Path(outputPath), conf, namedOutputs, kmerSize);
+            commit(new Path(outputPath), job.getConfiguration(), namedOutputs, kmerSize);
         }
         
         // notify
@@ -366,8 +366,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
                     // rename outputs
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath);
                     if(namedOutput != null) {
-                        int reducerID = MapReduceHelper.getReduceID(entryPath);
-                        Path toPath = new Path(entryPath.getParent(), KmerIndexHelper.getKmerIndexFileName(namedOutput.getInputString(), kmerSize, reducerID));
+                        int mapreduceID = MapReduceHelper.getMapReduceID(entryPath);
+                        Path toPath = new Path(entryPath.getParent(), KmerIndexHelper.getKmerIndexFileName(namedOutput.getInputString(), kmerSize, mapreduceID));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

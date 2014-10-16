@@ -281,7 +281,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllKmerIndexFilePaths(conf, paths);
+        Path[] inputFiles = FileSystemHelper.getAllKmerIndexFilePaths(job.getConfiguration(), paths);
         
         for(Path path : inputFiles) {
             LOG.info("Input : " + path);
@@ -331,7 +331,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         job.setInputFormatClass(KmerMatchInputFormat.class);
 
         Path outputHadoopPath = new Path(outputPath);
-        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(conf);
+        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
         if(outputFileSystem instanceof HirodsFileSystem) {
             LOG.info("Use H-iRODS");
             HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
@@ -368,7 +368,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
 
         // commit results
         if(result) {
-            commit(new Path(outputPath), conf, namedOutputs, kmerSize);
+            commit(new Path(outputPath), job.getConfiguration(), namedOutputs, kmerSize);
         }
         
         // notify
@@ -401,8 +401,8 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
                     // rename outputs
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath);
                     if(namedOutput != null) {
-                        int reduceID = MapReduceHelper.getReduceID(entryPath);
-                        Path toPath = new Path(entryPath.getParent(), namedOutput.getInputString() + ".PKM." + reduceID);
+                        int mapreduceID = MapReduceHelper.getMapReduceID(entryPath);
+                        Path toPath = new Path(entryPath.getParent(), namedOutput.getInputString() + ".PKM." + mapreduceID);
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());
