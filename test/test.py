@@ -77,11 +77,11 @@ def runReadIDIndexBuilder_2_3_0():
 
 def runKmerIndexBuilder_0_20_2():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder -k 20 -g 1 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
 def runKmerIndexBuilder_2_3_0():
     removeOutDir()
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexBuilder -libjars dist/lib/* -k 20 -g 1 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexBuilder -libjars dist/lib/* -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
 def runPairwiseKmerModeCounter_0_20_2(mode):
     removeOutDir();
