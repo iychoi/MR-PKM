@@ -240,122 +240,159 @@ public class KmerIndexBuilder extends Configured implements Tool {
         String inputPath = cmdargs.getCommaSeparatedInputPath();
         String outputPath = cmdargs.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
+        int numReducers = clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize);
         
         // configuration
         Configuration conf = this.getConf();
         clusterConfig.setConfiguration(conf);
-
+        
         conf.setInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), kmerSize);
         conf.setStrings(KmerIndexHelper.getConfigurationKeyOfReadIDIndexPath(), readIDIndexPath);
         
-        Job job = new Job(conf, "Kmer Index Builder");
-        job.setJarByClass(KmerIndexBuilder.class);
-
-        // Identity Mapper & Reducer
-        job.setMapperClass(KmerIndexBuilderMapper.class);
-        job.setCombinerClass(KmerIndexBuilderCombiner.class);
-        if(!cmdargs.getDistributedNode()) {
-            // aggregation
-            job.setPartitionerClass(KmerIndexBuilderPartitioner.class);
-        }
-        job.setReducerClass(KmerIndexBuilderReducer.class);
-        
-        job.setMapOutputKeyClass(MultiFileCompressedSequenceWritable.class);
-        job.setMapOutputValueClass(CompressedIntArrayWritable.class);
-        
-        // Specify key / value
-        job.setOutputKeyClass(CompressedSequenceWritable.class);
-        job.setOutputValueClass(CompressedIntArrayWritable.class);
-        
-        // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(job.getConfiguration(), paths);
+        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
         
-        FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
-        
-        NamedOutputs namedOutputs = new NamedOutputs();
-        LOG.info("Input files : " + inputFiles.length);
-        for(int i=0;i<inputFiles.length;i++) {
-            LOG.info("> " + inputFiles[i].toString());
-            namedOutputs.addNamedOutput(inputFiles[i]);
+        int rounds = inputFiles.length / numReducers;
+        if(inputFiles.length % numReducers != 0) {
+            rounds++;
         }
         
-        job.setInputFormatClass(FastaReadInputFormat.class);
-
-        Path outputHadoopPath = new Path(outputPath);
-        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
-        if(outputFileSystem instanceof HirodsFileSystem) {
-            LOG.info("Use H-iRODS");
-            HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
-            if(outputFormat.equals(MapFileOutputFormat.class)) {
-                job.setOutputFormatClass(HirodsMapFileOutputFormat.class);
-            } else if(outputFormat.equals(BloomMapFileOutputFormat.class)) {
-                job.setOutputFormatClass(HirodsBloomMapFileOutputFormat.class);
-            }
-            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
-        } else {
-            FileOutputFormat.setOutputPath(job, outputHadoopPath);
-            if(outputFormat.equals(MapFileOutputFormat.class)) {
-                job.setOutputFormatClass(MapFileOutputFormat.class);
-            } else if(outputFormat.equals(BloomMapFileOutputFormat.class)) {
-                job.setOutputFormatClass(BloomMapFileOutputFormat.class);
-            }
-            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
-        }
+        boolean job_result = true;
         
-        int id = 0;
-        for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
-            LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
+        for(int round=0;round<rounds;round++) {
+            Path[] roundInputFiles = getRoundInputFiles(round, numReducers, inputFiles);
+            String roundOutputPath = outputPath + "_round" + round;
+            
+            Job job = new Job(conf, "Kmer Index Builder Round " + round + " of " + rounds);
+            job.setJarByClass(KmerIndexBuilder.class);
 
-            job.getConfiguration().setStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
-            LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id));
-            
-            job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
-            LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
-            
-            if(outputFileSystem instanceof HirodsFileSystem) {
-                if(outputFormat.equals(MapFileOutputFormat.class)) {
-                    HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
-                } else if(outputFormat.equals(BloomMapFileOutputFormat.class)) {
-                    HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsBloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+            // Identity Mapper & Reducer
+            job.setMapperClass(KmerIndexBuilderMapper.class);
+            job.setCombinerClass(KmerIndexBuilderCombiner.class);
+            if (!cmdargs.getDistributedNode()) {
+                // aggregation
+                job.setPartitionerClass(KmerIndexBuilderPartitioner.class);
+            }
+            job.setReducerClass(KmerIndexBuilderReducer.class);
+
+            job.setMapOutputKeyClass(MultiFileCompressedSequenceWritable.class);
+            job.setMapOutputValueClass(CompressedIntArrayWritable.class);
+
+            // Specify key / value
+            job.setOutputKeyClass(CompressedSequenceWritable.class);
+            job.setOutputValueClass(CompressedIntArrayWritable.class);
+
+            // Inputs
+            FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(roundInputFiles));
+
+            NamedOutputs namedOutputs = new NamedOutputs();
+            LOG.info("Input files : " + roundInputFiles.length);
+            for (int i = 0; i < roundInputFiles.length; i++) {
+                LOG.info("> " + roundInputFiles[i].toString());
+                namedOutputs.addNamedOutput(roundInputFiles[i]);
+            }
+
+            job.setInputFormatClass(FastaReadInputFormat.class);
+
+            Path outputHadoopPath = new Path(roundOutputPath);
+            FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
+            if (outputFileSystem instanceof HirodsFileSystem) {
+                LOG.info("Use H-iRODS");
+                HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
+                if (outputFormat.equals(MapFileOutputFormat.class)) {
+                    job.setOutputFormatClass(HirodsMapFileOutputFormat.class);
+                } else if (outputFormat.equals(BloomMapFileOutputFormat.class)) {
+                    job.setOutputFormatClass(HirodsBloomMapFileOutputFormat.class);
                 }
+                MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
             } else {
-                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                FileOutputFormat.setOutputPath(job, outputHadoopPath);
+                if (outputFormat.equals(MapFileOutputFormat.class)) {
+                    job.setOutputFormatClass(MapFileOutputFormat.class);
+                } else if (outputFormat.equals(BloomMapFileOutputFormat.class)) {
+                    job.setOutputFormatClass(BloomMapFileOutputFormat.class);
+                }
+                MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
+            }
+
+            int id = 0;
+            for (NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
+                LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
+
+                job.getConfiguration().setStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
+                LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id));
+
+                job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
+                LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
+
+                if (outputFileSystem instanceof HirodsFileSystem) {
+                    if (outputFormat.equals(MapFileOutputFormat.class)) {
+                        HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                    } else if (outputFormat.equals(BloomMapFileOutputFormat.class)) {
+                        HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsBloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                    }
+                } else {
+                    MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                }
+
+                id++;
+            }
+
+            job.setNumReduceTasks(numReducers);
+
+            // Execute job and return status
+            boolean result = job.waitForCompletion(true);
+
+            // commit results
+            if (result) {
+                commitRoundOutputFiles(new Path(roundOutputPath), new Path(outputPath), job.getConfiguration(), namedOutputs, kmerSize);
             }
             
-            id++;
-        }
-        
-        job.setNumReduceTasks(clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize));
-        
-        // Execute job and return status
-        boolean result = job.waitForCompletion(true);
-
-        // commit results
-        if(result) {
-            commit(new Path(outputPath), job.getConfiguration(), namedOutputs, kmerSize);
-        }
-        
-        // notify
-        if(cmdargs.needNotification()) {
-            EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
-            emailNotification.setJob(job);
-            try {
-                emailNotification.send();
-            } catch(EmailNotificationException ex) {
-                LOG.error(ex);
+            // notify
+            if (cmdargs.needNotification()) {
+                EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
+                emailNotification.setJob(job);
+                try {
+                    emailNotification.send();
+                } catch (EmailNotificationException ex) {
+                    LOG.error(ex);
+                }
+            }
+            
+            if(!result) {
+                LOG.error("job failed at round " + round + " of " + rounds);
+                job_result = false;
+                break;
             }
         }
-        
-        return result ? 0 : 1;
+
+        return job_result ? 0 : 1;
     }
     
-    private void commit(Path outputPath, Configuration conf, NamedOutputs namedOutputs, int kmerSize) throws IOException {
-        FileSystem fs = outputPath.getFileSystem(conf);
+    private Path[] getRoundInputFiles(int round, int reducers, Path[] inputFiles) {
+        List<Path> arr = new ArrayList<Path>();
         
-        FileStatus status = fs.getFileStatus(outputPath);
+        int start = round * reducers;
+        for(int i=0;i<reducers;i++) {
+            if(start+i < inputFiles.length) {
+                arr.add(inputFiles[start + i]);
+            } else {
+                break;
+            }
+        }
+        
+        return arr.toArray(new Path[0]);
+    }
+    
+    private void commitRoundOutputFiles(Path MROutputPath, Path finalOutputPath, Configuration conf, NamedOutputs namedOutputs, int kmerSize) throws IOException {
+        FileSystem fs = MROutputPath.getFileSystem(conf);
+        if(!fs.exists(finalOutputPath)) {
+            fs.mkdirs(finalOutputPath);
+        }
+        
+        FileStatus status = fs.getFileStatus(MROutputPath);
         if (status.isDir()) {
-            FileStatus[] entries = fs.listStatus(outputPath);
+            FileStatus[] entries = fs.listStatus(MROutputPath);
             for (FileStatus entry : entries) {
                 Path entryPath = entry.getPath();
                 
@@ -367,7 +404,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath);
                     if(namedOutput != null) {
                         int mapreduceID = MapReduceHelper.getMapReduceID(entryPath);
-                        Path toPath = new Path(entryPath.getParent(), KmerIndexHelper.getKmerIndexFileName(namedOutput.getInputString(), kmerSize, mapreduceID));
+                        Path toPath = new Path(finalOutputPath, KmerIndexHelper.getKmerIndexFileName(namedOutput.getInputString(), kmerSize, mapreduceID));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());
@@ -376,7 +413,9 @@ public class KmerIndexBuilder extends Configured implements Tool {
                 }
             }
         } else {
-            throw new IOException("path not found : " + outputPath.toString());
+            throw new IOException("path not found : " + MROutputPath.toString());
         }
+        
+        fs.delete(MROutputPath, true);
     }
 }
