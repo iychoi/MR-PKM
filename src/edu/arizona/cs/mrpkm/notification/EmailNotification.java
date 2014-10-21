@@ -1,11 +1,7 @@
 package edu.arizona.cs.mrpkm.notification;
 
+import edu.arizona.cs.mrpkm.utils.RunningTimeHelper;
 import java.io.IOException;
-import java.text.Format;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.mail.MessagingException;
 import org.apache.hadoop.mapreduce.Job;
 
@@ -18,6 +14,8 @@ public class EmailNotification {
     private String email;
     private Gmail mail;
     private Job job;
+    private long beginTime;
+    private long finishTime;
     
     public EmailNotification(String email, String password) {
         this.email = email;
@@ -27,10 +25,18 @@ public class EmailNotification {
     public void setJob(Job job) {
         this.job = job;
     }
+    
+    public void setJobBeginTime(long beginTime) {
+        this.beginTime = beginTime;
+    }
+    
+    public void setJobFinishTime(long finishTime) {
+        this.finishTime = finishTime;
+    }
 
     public void send() throws EmailNotificationException {
         String subject = makeSubject(this.job);
-        String text = makeText(this.job);
+        String text = makeText(this.job, this.beginTime, this.finishTime);
         try {
             this.mail.send(this.email, subject, text);
         } catch (MessagingException ex) {
@@ -52,7 +58,7 @@ public class EmailNotification {
         return job.getJobName() + "(MR-PKM) Finished - " + jobStatus;
     }
     
-    private String makeText(Job job) {
+    private String makeText(Job job, long beginTime, long finishTime) {
         String jobName = job.getJobName();
         String jobID = job.getJobID().toString();
         String jobStatus;
@@ -64,18 +70,12 @@ public class EmailNotification {
             jobStatus = "Unknown";
         }
         
-        long time = System.currentTimeMillis();
-        String finishTime = convertTime(time);
+        String finishTimeStr = RunningTimeHelper.getTimeString(finishTime);
         
         return "Job : " + jobName + "\n" +
                 "JobID : " + jobID + "\n" + 
                 "Status : " + jobStatus + "\n" +
-                "FinishTime : " + finishTime + "\n";
-    }
-    
-    private String convertTime(long time) {
-        Date date = new Date(time);
-        Format format = new SimpleDateFormat("yyyy MM dd HH:mm:ss");
-        return format.format(date);
+                "FinishTime : " + finishTimeStr + "\n" + 
+                "TimeTaken : " + RunningTimeHelper.getDiffTimeString(beginTime, finishTime);
     }
 }

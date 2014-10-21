@@ -6,16 +6,15 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_default;
-import edu.arizona.cs.mrpkm.types.MultiFileOffsetWritable;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
-import edu.arizona.cs.mrpkm.types.CompressedLongArrayWritable;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.utils.RunningTimeHelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,9 +58,6 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
         }
         
-        @Option(name = "--splitable", usage = "split input files")
-        private boolean splitable = false;
-        
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
         
@@ -76,10 +72,6 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         public boolean isHelp() {
             return this.help;
-        }
-        
-        public boolean isSplitable() {
-            return this.splitable;
         }
         
         public AMRClusterConfiguration getConfiguration() {
@@ -170,6 +162,8 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
+        long beginTime = RunningTimeHelper.getCurrentTime();
+        
         // parse command line
         ReadIDIndexBuilder_Cmd_Args cmdargs = new ReadIDIndexBuilder_Cmd_Args();
         CmdLineParser parser = new CmdLineParser(cmdargs);
@@ -204,21 +198,11 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         Job job = new Job(conf, "ReadID Index Builder");
         job.setJarByClass(ReadIDIndexBuilder.class);
 
-        // Identity Mapper & Reducer
-        if(cmdargs.isSplitable()) {
-            job.setMapperClass(SplitableReadIDIndexBuilderMapper.class);
-            job.setCombinerClass(SplitableReadIDIndexBuilderCombiner.class);
-            job.setPartitionerClass(SplitableReadIDIndexBuilderPartitioner.class);
-            job.setReducerClass(SplitableReadIDIndexBuilderReducer.class);
+        // Mapper
+        job.setMapperClass(UnsplitableReadIDIndexBuilderMapper.class);
 
-            job.setMapOutputKeyClass(MultiFileOffsetWritable.class);
-            job.setMapOutputValueClass(CompressedLongArrayWritable.class);
-        } else {
-            job.setMapperClass(UnsplitableReadIDIndexBuilderMapper.class);
-            
-            job.setMapOutputKeyClass(LongWritable.class);
-            job.setMapOutputValueClass(IntWritable.class);
-        }
+        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
         
         // Specify key / value
         job.setOutputKeyClass(LongWritable.class);
@@ -237,7 +221,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             namedOutputs.addNamedOutput(inputFiles[i]);
         }
         
-        FastaReadDescriptionInputFormat.setSplitable(job.getConfiguration(), cmdargs.isSplitable());
+        FastaReadDescriptionInputFormat.setSplitable(job.getConfiguration(), false);
         job.setInputFormatClass(FastaReadDescriptionInputFormat.class);
         
         Path outputHadoopPath = new Path(outputPath);
@@ -274,11 +258,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             id++;
         }
         
-        if(cmdargs.isSplitable()) {
-            job.setNumReduceTasks(clusterConfig.getReadIndexBuilderReducerNumber(nodeSize));
-        } else {
-            job.setNumReduceTasks(0);
-        }
+        job.setNumReduceTasks(0);
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);
@@ -288,10 +268,14 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             commit(outputHadoopPath, job.getConfiguration(), namedOutputs);
         }
         
+        long endTime = RunningTimeHelper.getCurrentTime();
+        
         // notify
         if(cmdargs.needNotification()) {
             EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
             emailNotification.setJob(job);
+            emailNotification.setJobBeginTime(beginTime);
+            emailNotification.setJobFinishTime(endTime);
             try {
                 emailNotification.send();
             } catch(EmailNotificationException ex) {

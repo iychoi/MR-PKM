@@ -190,4 +190,25 @@ public class SequenceHelper {
         
         return str;
     }
+    
+    public static int compareSequences(byte[] compressedSeq1, byte[] compressedSeq2) {
+        for(int i=0;i<compressedSeq1.length;i++) {
+            if(compressedSeq1[i] != compressedSeq2[i]) {
+                byte bitsSeq1 = compressedSeq1[i];
+                byte aSeq1 = (byte)((bitsSeq1 >> 6) & 0x3);
+                byte bSeq1 = (byte)((bitsSeq1 >> 4) & 0x3);
+                byte cSeq1 = (byte)((bitsSeq1 >> 2) & 0x3);
+                byte dSeq1 = (byte)(bitsSeq1 & 0x3);
+                
+                byte bitsSeq2 = compressedSeq2[i];
+                byte aSeq2 = (byte)((bitsSeq2 >> 6) & 0x3);
+                byte bSeq2 = (byte)((bitsSeq2 >> 4) & 0x3);
+                byte cSeq2 = (byte)((bitsSeq2 >> 2) & 0x3);
+                byte dSeq2 = (byte)(bitsSeq2 & 0x3);
+                
+                return (aSeq1 - aSeq2) | (bSeq1 - bSeq2) | (cSeq1 - cSeq2) | (dSeq1 - dSeq2);
+            }
+        }
+        return 0;
+    }
 }

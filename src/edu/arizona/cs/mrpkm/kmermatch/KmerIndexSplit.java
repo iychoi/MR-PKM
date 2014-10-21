@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -15,12 +16,12 @@ import org.apache.hadoop.mapreduce.InputSplit;
 public class KmerIndexSplit extends InputSplit implements Writable {
 
     private Path[] indexPaths;
-    private KmerSequenceSlice slice;
+    private KmerRangeSlice slice;
 
     public KmerIndexSplit() {    
     }
     
-    public KmerIndexSplit(Path[] indexFilePaths, KmerSequenceSlice slice) {
+    public KmerIndexSplit(Path[] indexFilePaths, KmerRangeSlice slice) {
         this.indexPaths = indexFilePaths;
         this.slice = slice;
     }
@@ -29,7 +30,7 @@ public class KmerIndexSplit extends InputSplit implements Writable {
         return this.indexPaths;
     }
     
-    public KmerSequenceSlice getSlice() {
+    public KmerRangeSlice getSlice() {
         return this.slice;
     }
     
@@ -65,7 +66,7 @@ public class KmerIndexSplit extends InputSplit implements Writable {
         for(int i=0;i<this.indexPaths.length;i++) {
             this.indexPaths[i] = new Path(Text.readString(in));
         }
-        this.slice = new KmerSequenceSlice();
+        this.slice = new KmerRangeSlice();
         this.slice.read(in);
     }
 

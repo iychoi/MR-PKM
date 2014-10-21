@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.kmermatch;
+package edu.arizona.cs.mrpkm.kmerrange;
 
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.io.DataInput;
@@ -11,7 +11,7 @@ import org.apache.hadoop.io.Text;
  *
  * @author iychoi
  */
-public class KmerSequenceSlice {
+public class KmerRangeSlice {
     private int kmerSize;
     private int numSlices;
     private int sliceIndex;
@@ -19,10 +19,10 @@ public class KmerSequenceSlice {
     private BigInteger sliceBegin;
     private BigInteger sliceEnd;
     
-    public KmerSequenceSlice() {
+    public KmerRangeSlice() {
     }
     
-    public KmerSequenceSlice(int kmerSize, int numSlices, int sliceIndex, BigInteger sliceSize, BigInteger sliceBegin, BigInteger sliceEnd) {
+    public KmerRangeSlice(int kmerSize, int numSlices, int sliceIndex, BigInteger sliceSize, BigInteger sliceBegin, BigInteger sliceEnd) {
         this.kmerSize = kmerSize;
         this.numSlices = numSlices;
         this.sliceIndex = sliceIndex;

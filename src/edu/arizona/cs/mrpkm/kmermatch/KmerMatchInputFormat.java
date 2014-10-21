@@ -1,5 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
 import java.io.IOException;
@@ -50,7 +52,7 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
             throw new IOException("number of slices must be a positive number");
         }
         
-        KmerSequenceSlicer.SlicerMode slicerMode = job.getConfiguration().getEnum(KmerMatchHelper.getConfigurationSlicerMode(), KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
+        KmerRangeSlicer.SlicerMode slicerMode = job.getConfiguration().getEnum(KmerMatchHelper.getConfigurationSlicerMode(), KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
         
         // generate splits
         List<InputSplit> splits = new ArrayList<InputSplit>();
@@ -69,10 +71,10 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);
         
-        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices, slicerMode);
-        KmerSequenceSlice[] slices = slicer.getSlices();
+        KmerRangeSlicer slicer = new KmerRangeSlicer(kmerSize, numSlices, slicerMode);
+        KmerRangeSlice[] slices = slicer.getSlices();
         
-        for(KmerSequenceSlice slice : slices) {
+        for(KmerRangeSlice slice : slices) {
             splits.add(new KmerIndexSplit(indexFilePaths, slice));
         }
         

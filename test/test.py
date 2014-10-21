@@ -88,8 +88,10 @@ def runPairwiseKmerModeCounter_0_20_2(mode):
     smode = "range"
     if mode == 0:
         smode = "range"
-    else:
+    elif mode == 1:
         smode = "entries"
+    elif mode == 2:
+        smode = "weight"
     subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter --slicermode " + smode + " test/sample/kidx test/sample/output", shell=True)
 
 def runPairwiseKmerModeCounter_2_3_0(mode):
@@ -97,12 +99,14 @@ def runPairwiseKmerModeCounter_2_3_0(mode):
     smode = "range"
     if mode == 0:
         smode = "range"
-    else:
+    elif mode == 1:
         smode = "entries"
+    elif mode == 2:
+        smode = "weight"
     subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* --slicermode " + smode + " test/sample/kidx test/sample/output", shell=True)
 
 def runTestKmerSequenceSlice(kmer, nslices, mode):
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.kmermatch.test.KmerSequenceSliceTester " + str(kmer) + " " + str(nslices) + " " + str(mode), shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.tools.KmerSequenceSliceTester " + str(kmer) + " " + str(nslices) + " " + str(mode), shell=True)
 
 def main():
     if len(sys.argv) < 2:
@@ -119,6 +123,7 @@ def main():
         print "command : ./test.py pkm_er_2.3.0"
         print "command : ./test.py test_kslice_ee <kmer size> <num of slices>"
         print "command : ./test.py test_kslice_er <kmer size> <num of slices>"
+        print "command : ./test.py test_kslice_wr <kmer size> <num of slices>"
     else:
         command = sys.argv[1]
 
@@ -146,6 +151,8 @@ def main():
             runPairwiseKmerModeCounter_2_3_0(0)
         elif command == "test_kslice_ee":
             runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 1)
+        elif command == "test_kslice_wr":
+            runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 2)
         elif command == "test_kslice_er":
             runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 0)
         else:

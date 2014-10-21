@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
 import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
@@ -73,20 +74,20 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             this.slices = slices;
         }
         
-        private KmerSequenceSlicer.SlicerMode slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+        private KmerRangeSlicer.SlicerMode slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
         
         @Option(name = "--slicermode", usage = "specify how to slice")
         public void setSlicerMode(String slicerMode) {
             if(slicerMode == null) {
-                this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+                this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
             } else if(slicerMode.equalsIgnoreCase("entries")) {
-                this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+                this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
             } else if(slicerMode.equalsIgnoreCase("range")) {
-                this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_RANGE;
+                this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_RANGE;
             } else {
-                this.slicerMode = KmerSequenceSlicer.SlicerMode.valueOf(slicerMode);
+                this.slicerMode = KmerRangeSlicer.SlicerMode.valueOf(slicerMode);
                 if(this.slicerMode == null) {
-                    this.slicerMode = KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+                    this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
                 }
             }
         }
@@ -130,7 +131,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             }
         }
         
-        public KmerSequenceSlicer.SlicerMode getSlicerMode() {
+        public KmerRangeSlicer.SlicerMode getSlicerMode() {
             return this.slicerMode;
         }
         
@@ -250,7 +251,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
         int nodeSize = cmdargs.getNodes();
         int sliceNum = cmdargs.getSlices(nodeSize * clusterConfig.getCoresPerMachine());
-        KmerSequenceSlicer.SlicerMode slicerMode = cmdargs.getSlicerMode();
+        KmerRangeSlicer.SlicerMode slicerMode = cmdargs.getSlicerMode();
         int matchFilterMin = cmdargs.getMinHit();
         int matchFilterMax = cmdargs.getMaxHit();
         String inputPath = cmdargs.getCommaSeparatedInputPath();

@@ -1,7 +1,7 @@
-package edu.arizona.cs.mrpkm.kmermatch.test;
+package edu.arizona.cs.mrpkm.tools;
 
-import edu.arizona.cs.mrpkm.kmermatch.KmerSequenceSlice;
-import edu.arizona.cs.mrpkm.kmermatch.KmerSequenceSlicer;
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.math.BigInteger;
 
@@ -15,13 +15,15 @@ public class KmerSequenceSliceTester {
         int numSlices = Integer.parseInt(args[1]);
         int slicerMode = Integer.parseInt(args[2]);
         
-        KmerSequenceSlicer.SlicerMode mode = KmerSequenceSlicer.SlicerMode.values()[slicerMode];
+        KmerRangeSlicer.SlicerMode mode = KmerRangeSlicer.SlicerMode.values()[slicerMode];
         System.out.println("Slicer Mode : " + mode.toString());
         
-        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, numSlices, mode);
-        KmerSequenceSlice slices[] = slicer.getSlices();
+        KmerRangeSlicer slicer = new KmerRangeSlicer(kmerSize, numSlices, mode);
+        KmerRangeSlice slices[] = slicer.getSlices();
         BigInteger lastEnd = BigInteger.ZERO;
-        for(KmerSequenceSlice slice : slices) {
+        System.out.println(slices.length);
+        for(KmerRangeSlice slice : slices) {
+            System.out.println("slice start");
             if(lastEnd.compareTo(BigInteger.ZERO) == 0) {
                 // skip
             } else {

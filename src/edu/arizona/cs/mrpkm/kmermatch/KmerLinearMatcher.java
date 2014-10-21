@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
 import edu.arizona.cs.mrpkm.kmeridx.AKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.kmeridx.MultiKmerIndexReader;
@@ -29,7 +30,7 @@ public class KmerLinearMatcher {
     private static final int REPORT_FREQUENCY = 1000000;
     
     private Path[] inputIndexPaths;
-    private KmerSequenceSlice slice;
+    private KmerRangeSlice slice;
     private Configuration conf;
     
     private AKmerIndexReader[] readers;
@@ -45,11 +46,11 @@ public class KmerLinearMatcher {
     private int reportCounter;
 
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerSequenceSlice slice, Configuration conf) throws IOException {
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangeSlice slice, Configuration conf) throws IOException {
         initialize(inputIndexPaths, slice, conf);
     }
     
-    private void initialize(Path[] inputIndexPaths, KmerSequenceSlice slice, Configuration conf) throws IOException {
+    private void initialize(Path[] inputIndexPaths, KmerRangeSlice slice, Configuration conf) throws IOException {
         this.inputIndexPaths = inputIndexPaths;
         this.slice = slice;
         this.conf = conf;

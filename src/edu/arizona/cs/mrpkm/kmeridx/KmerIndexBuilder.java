@@ -19,6 +19,7 @@ import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.utils.RunningTimeHelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,8 +70,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
         
-        @Option(name = "-d", aliases = "--distindex", usage = "make distributed indice")
-        private boolean distributed_index = false;
+        @Option(name = "-g", aliases = "--group", usage = "specify group size")
+        private int groupSize = 1;
         
         private Class outputFormat = MapFileOutputFormat.class;
         
@@ -117,8 +118,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
             return this.nodes;
         }
         
-        public boolean getDistributedNode() {
-            return this.distributed_index;
+        public int getGroupSize() {
+            return this.groupSize;
         }
         
         public Class getOutputFormat() {
@@ -212,6 +213,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
+        long beginTime = RunningTimeHelper.getCurrentTime();
+        
         // parse command line
         KmerIndexBuilder_Cmd_Args cmdargs = new KmerIndexBuilder_Cmd_Args();
         CmdLineParser parser = new CmdLineParser(cmdargs);
@@ -241,6 +244,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         String outputPath = cmdargs.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
         int numReducers = clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize);
+        int groupSize = cmdargs.getGroupSize();
         
         // configuration
         Configuration conf = this.getConf();
@@ -252,27 +256,25 @@ public class KmerIndexBuilder extends Configured implements Tool {
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
         Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
         
-        int rounds = inputFiles.length / numReducers;
-        if(inputFiles.length % numReducers != 0) {
+        int rounds = inputFiles.length / groupSize;
+        if(inputFiles.length % groupSize != 0) {
             rounds++;
         }
         
         boolean job_result = true;
+        Job lastJob = null;
         
         for(int round=0;round<rounds;round++) {
-            Path[] roundInputFiles = getRoundInputFiles(round, numReducers, inputFiles);
+            Path[] roundInputFiles = getRoundInputFiles(round, groupSize, inputFiles);
             String roundOutputPath = outputPath + "_round" + round;
             
             Job job = new Job(conf, "Kmer Index Builder Round " + round + " of " + rounds);
             job.setJarByClass(KmerIndexBuilder.class);
 
-            // Identity Mapper & Reducer
+            // Mapper & Reducer
             job.setMapperClass(KmerIndexBuilderMapper.class);
             job.setCombinerClass(KmerIndexBuilderCombiner.class);
-            if (!cmdargs.getDistributedNode()) {
-                // aggregation
-                job.setPartitionerClass(KmerIndexBuilderPartitioner.class);
-            }
+            job.setPartitionerClass(KmerIndexBuilderPartitioner.class);
             job.setReducerClass(KmerIndexBuilderReducer.class);
 
             job.setMapOutputKeyClass(MultiFileCompressedSequenceWritable.class);
@@ -291,7 +293,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
                 LOG.info("> " + roundInputFiles[i].toString());
                 namedOutputs.addNamedOutput(roundInputFiles[i]);
             }
-
+            
             job.setInputFormatClass(FastaReadInputFormat.class);
 
             Path outputHadoopPath = new Path(roundOutputPath);
@@ -317,7 +319,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
 
             int id = 0;
             for (NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
-                LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
+            LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
 
                 job.getConfiguration().setStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
                 LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id));
@@ -342,38 +344,44 @@ public class KmerIndexBuilder extends Configured implements Tool {
 
             // Execute job and return status
             boolean result = job.waitForCompletion(true);
+            
+            lastJob = job;
 
             // commit results
             if (result) {
                 commitRoundOutputFiles(new Path(roundOutputPath), new Path(outputPath), job.getConfiguration(), namedOutputs, kmerSize);
             }
             
-            // notify
-            if (cmdargs.needNotification()) {
-                EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
-                emailNotification.setJob(job);
-                try {
-                    emailNotification.send();
-                } catch (EmailNotificationException ex) {
-                    LOG.error(ex);
-                }
-            }
-            
             if(!result) {
-                LOG.error("job failed at round " + round + " of " + rounds);
+                LOG.error("job failed at round " + round + " of " + inputFiles.length);
                 job_result = false;
                 break;
+            }
+        }
+        
+        long endTime = RunningTimeHelper.getCurrentTime();
+        
+        // notify
+        if (cmdargs.needNotification()) {
+            EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
+            emailNotification.setJob(lastJob);
+            emailNotification.setJobBeginTime(beginTime);
+            emailNotification.setJobFinishTime(endTime);
+            try {
+                emailNotification.send();
+            } catch (EmailNotificationException ex) {
+                LOG.error(ex);
             }
         }
 
         return job_result ? 0 : 1;
     }
     
-    private Path[] getRoundInputFiles(int round, int reducers, Path[] inputFiles) {
+    private Path[] getRoundInputFiles(int round, int groupSize, Path[] inputFiles) {
         List<Path> arr = new ArrayList<Path>();
         
-        int start = round * reducers;
-        for(int i=0;i<reducers;i++) {
+        int start = round * groupSize;
+        for(int i=0;i<groupSize;i++) {
             if(start+i < inputFiles.length) {
                 arr.add(inputFiles[start + i]);
             } else {

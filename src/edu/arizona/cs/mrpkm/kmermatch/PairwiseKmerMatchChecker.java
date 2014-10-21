@@ -1,5 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
+import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
 import edu.arizona.cs.mrpkm.kmeridx.*;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
@@ -122,9 +124,9 @@ public class PairwiseKmerMatchChecker extends Configured implements Tool {
             }
         }
         
-        KmerSequenceSlicer slicer = new KmerSequenceSlicer(kmerSize, 1, KmerSequenceSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
-        KmerSequenceSlice slices[] = slicer.getSlices();
-        KmerSequenceSlice slice = slices[0];
+        KmerRangeSlicer slicer = new KmerRangeSlicer(kmerSize, 1, KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
+        KmerRangeSlice slices[] = slicer.getSlices();
+        KmerRangeSlice slice = slices[0];
         KmerLinearMatcher matcher = new KmerLinearMatcher(indexPaths, slice, conf);
         
         LOG.info("Kmer Index Files : " + FileSystemHelper.makeCommaSeparated(indexPathStrings));

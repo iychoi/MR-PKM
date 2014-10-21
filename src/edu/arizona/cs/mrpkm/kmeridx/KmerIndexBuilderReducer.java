@@ -37,7 +37,7 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         }
         
         this.namedOutputCache = new Hashtable<Integer, String>();
-    }
+        }
     
     @Override
     protected void reduce(MultiFileCompressedSequenceWritable key, Iterable<CompressedIntArrayWritable> values, Context context) throws IOException, InterruptedException {

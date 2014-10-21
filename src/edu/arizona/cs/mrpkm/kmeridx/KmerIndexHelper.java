@@ -114,6 +114,19 @@ public class KmerIndexHelper {
         return -1;
     }
     
+    public static int getIndexPartID(Path indexFilePath) {
+        return getIndexPartID(indexFilePath.getName());
+    }
+    
+    public static int getIndexPartID(String indexFileName) {
+        int idx = indexFileName.lastIndexOf(".");
+        if(idx >= 0) {
+            String partID = indexFileName.substring(idx + 1);
+            return Integer.parseInt(partID);
+        }
+        return -1;
+    }
+    
     public static Path[][] groupKmerIndice(Path[] inputIndexPaths) {
         List<Path[]> groups = new ArrayList<Path[]>();
         

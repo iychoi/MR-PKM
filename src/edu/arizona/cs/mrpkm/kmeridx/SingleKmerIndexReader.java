@@ -27,7 +27,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     private IndexCloseableMapFileReader mapfileReader;
     private CompressedSequenceWritable beginKey;
     private CompressedSequenceWritable endKey;
-    private BlockingQueue<BufferEntry> buffer = new LinkedBlockingQueue<BufferEntry>();
+    private BlockingQueue<KmerIndexBufferEntry> buffer = new LinkedBlockingQueue<KmerIndexBufferEntry>();
     private boolean eof;
     
     public SingleKmerIndexReader(FileSystem fs, String indexPath, Configuration conf) throws IOException {
@@ -65,7 +65,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
                 CompressedSequenceWritable key = new CompressedSequenceWritable();
                 CompressedIntArrayWritable val = new CompressedIntArrayWritable();
                 if(this.mapfileReader.next(key, val)) {
-                    BufferEntry entry = new BufferEntry(key, val);
+                    KmerIndexBufferEntry entry = new KmerIndexBufferEntry(key, val);
                     if(!this.buffer.offer(entry)) {
                         throw new IOException("buffer is full");
                     }
@@ -81,9 +81,9 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
             if(this.endKey != null) {
                 if(lastBufferedKey.compareTo(this.endKey) > 0) {
                     // recheck buffer
-                    BlockingQueue<BufferEntry> new_buffer = new LinkedBlockingQueue<BufferEntry>();
+                    BlockingQueue<KmerIndexBufferEntry> new_buffer = new LinkedBlockingQueue<KmerIndexBufferEntry>();
 
-                    BufferEntry entry = this.buffer.poll();
+                    KmerIndexBufferEntry entry = this.buffer.poll();
                     while(entry != null) {
                         if(entry.getKey().compareTo(this.endKey) <= 0) {
                             if(!new_buffer.offer(entry)) {
@@ -101,17 +101,6 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
         }
     }
     
-    private void reset() throws IOException {
-        if(this.beginKey != null) {
-            seek(this.beginKey);
-        } else {
-            this.mapfileReader.reset();
-            this.buffer.clear();
-            this.eof = false;
-            fillBuffer();
-        }
-    }
-
     @Override
     public void close() throws IOException {
         if(this.mapfileReader != null) {
@@ -135,18 +124,6 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     }
     
     private void seek(CompressedSequenceWritable key) throws IOException {
-        if(this.beginKey != null) {
-            if(key.compareTo(this.beginKey) < 0) {
-                throw new IOException("Seek range is out of bound");
-            }
-        }
-        
-        if(this.endKey != null) {
-            if(key.compareTo(this.endKey) > 0) {
-                throw new IOException("Seek range is out of bound");
-            }
-        }
-        
         this.buffer.clear();
         
         CompressedIntArrayWritable val = new CompressedIntArrayWritable();
@@ -158,7 +135,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
             
             if(this.endKey != null) {
                 if(nextKey.compareTo(this.endKey) <= 0) {
-                    BufferEntry entry = new BufferEntry(nextKey, val);
+                    KmerIndexBufferEntry entry = new KmerIndexBufferEntry(nextKey, val);
                     if(!this.buffer.offer(entry)) {
                         throw new IOException("buffer is full");
                     }
@@ -168,7 +145,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
                     this.eof = true;
                 }
             } else {
-                BufferEntry entry = new BufferEntry(nextKey, val);
+                KmerIndexBufferEntry entry = new KmerIndexBufferEntry(nextKey, val);
                 if(!this.buffer.offer(entry)) {
                     throw new IOException("buffer is full");
                 }
@@ -180,7 +157,7 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
     
     @Override
     public boolean next(CompressedSequenceWritable key, CompressedIntArrayWritable val) throws IOException {
-        BufferEntry entry = this.buffer.poll();
+        KmerIndexBufferEntry entry = this.buffer.poll();
         if(entry != null) {
             key.set(entry.getKey());
             val.set(entry.getVal());
@@ -195,23 +172,5 @@ public class SingleKmerIndexReader extends AKmerIndexReader {
             return true;
         }
         return false;
-    }
-    
-    private class BufferEntry {
-        private CompressedSequenceWritable key;
-        private CompressedIntArrayWritable val;
-        
-        public BufferEntry(CompressedSequenceWritable key, CompressedIntArrayWritable val) {
-            this.key = key;
-            this.val = val;
-        }
-        
-        public CompressedSequenceWritable getKey() {
-            return this.key;
-        }
-        
-        public CompressedIntArrayWritable getVal() {
-            return this.val;
-        }
     }
 }

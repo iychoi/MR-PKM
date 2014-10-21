@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.kmermatch;
+package edu.arizona.cs.mrpkm.kmerrange;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -11,22 +11,23 @@ import org.apache.commons.logging.LogFactory;
  *
  * @author iychoi
  */
-public class KmerSequenceSlicer {
+public class KmerRangeSlicer {
     
-    private static final Log LOG = LogFactory.getLog(KmerSequenceSlicer.class);
+    private static final Log LOG = LogFactory.getLog(KmerRangeSlicer.class);
     
     private int kmerSize;
     private int numSlices;
     private SlicerMode mode;
     
-    private List<KmerSequenceSlice> slices = new ArrayList<KmerSequenceSlice>();
-    
+    private List<KmerRangeSlice> slices = new ArrayList<KmerRangeSlice>();
+
     public enum SlicerMode {
         MODE_EQUAL_RANGE,
-        MODE_EQUAL_ENTRIES
+        MODE_EQUAL_ENTRIES,
+        MODE_WEIGHTED_RANGE,
     }
 
-    public KmerSequenceSlicer(int kmerSize, int numSlices, SlicerMode mode) {
+    public KmerRangeSlicer(int kmerSize, int numSlices, SlicerMode mode) {
         this.kmerSize = kmerSize;
         this.numSlices = numSlices;
         this.mode = mode;
@@ -37,14 +38,17 @@ public class KmerSequenceSlicer {
         } else if(mode.equals(SlicerMode.MODE_EQUAL_ENTRIES)) {
             LOG.info("Slicer - Equal Kmer Entries Mode");
             calc_equal_area();
+        } else if(mode.equals(SlicerMode.MODE_WEIGHTED_RANGE)) {
+            LOG.info("Slicer - Weighted Kmer Range Mode");
+            calc_weighted_range();
         } else {
-            LOG.info("Slicer - Equal Kmer Range Mode");
-            calc_equal_range();
+            LOG.info("Slicer - Weighted Kmer Range Mode");
+            calc_weighted_range();
         }
     }
 
-    public KmerSequenceSlice[] getSlices() {
-        return this.slices.toArray(new KmerSequenceSlice[0]);
+    public KmerRangeSlice[] getSlices() {
+        return this.slices.toArray(new KmerRangeSlice[0]);
     }
     
     private void calc_equal_range() {
@@ -64,7 +68,7 @@ public class KmerSequenceSlicer {
 
             BigInteger slice_end = slice_begin.add(slice_width).subtract(BigInteger.ONE);
 
-            KmerSequenceSlice slice = new KmerSequenceSlice(this.kmerSize, this.numSlices, i, slice_width, slice_begin, slice_end);
+            KmerRangeSlice slice = new KmerRangeSlice(this.kmerSize, this.numSlices, i, slice_width, slice_begin, slice_end);
             this.slices.add(slice);
         }
     }
@@ -95,6 +99,9 @@ public class KmerSequenceSlicer {
             BigDecimal bdw = bdx2.subtract(bdx1);
             
             BigInteger bw = bdw.multiply(bdkmerend).toBigInteger();
+            if(bw.compareTo(BigInteger.ZERO) <= 0) {
+                bw = BigInteger.ONE;
+            }
             
             if(widthSum.add(bw).compareTo(kmerend) > 0) {
                 bw = kmerend.subtract(widthSum);
@@ -126,7 +133,67 @@ public class KmerSequenceSlicer {
             
             BigInteger slice_end = cur_begin.add(slice_width).subtract(BigInteger.ONE);
             
-            KmerSequenceSlice slice = new KmerSequenceSlice(this.kmerSize, this.numSlices, i, slice_width, slice_begin, slice_end);
+            KmerRangeSlice slice = new KmerRangeSlice(this.kmerSize, this.numSlices, i, slice_width, slice_begin, slice_end);
+            this.slices.add(slice);
+            
+            cur_begin = cur_begin.add(slice_width);
+        }
+    }
+    
+    private void calc_weighted_range() {
+        // calc 4^kmerSize
+        BigInteger kmerend = BigInteger.valueOf(4).pow(this.kmerSize);
+        BigDecimal bdkmerend = new BigDecimal(kmerend);
+        
+        List<BigDecimal> weights = new ArrayList<BigDecimal>();
+        BigDecimal next_weight = BigDecimal.ONE;
+        BigDecimal sum_weights = BigDecimal.ZERO;
+        for(int i=0;i<this.numSlices;i++) {
+            weights.add(next_weight);
+            sum_weights = sum_weights.add(next_weight);
+            
+            next_weight = next_weight.multiply(BigDecimal.valueOf(1.5));
+        }
+        
+        BigInteger widthSum = BigInteger.ZERO;
+        List<BigInteger> widths = new ArrayList<BigInteger>();
+        for(int i=0;i<this.numSlices;i++) {
+            BigDecimal bdw = weights.get(i).divide(sum_weights, 50, BigDecimal.ROUND_HALF_UP);
+            BigInteger bw = bdw.multiply(bdkmerend).toBigInteger();
+            
+            if(bw.compareTo(BigInteger.ZERO) <= 0) {
+                bw = BigInteger.ONE;
+            }
+            
+            if(widthSum.add(bw).compareTo(kmerend) > 0) {
+                bw = kmerend.subtract(widthSum);
+            }
+            
+            if(i == this.numSlices - 1) {
+                // last case
+                if(widthSum.add(bw).compareTo(kmerend) < 0) {
+                    bw = kmerend.subtract(widthSum);
+                }    
+            }
+            
+            // save it
+            widths.add(bw);
+            widthSum = widthSum.add(bw);
+        }
+        
+        BigInteger cur_begin = BigInteger.ZERO;
+        for(int i=0;i<this.numSlices;i++) {
+            BigInteger slice_width = widths.get(i);
+            
+            BigInteger slice_begin = cur_begin;
+            
+            if(slice_begin.add(slice_width).compareTo(kmerend) > 0) {
+                slice_width = kmerend.subtract(slice_begin);
+            }
+            
+            BigInteger slice_end = cur_begin.add(slice_width).subtract(BigInteger.ONE);
+            
+            KmerRangeSlice slice = new KmerRangeSlice(this.kmerSize, this.numSlices, i, slice_width, slice_begin, slice_end);
             this.slices.add(slice);
             
             cur_begin = cur_begin.add(slice_width);
