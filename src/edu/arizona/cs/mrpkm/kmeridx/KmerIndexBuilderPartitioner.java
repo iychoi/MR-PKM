@@ -1,7 +1,9 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
+import edu.arizona.cs.mrpkm.sampler.KmerSampleReader;
+import edu.arizona.cs.mrpkm.sampler.KmerSamplerHelper;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -11,6 +13,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
@@ -25,9 +29,9 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     
     private boolean initialized = false;
     private int kmerSize = 0;
-    private KmerRangeSlicer slicer;
-    private KmerRangeSlice[] slices;
-    private CompressedSequenceWritable[] sliceEndKeys;
+    private String[] samplePaths;
+    private KmerRangePartition[][] partitions;
+    private CompressedSequenceWritable[][] partitionEndKeys;
     
     @Override
     public void setConf(Configuration conf) {
@@ -39,33 +43,63 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
         return this.conf;
     }
     
-    private void initialize(int numReduceTasks) {
-        if(!this.initialized) {
-            this.kmerSize = this.conf.getInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), -1);
-            if (this.kmerSize <= 0) {
-                throw new RuntimeException("kmer size has to be a positive value");
+    private void initialize() {
+        this.kmerSize = this.conf.getInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), -1);
+        if (this.kmerSize <= 0) {
+            throw new RuntimeException("kmer size has to be a positive value");
+        }
+        
+        this.samplePaths = this.conf.getStrings(KmerIndexHelper.getConfigurationKeyOfSamplePath(), "");
+        int IDs = this.conf.getInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputNum(), 0);
+        this.partitions = new KmerRangePartition[IDs][];
+        this.partitionEndKeys = new CompressedSequenceWritable[IDs][];
+    }
+    
+    private void initialize(int fileID, int numReduceTasks) throws IOException {
+        if(this.partitionEndKeys[fileID] == null) {
+            KmerSampleReader reader = null;
+            boolean found = false;
+            for (String samplePath : this.samplePaths) {
+                // search index file
+                String filename = this.conf.get(KmerIndexHelper.getConfigurationKeyOfFileName(fileID));
+                Path sampleHadoopPath = new Path(samplePath, KmerSamplerHelper.getSamplingFileName(filename));
+                FileSystem fs = sampleHadoopPath.getFileSystem(this.conf);
+                if (fs.exists(sampleHadoopPath)) {
+                    reader = new KmerSampleReader(sampleHadoopPath, this.conf);
+                    found = true;
+                    break;
+                }
             }
 
-            this.slicer = new KmerRangeSlicer(this.kmerSize, numReduceTasks, KmerRangeSlicer.SlicerMode.MODE_WEIGHTED_RANGE);
+            if (!found) {
+                throw new IOException("ReadIDIndex is not found in given index paths");
+            }
 
-            this.slices = this.slicer.getSlices();
-            this.sliceEndKeys = new CompressedSequenceWritable[this.slices.length];
-            for (int i = 0; i < this.slices.length; i++) {
+            KmerRangePartitioner partitioner = new KmerRangePartitioner(this.kmerSize, numReduceTasks);
+            this.partitions[fileID] = partitioner.getSamplingPartitions(reader.getRecords(), reader.getSampleCount());
+
+            this.partitionEndKeys[fileID] = new CompressedSequenceWritable[numReduceTasks];
+            for (int i = 0; i < this.partitions[fileID].length; i++) {
                 try {
-                    this.sliceEndKeys[i] = new CompressedSequenceWritable(this.slices[i].getSliceEndKmer());
+                    this.partitionEndKeys[fileID][i] = new CompressedSequenceWritable(this.partitions[fileID][i].getPartitionEndKmer());
                 } catch (IOException ex) {
                     throw new RuntimeException(ex.toString());
                 }
             }
-
-            this.initialized = true;
         }
     }
     
     @Override
     public int getPartition(MultiFileCompressedSequenceWritable key, CompressedIntArrayWritable value, int numReduceTasks) {
         if(!this.initialized) {
-            initialize(numReduceTasks);
+            initialize();
+            this.initialized = true;
+        }
+        
+        try {
+            initialize(key.getFileID(), numReduceTasks);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex.toString());
         }
         
         int partition = getPartitionIndex(key);
@@ -77,8 +111,9 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     }
 
     private int getPartitionIndex(MultiFileCompressedSequenceWritable key) {
-        for(int i=0;i<this.sliceEndKeys.length;i++) {
-            int comp = SequenceHelper.compareSequences(key.getCompressedSequence(), this.sliceEndKeys[i].getCompressedSequence());
+        int fileID = key.getFileID();
+        for(int i=0;i<this.partitionEndKeys[fileID].length;i++) {
+            int comp = SequenceHelper.compareSequences(key.getCompressedSequence(), this.partitionEndKeys[fileID][i].getCompressedSequence());
             if(comp <= 0) {
                 return i;
             }

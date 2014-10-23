@@ -1,8 +1,10 @@
-package edu.arizona.cs.mrpkm.kmermatch;
+package edu.arizona.cs.mrpkm.tools;
 
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmeridx.*;
+import edu.arizona.cs.mrpkm.kmermatch.KmerLinearMatcher;
+import edu.arizona.cs.mrpkm.kmermatch.KmerMatchResult;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -124,9 +126,9 @@ public class PairwiseKmerMatchChecker extends Configured implements Tool {
             }
         }
         
-        KmerRangeSlicer slicer = new KmerRangeSlicer(kmerSize, 1, KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES);
-        KmerRangeSlice slices[] = slicer.getSlices();
-        KmerRangeSlice slice = slices[0];
+        KmerRangePartitioner partitioner = new KmerRangePartitioner(kmerSize, 1);
+        KmerRangePartition partitions[] = partitioner.getEqualRangePartitions();
+        KmerRangePartition slice = partitions[0];
         KmerLinearMatcher matcher = new KmerLinearMatcher(indexPaths, slice, conf);
         
         LOG.info("Kmer Index Files : " + FileSystemHelper.makeCommaSeparated(indexPathStrings));

@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
@@ -28,8 +28,8 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
         this.conf = context.getConfiguration();
         this.inputIndexPaths = kmerIndexSplit.getIndexFilePaths();
         
-        KmerRangeSlice slice = kmerIndexSplit.getSlice();
-        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, slice, this.conf);
+        KmerRangePartition partitions = kmerIndexSplit.getSlice();
+        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, this.conf);
     }
 
     @Override

@@ -252,6 +252,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         
         conf.setInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), kmerSize);
         conf.setStrings(KmerIndexHelper.getConfigurationKeyOfReadIDIndexPath(), readIDIndexPath);
+        conf.setStrings(KmerIndexHelper.getConfigurationKeyOfSamplePath(), readIDIndexPath);
         
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
         Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
@@ -317,15 +318,21 @@ public class KmerIndexBuilder extends Configured implements Tool {
                 MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
             }
 
+            LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputNum());
+            job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputNum(), namedOutputs.getSize());
+            
             int id = 0;
             for (NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
-            LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
+                LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
 
-                job.getConfiguration().setStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
+                job.getConfiguration().set(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
                 LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputName(id));
 
                 job.getConfiguration().setInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
                 LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
+                
+                job.getConfiguration().set(KmerIndexHelper.getConfigurationKeyOfFileName(id), namedOutput.getInputString());
+                LOG.info("regist new ConfigString : " + KmerIndexHelper.getConfigurationKeyOfFileName(id));
 
                 if (outputFileSystem instanceof HirodsFileSystem) {
                     if (outputFormat.equals(MapFileOutputFormat.class)) {

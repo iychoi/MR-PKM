@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlice;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmeridx.AKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.kmeridx.MultiKmerIndexReader;
@@ -30,7 +30,7 @@ public class KmerLinearMatcher {
     private static final int REPORT_FREQUENCY = 1000000;
     
     private Path[] inputIndexPaths;
-    private KmerRangeSlice slice;
+    private KmerRangePartition slice;
     private Configuration conf;
     
     private AKmerIndexReader[] readers;
@@ -46,11 +46,11 @@ public class KmerLinearMatcher {
     private int reportCounter;
 
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangeSlice slice, Configuration conf) throws IOException {
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, Configuration conf) throws IOException {
         initialize(inputIndexPaths, slice, conf);
     }
     
-    private void initialize(Path[] inputIndexPaths, KmerRangeSlice slice, Configuration conf) throws IOException {
+    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, Configuration conf) throws IOException {
         this.inputIndexPaths = inputIndexPaths;
         this.slice = slice;
         this.conf = conf;
@@ -62,15 +62,15 @@ public class KmerLinearMatcher {
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
             if(indice[i].length == 1) {
                 // better performance
-                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getSliceBeginKmer(), this.slice.getSliceEndKmer(), this.conf);
+                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf);
             } else {
-                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getSliceBeginKmer(), this.slice.getSliceEndKmer(), this.conf);
+                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf);
             }
         }
         
-        this.sliceSize = slice.getSliceSize();
+        this.sliceSize = slice.getPartitionSize();
         this.currentProgress = BigInteger.ZERO;
-        this.beginSequence = this.slice.getSliceBegin();
+        this.beginSequence = this.slice.getPartitionBegin();
         this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
@@ -78,8 +78,8 @@ public class KmerLinearMatcher {
         this.reportCounter = 0;
         
         LOG.info("Matcher is initialized");
-        LOG.info("> Range " + this.slice.getSliceBeginKmer() + " ~ " + this.slice.getSliceEndKmer());
-        LOG.info("> Num of Slice Entries : " + this.slice.getSliceSize().longValue());
+        LOG.info("> Range " + this.slice.getPartitionBeginKmer() + " ~ " + this.slice.getPartitionEndKmer());
+        LOG.info("> Num of Slice Entries : " + this.slice.getPartitionSize().longValue());
     }
     
     /*

@@ -206,7 +206,21 @@ public class SequenceHelper {
                 byte cSeq2 = (byte)((bitsSeq2 >> 2) & 0x3);
                 byte dSeq2 = (byte)(bitsSeq2 & 0x3);
                 
-                return (aSeq1 - aSeq2) | (bSeq1 - bSeq2) | (cSeq1 - cSeq2) | (dSeq1 - dSeq2);
+                if(aSeq1 - aSeq2 != 0) {
+                    return aSeq1 - aSeq2;
+                }
+                
+                if(bSeq1 - bSeq2 != 0) {
+                    return bSeq1 - bSeq2;
+                }
+                
+                if(cSeq1 - cSeq2 != 0) {
+                    return cSeq1 - cSeq2;
+                }
+                
+                if(dSeq1 - dSeq2 != 0) {
+                    return dSeq1 - dSeq2;
+                }
             }
         }
         return 0;

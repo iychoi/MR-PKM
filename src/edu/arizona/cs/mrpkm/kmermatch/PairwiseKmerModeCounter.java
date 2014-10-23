@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrange.KmerRangeSlicer;
+import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
 import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
@@ -49,8 +49,8 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
     
     private static class PairwiseKmerModeCounter_Cmd_Args {
         
-        private static final int DEFAULT_SLICES = 1000;
-        private static final int SLICE_NUM_PER_CORE = 10;
+        private static final int DEFAULT_PARTITIONS = 1000;
+        private static final int PARTITIONS_PER_CORE = 10;
         
         @Option(name = "-h", aliases = "--help", usage = "print this message") 
         private boolean help = false;
@@ -65,29 +65,29 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
         
-        private int slices = DEFAULT_SLICES;
-        private boolean slicesGivenByUser = false;
+        private int partitions = DEFAULT_PARTITIONS;
+        private boolean partitionsGivenByUser = false;
         
-        @Option(name = "-s", aliases = "--slices", usage = "specify the number of slices a hadoop scheduler will split input files into")
-        public void setSlices(int slices) {
-            slicesGivenByUser = true;
-            this.slices = slices;
+        @Option(name = "-p", aliases = "--partitions", usage = "specify the number of partitions a hadoop scheduler will split input files into")
+        public void setPartitions(int partitions) {
+            partitionsGivenByUser = true;
+            this.partitions = partitions;
         }
         
-        private KmerRangeSlicer.SlicerMode slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+        private KmerRangePartitioner.PartitionerMode partitionerMode = KmerRangePartitioner.PartitionerMode.MODE_EQUAL_ENTRIES;
         
-        @Option(name = "--slicermode", usage = "specify how to slice")
-        public void setSlicerMode(String slicerMode) {
-            if(slicerMode == null) {
-                this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
-            } else if(slicerMode.equalsIgnoreCase("entries")) {
-                this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
-            } else if(slicerMode.equalsIgnoreCase("range")) {
-                this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_RANGE;
+        @Option(name = "--partitionermode", usage = "specify partitioner's work mode")
+        public void setPartitionerMode(String mode) {
+            if(mode == null) {
+                this.partitionerMode = KmerRangePartitioner.PartitionerMode.MODE_EQUAL_ENTRIES;
+            } else if(mode.equalsIgnoreCase("entries")) {
+                this.partitionerMode = KmerRangePartitioner.PartitionerMode.MODE_EQUAL_ENTRIES;
+            } else if(mode.equalsIgnoreCase("range")) {
+                this.partitionerMode = KmerRangePartitioner.PartitionerMode.MODE_EQUAL_RANGE;
             } else {
-                this.slicerMode = KmerRangeSlicer.SlicerMode.valueOf(slicerMode);
-                if(this.slicerMode == null) {
-                    this.slicerMode = KmerRangeSlicer.SlicerMode.MODE_EQUAL_ENTRIES;
+                this.partitionerMode = KmerRangePartitioner.PartitionerMode.valueOf(mode);
+                if(this.partitionerMode == null) {
+                    this.partitionerMode = KmerRangePartitioner.PartitionerMode.MODE_EQUAL_ENTRIES;
                 }
             }
         }
@@ -119,20 +119,20 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
             return this.nodes;
         }
         
-        public int getSlices() {
-            return this.slices;
+        public int getPartitions() {
+            return this.partitions;
         }
         
-        public int getSlices(int cores) {
-            if(this.slicesGivenByUser) {
-                return this.slices;
+        public int getPartitions(int cores) {
+            if(this.partitionsGivenByUser) {
+                return this.partitions;
             } else {
-                return cores * SLICE_NUM_PER_CORE;
+                return cores * PARTITIONS_PER_CORE;
             }
         }
         
-        public KmerRangeSlicer.SlicerMode getSlicerMode() {
-            return this.slicerMode;
+        public KmerRangePartitioner.PartitionerMode getPartitionerMode() {
+            return this.partitionerMode;
         }
         
         public int getMinHit() {
@@ -208,7 +208,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         public boolean checkValidity() {
             if(this.cluster == null || 
                     this.nodes <= 0 ||
-                    this.slices <= 0 ||
+                    this.partitions <= 0 ||
                     this.minHit < 0 ||
                     this.maxHit < 0 ||
                     this.paths == null || this.paths.isEmpty() ||
@@ -250,8 +250,8 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
         int nodeSize = cmdargs.getNodes();
-        int sliceNum = cmdargs.getSlices(nodeSize * clusterConfig.getCoresPerMachine());
-        KmerRangeSlicer.SlicerMode slicerMode = cmdargs.getSlicerMode();
+        int partitionNum = cmdargs.getPartitions(nodeSize * clusterConfig.getCoresPerMachine());
+        KmerRangePartitioner.PartitionerMode partitionerMode = cmdargs.getPartitionerMode();
         int matchFilterMin = cmdargs.getMinHit();
         int matchFilterMax = cmdargs.getMaxHit();
         String inputPath = cmdargs.getCommaSeparatedInputPath();
@@ -261,7 +261,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         Configuration conf = this.getConf();
         clusterConfig.setConfiguration(conf);
         
-        conf.setEnum(KmerMatchHelper.getConfigurationSlicerMode(), slicerMode);
+        conf.setEnum(KmerMatchHelper.getConfigurationPartitionerMode(), partitionerMode);
         conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), matchFilterMin);
         conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), matchFilterMax);
 
@@ -306,7 +306,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         KmerMatchInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         KmerMatchInputFormat.setKmerSize(job, kmerSize);
-        KmerMatchInputFormat.setSliceNum(job, sliceNum);
+        KmerMatchInputFormat.setNumPartitions(job, partitionNum);
         
         NamedOutputs namedOutputs = new NamedOutputs();
         Path[][] groups = KmerIndexHelper.groupKmerIndice(inputFiles);

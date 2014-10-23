@@ -37,7 +37,7 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         }
         
         this.namedOutputCache = new Hashtable<Integer, String>();
-        }
+    }
     
     @Override
     protected void reduce(MultiFileCompressedSequenceWritable key, Iterable<CompressedIntArrayWritable> values, Context context) throws IOException, InterruptedException {
@@ -52,11 +52,10 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         int namedoutputID = key.getFileID();
         String namedOutput = this.namedOutputCache.get(namedoutputID);
         if (namedOutput == null) {
-            String[] namedOutputs = context.getConfiguration().getStrings(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(namedoutputID));
-            if (namedOutputs.length != 1) {
+            namedOutput = context.getConfiguration().get(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(namedoutputID));
+            if (namedOutput == null) {
                 throw new IOException("no named output found");
             }
-            namedOutput = namedOutputs[0];
             this.namedOutputCache.put(namedoutputID, namedOutput);
         }
         

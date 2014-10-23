@@ -136,7 +136,7 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
                 }
             }
             
-            if(this.endKey != null) {
+            if(this.endKey != null && lastBufferedKey != null) {
                 if(lastBufferedKey.compareTo(this.endKey) > 0) {
                     // recheck buffer
                     BlockingQueue<KmerIndexBufferEntry> new_buffer = new LinkedBlockingQueue<KmerIndexBufferEntry>();

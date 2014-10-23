@@ -1,5 +1,6 @@
-package edu.arizona.cs.mrpkm.readididx;
+package edu.arizona.cs.mrpkm.tools;
 
+import edu.arizona.cs.mrpkm.readididx.ReadIDIndexReader;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;

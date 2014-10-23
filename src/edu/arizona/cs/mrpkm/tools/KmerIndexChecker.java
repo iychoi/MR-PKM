@@ -1,5 +1,6 @@
-package edu.arizona.cs.mrpkm.kmeridx;
+package edu.arizona.cs.mrpkm.tools;
 
+import edu.arizona.cs.mrpkm.kmeridx.MultiKmerIndexReader;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;

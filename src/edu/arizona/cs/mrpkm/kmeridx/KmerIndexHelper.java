@@ -16,9 +16,12 @@ import org.apache.hadoop.fs.Path;
 public class KmerIndexHelper {
     private final static String CONF_KMER_SIZE = "edu.arizona.cs.mrpkm.kmeridx.kmer_size";
     private final static String CONF_READID_INDEX_PATH = "edu.arizona.cs.mrpkm.kmeridx.readididx.path";
+    private final static String CONF_SAMPLE_PATH = "edu.arizona.cs.mrpkm.kmeridx.sample.path";
 
     // named output
+    private final static String CONF_NAMED_OUTPUT_NUM = "edu.arizona.cs.mrpkm.kmeridx.named_outputs";
     private final static String CONF_NAMED_OUTPUT_ID_PREFIX = "edu.arizona.cs.mrpkm.kmeridx.named_output_id_";
+    private final static String CONF_NAMED_OUTPUT_FILENAME_PREFIX = "edu.arizona.cs.mrpkm.kmeridx.file_name_";
     private final static String CONF_NAMED_OUTPUT_NAME_PREFIX = "edu.arizona.cs.mrpkm.kmeridx.named_output_name_";
     
     private final static String OUTPUT_NAME_SUFFIX = "kidx";
@@ -26,6 +29,10 @@ public class KmerIndexHelper {
     private final static String INDEXPATH_EXP = ".+\\." + OUTPUT_NAME_SUFFIX + "\\.\\d+$";
     private final static Pattern INDEXPATH_PATTERN = Pattern.compile(INDEXPATH_EXP);
 
+    public static String getConfigurationKeyOfNamedOutputNum() {
+        return CONF_NAMED_OUTPUT_NUM;
+    }
+    
     public static String getConfigurationKeyOfKmerSize() {
         return CONF_KMER_SIZE;
     }
@@ -34,8 +41,16 @@ public class KmerIndexHelper {
         return CONF_READID_INDEX_PATH;
     }
     
+    public static String getConfigurationKeyOfSamplePath() {
+        return CONF_SAMPLE_PATH;
+    }
+    
     public static String getConfigurationKeyOfNamedOutputName(int id) {
         return CONF_NAMED_OUTPUT_NAME_PREFIX + id;
+    }
+    
+    public static String getConfigurationKeyOfFileName(int id) {
+        return CONF_NAMED_OUTPUT_FILENAME_PREFIX + id;
     }
     
     public static String getConfigurationKeyOfNamedOutputID(String namedOutputName) {
