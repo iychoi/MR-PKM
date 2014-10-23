@@ -69,11 +69,11 @@ def run(args):
 
 def runReadIDIndexBuilder_0_20_2():
     removeOutDir();
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder -n 2 -k 20 test/sample/input/ test/sample/output", shell=True)
 
 def runReadIDIndexBuilder_2_3_0():
     removeOutDir();
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar ReadIDIndexBuilder -libjars dist/lib/* test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar ReadIDIndexBuilder -libjars dist/lib/* -n 2 -k 20 test/sample/input/ test/sample/output", shell=True)
 
 def runKmerIndexBuilder_0_20_2():
     removeOutDir()

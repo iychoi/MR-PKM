@@ -6,9 +6,10 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_default;
-import edu.arizona.cs.mrpkm.fastareader.FastaReadDescriptionInputFormat;
+import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
+import edu.arizona.cs.mrpkm.sampler.KmerSamplerHelper;
 import edu.arizona.cs.mrpkm.types.NamedOutput;
 import edu.arizona.cs.mrpkm.types.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -48,6 +49,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilder.class);
     
     private static class ReadIDIndexBuilder_Cmd_Args {
+        
+        private static final int DEFAULT_KMERSIZE = 20;
+        
         @Option(name = "-h", aliases = "--help", usage = "print this message") 
         private boolean help = false;
         
@@ -57,6 +61,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         public void setCluster(String clusterConf) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
             this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
         }
+        
+        @Option(name = "-k", aliases = "--kmersize", usage = "specify kmer size")
+        private int kmersize = DEFAULT_KMERSIZE;
         
         @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
         private int nodes = 1;
@@ -76,6 +83,10 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         public AMRClusterConfiguration getConfiguration() {
             return this.cluster;
+        }
+        
+        public int getKmerSize() {
+            return this.kmersize;
         }
         
         public int getNodes() {
@@ -146,6 +157,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         public boolean checkValidity() {
             if(this.cluster == null || 
+                    this.kmersize <= 0 ||
                     this.nodes <= 0 ||
                     this.paths == null || this.paths.isEmpty() ||
                     this.paths.size() < 2) {
@@ -186,10 +198,12 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             return 1;
         }
         
+        int kmerSize = cmdargs.getKmerSize();
         int nodeSize = cmdargs.getNodes();
         String inputPath = cmdargs.getCommaSeparatedInputPath();
         String outputPath = cmdargs.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
+        int numReducers = clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize);
         
         // configuration
         Configuration conf = this.getConf();
@@ -221,8 +235,8 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             namedOutputs.addNamedOutput(inputFiles[i]);
         }
         
-        FastaReadDescriptionInputFormat.setSplitable(job.getConfiguration(), false);
-        job.setInputFormatClass(FastaReadDescriptionInputFormat.class);
+        FastaReadInputFormat.setSplitable(job.getConfiguration(), false);
+        job.setInputFormatClass(FastaReadInputFormat.class);
         
         Path outputHadoopPath = new Path(outputPath);
         FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
@@ -236,6 +250,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             job.setOutputFormatClass(MapFileOutputFormat.class);
             MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
         }
+        
+        job.getConfiguration().set(KmerSamplerHelper.getConfigurationKeyOfOutputPath(), outputPath);
+        job.getConfiguration().setInt(KmerSamplerHelper.getConfigurationKeyOfKmerSize(), kmerSize);
         
         LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum());
         job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), namedOutputs.getSize());
@@ -298,6 +315,16 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                 // remove unnecessary outputs
                 if(MapReduceHelper.isLogFiles(entryPath)) {
                     fs.delete(entryPath, true);
+                } else if(KmerSamplerHelper.isSamplingFile(entryPath)) {
+                    // rename sampling output
+                    NamedOutput namedOutput = namedOutputs.getNamedOutput(KmerSamplerHelper.getFileNameWithoutExtension(entryPath.getName()));
+                    if(namedOutput != null) {
+                        Path toPath = new Path(entryPath.getParent(), KmerSamplerHelper.getSamplingFileName(namedOutput.getInputString()));
+                        
+                        LOG.info("output : " + entryPath.toString());
+                        LOG.info("renamed to : " + toPath.toString());
+                        fs.rename(entryPath, toPath);
+                    }
                 } else {
                     // rename outputs
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath.getName());

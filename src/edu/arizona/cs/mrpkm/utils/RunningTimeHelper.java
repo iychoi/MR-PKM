@@ -2,7 +2,6 @@ package edu.arizona.cs.mrpkm.utils;
 
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 
 /**
@@ -16,9 +15,17 @@ public class RunningTimeHelper {
     
     public static String getDiffTimeString(long begin, long end) {
         long diff = end - begin;
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(diff);
-        return (c.get(Calendar.HOUR_OF_DAY) + "h " + c.get(Calendar.MINUTE) + "m " + c.get(Calendar.SECOND) + "." + c.get(Calendar.MILLISECOND) + "s");
+        long remain = diff;
+        
+        int msec = (int) (remain % 1000);
+        remain /= 1000;
+        int sec = (int) (remain % 60);
+        remain /= 60;
+        int min = (int) (remain % 60);
+        remain /= 60;
+        int hour = (int) (remain);
+        
+        return hour + "h " + min + "m " + sec + "s";
     }
     
     public static String getTimeString(long time) {

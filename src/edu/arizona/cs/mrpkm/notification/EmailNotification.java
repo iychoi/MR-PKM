@@ -55,7 +55,7 @@ public class EmailNotification {
             jobStatus = "Unknown";
         }
         
-        return job.getJobName() + "(MR-PKM) Finished - " + jobStatus;
+        return jobName + " Finished - " + jobStatus;
     }
     
     private String makeText(Job job, long beginTime, long finishTime) {
