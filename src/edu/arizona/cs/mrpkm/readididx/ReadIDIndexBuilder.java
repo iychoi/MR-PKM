@@ -1,24 +1,20 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
+import edu.arizona.cs.mrpkm.sampler.KmerSamplerWriterConfig;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
-import edu.arizona.cs.mrpkm.cluster.MRClusterConfiguration_default;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.sampler.KmerSamplerHelper;
-import edu.arizona.cs.mrpkm.types.NamedOutput;
-import edu.arizona.cs.mrpkm.types.NamedOutputs;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutput;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
-import edu.arizona.cs.mrpkm.utils.RunningTimeHelper;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,10 +31,6 @@ import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
 
 /**
  *
@@ -48,125 +40,6 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     private static final Log LOG = LogFactory.getLog(ReadIDIndexBuilder.class);
     
-    private static class ReadIDIndexBuilder_Cmd_Args {
-        
-        private static final int DEFAULT_KMERSIZE = 20;
-        
-        @Option(name = "-h", aliases = "--help", usage = "print this message") 
-        private boolean help = false;
-        
-        private AMRClusterConfiguration cluster = new MRClusterConfiguration_default();
-        
-        @Option(name = "-c", aliases = "--cluster", usage = "specify cluster configuration")
-        public void setCluster(String clusterConf) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-            this.cluster = AMRClusterConfiguration.findConfiguration(clusterConf);
-        }
-        
-        @Option(name = "-k", aliases = "--kmersize", usage = "specify kmer size")
-        private int kmersize = DEFAULT_KMERSIZE;
-        
-        @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
-        private int nodes = 1;
-        
-        @Option(name = "--notifyemail", usage = "specify email address for job notification")
-        private String notificationEmail;
-        
-        @Option(name = "--notifypassword", usage = "specify email password for job notification")
-        private String notificationPassword;
-        
-        @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
-        private List<String> paths = new ArrayList<String>();
-        
-        public boolean isHelp() {
-            return this.help;
-        }
-        
-        public AMRClusterConfiguration getConfiguration() {
-            return this.cluster;
-        }
-        
-        public int getKmerSize() {
-            return this.kmersize;
-        }
-        
-        public int getNodes() {
-            return this.nodes;
-        }
-        
-        public String getOutputPath() {
-            if(this.paths.size() > 1) {
-                return this.paths.get(this.paths.size()-1);
-            }
-            
-            return null;
-        }
-        
-        public String[] getInputPaths() {
-            if(this.paths.isEmpty()) {
-                return new String[0];
-            }
-            
-            String[] inpaths = new String[this.paths.size()-1];
-            for(int i=0;i<this.paths.size()-1;i++) {
-                inpaths[i] = this.paths.get(i);
-            }
-            
-            return inpaths;
-        }
-        
-        public String getCommaSeparatedInputPath() {
-            String[] inputPaths = getInputPaths();
-            StringBuilder CSInputPath = new StringBuilder();
-            for(String inputpath : inputPaths) {
-                if(CSInputPath.length() != 0) {
-                    CSInputPath.append(",");
-                }
-                
-                CSInputPath.append(inputpath);
-            }
-            
-            return CSInputPath.toString();
-        }
-        
-        public boolean needNotification() {
-            return (notificationEmail != null);
-        }
-        
-        public String getNotificationEmail() {
-            return notificationEmail;
-        }
-        
-        public String getNotificationPassword() {
-            return notificationPassword;
-        }
-        
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            for(String arg : this.paths) {
-                if(sb.length() != 0) {
-                    sb.append(", ");
-                }
-                
-                sb.append(arg);
-            }
-            
-            return "help = " + this.help + "\n" +
-                    "paths = " + sb.toString();
-        }
-        
-        public boolean checkValidity() {
-            if(this.cluster == null || 
-                    this.kmersize <= 0 ||
-                    this.nodes <= 0 ||
-                    this.paths == null || this.paths.isEmpty() ||
-                    this.paths.size() < 2) {
-                return false;
-            }
-            return true;
-        }
-    }
-    
     public static void main(String[] args) throws Exception {
         int res = ToolRunner.run(new Configuration(), new ReadIDIndexBuilder(), args);
         System.exit(res);
@@ -174,47 +47,27 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     
     @Override
     public int run(String[] args) throws Exception {
-        long beginTime = RunningTimeHelper.getCurrentTime();
+        ReadIDIndexBuilderCmdParamsParser parser = new ReadIDIndexBuilderCmdParamsParser();
+        ReadIDIndexCmdParams cmdParams = parser.parse(args);
         
-        // parse command line
-        ReadIDIndexBuilder_Cmd_Args cmdargs = new ReadIDIndexBuilder_Cmd_Args();
-        CmdLineParser parser = new CmdLineParser(cmdargs);
-        CmdLineException parseException = null;
-        try {
-            parser.parseArgument(args);
-        } catch (CmdLineException e) {
-            // handling of wrong arguments
-            parseException = e;
-        }
-        
-        if(cmdargs.isHelp() || !cmdargs.checkValidity()) {
-            parser.printUsage(System.err);
-            return 1;
-        }
-        
-        if(parseException != null) {
-            System.err.println(parseException.getMessage());
-            parser.printUsage(System.err);
-            return 1;
-        }
-        
-        int kmerSize = cmdargs.getKmerSize();
-        int nodeSize = cmdargs.getNodes();
-        String inputPath = cmdargs.getCommaSeparatedInputPath();
-        String outputPath = cmdargs.getOutputPath();
-        AMRClusterConfiguration clusterConfig = cmdargs.getConfiguration();
-        int numReducers = clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize);
+        int kmerSize = cmdParams.getKmerSize();
+        String inputPath = cmdParams.getCommaSeparatedInputPath();
+        String outputPath = cmdParams.getOutputPath();
+        AMRClusterConfiguration clusterConfig = cmdParams.getClusterConfig();
         
         // configuration
         Configuration conf = this.getConf();
-        clusterConfig.setConfiguration(conf);
+        clusterConfig.configureClusterParamsTo(conf);
         
         Job job = new Job(conf, "ReadID Index Builder");
+        conf = job.getConfiguration();
+        
         job.setJarByClass(ReadIDIndexBuilder.class);
 
         // Mapper
         job.setMapperClass(UnsplitableReadIDIndexBuilderMapper.class);
-
+        FastaReadInputFormat.setSplitable(conf, false);
+        job.setInputFormatClass(FastaReadInputFormat.class);
         job.setMapOutputKeyClass(LongWritable.class);
         job.setMapOutputValueClass(IntWritable.class);
         
@@ -223,56 +76,43 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         job.setOutputValueClass(IntWritable.class);
         
         // Inputs
-        String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(job.getConfiguration(), paths);
-        
+        Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, inputPath);
         FileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
         
-        NamedOutputs namedOutputs = new NamedOutputs();
         LOG.info("Input files : " + inputFiles.length);
-        for(int i=0;i<inputFiles.length;i++) {
-            LOG.info("> " + inputFiles[i].toString());
-            namedOutputs.addNamedOutput(inputFiles[i]);
+        for(Path inputFile : inputFiles) {
+            LOG.info("> " + inputFile.toString());
         }
         
-        FastaReadInputFormat.setSplitable(job.getConfiguration(), false);
-        job.setInputFormatClass(FastaReadInputFormat.class);
+        // Register named outputs
+        NamedOutputs namedOutputs = new NamedOutputs();
+        namedOutputs.addNamedOutput(inputFiles);
+        namedOutputs.saveTo(conf);
         
-        Path outputHadoopPath = new Path(outputPath);
-        FileSystem outputFileSystem = outputHadoopPath.getFileSystem(job.getConfiguration());
-        if(outputFileSystem instanceof HirodsFileSystem) {
+        boolean hirodsOutputPath = FileSystemHelper.isHirodsFileSystemPath(conf, outputPath);
+        if(hirodsOutputPath) {
             LOG.info("Use H-iRODS");
-            HirodsFileOutputFormat.setOutputPath(job, outputHadoopPath);
+            HirodsFileOutputFormat.setOutputPath(job, new Path(outputPath));
             job.setOutputFormatClass(HirodsMapFileOutputFormat.class);
-            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
+            MultipleOutputsHelper.setMultipleOutputsClass(conf, HirodsMultipleOutputs.class);
         } else {
-            FileOutputFormat.setOutputPath(job, outputHadoopPath);
+            FileOutputFormat.setOutputPath(job, new Path(outputPath));
             job.setOutputFormatClass(MapFileOutputFormat.class);
-            MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
+            MultipleOutputsHelper.setMultipleOutputsClass(conf, MultipleOutputs.class);
         }
         
-        job.getConfiguration().set(KmerSamplerHelper.getConfigurationKeyOfOutputPath(), outputPath);
-        job.getConfiguration().setInt(KmerSamplerHelper.getConfigurationKeyOfKmerSize(), kmerSize);
+        // sampling
+        KmerSamplerWriterConfig samplerConfig = new KmerSamplerWriterConfig();
+        samplerConfig.setOutputPath(outputPath);
+        samplerConfig.setKmerSize(kmerSize);
+        samplerConfig.saveTo(conf);
         
-        LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum());
-        job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputNum(), namedOutputs.getSize());
-        
-        int id = 0;
         for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
-            LOG.info("regist new named output : " + namedOutput.getNamedOutputString());
-
-            job.getConfiguration().setStrings(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputName(id), namedOutput.getNamedOutputString());
-            LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputName(id));
-            
-            job.getConfiguration().setInt(ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()), id);
-            LOG.info("regist new ConfigString : " + ReadIDIndexHelper.getConfigurationKeyOfNamedOutputID(namedOutput.getInputString()));
-            
-            if(outputFileSystem instanceof HirodsFileSystem) {
+            if(hirodsOutputPath) {
                 HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, LongWritable.class, IntWritable.class);
             } else {
                 MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, LongWritable.class, IntWritable.class);
             }
-            id++;
         }
         
         job.setNumReduceTasks(0);
@@ -282,17 +122,13 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         // commit results
         if(result) {
-            commit(outputHadoopPath, job.getConfiguration(), namedOutputs);
+            commit(new Path(outputPath), conf, namedOutputs);
         }
         
-        long endTime = RunningTimeHelper.getCurrentTime();
-        
         // notify
-        if(cmdargs.needNotification()) {
-            EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
-            emailNotification.setJob(job);
-            emailNotification.setJobBeginTime(beginTime);
-            emailNotification.setJobFinishTime(endTime);
+        if(cmdParams.needNotification()) {
+            EmailNotification emailNotification = new EmailNotification(cmdParams.getNotificationEmail(), cmdParams.getNotificationPassword());
+            emailNotification.addJob(job);
             try {
                 emailNotification.send();
             } catch(EmailNotificationException ex) {
@@ -317,9 +153,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                     fs.delete(entryPath, true);
                 } else if(KmerSamplerHelper.isSamplingFile(entryPath)) {
                     // rename sampling output
-                    NamedOutput namedOutput = namedOutputs.getNamedOutput(KmerSamplerHelper.getFileNameWithoutExtension(entryPath.getName()));
+                    NamedOutput namedOutput = namedOutputs.getNamedOutput(KmerSamplerHelper.getInputFileName(entryPath.getName()));
                     if(namedOutput != null) {
-                        Path toPath = new Path(entryPath.getParent(), KmerSamplerHelper.getSamplingFileName(namedOutput.getInputString()));
+                        Path toPath = new Path(entryPath.getParent(), KmerSamplerHelper.makeSamplingFileName(namedOutput.getInputString()));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());
@@ -329,7 +165,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                     // rename outputs
                     NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath.getName());
                     if(namedOutput != null) {
-                        Path toPath = new Path(entryPath.getParent(), ReadIDIndexHelper.getReadIDIndexFileName(namedOutput.getInputString()));
+                        Path toPath = new Path(entryPath.getParent(), ReadIDIndexHelper.makeReadIDIndexFileName(namedOutput.getInputString()));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

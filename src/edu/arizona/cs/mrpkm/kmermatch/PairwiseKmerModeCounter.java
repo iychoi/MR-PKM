@@ -11,8 +11,8 @@ import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
-import edu.arizona.cs.mrpkm.types.NamedOutput;
-import edu.arizona.cs.mrpkm.types.NamedOutputs;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutput;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
@@ -259,7 +259,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         // configuration
         Configuration conf = this.getConf();
-        clusterConfig.setConfiguration(conf);
+        clusterConfig.configureClusterParamsTo(conf);
         
         conf.setEnum(KmerMatchHelper.getConfigurationPartitionerMode(), partitionerMode);
         conf.setInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), matchFilterMin);
@@ -375,7 +375,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         // notify
         if(cmdargs.needNotification()) {
             EmailNotification emailNotification = new EmailNotification(cmdargs.getNotificationEmail(), cmdargs.getNotificationPassword());
-            emailNotification.setJob(job);
+            emailNotification.addJob(job);
             try {
                 emailNotification.send();
             } catch(EmailNotificationException ex) {

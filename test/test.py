@@ -92,7 +92,7 @@ def runPairwiseKmerModeCounter_0_20_2(mode):
         smode = "entries"
     elif mode == 2:
         smode = "weight"
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter --min 1 --max 999 --slicermode " + smode + " test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter --min 1 --max 999 --partitionermode " + smode + " test/sample/kidx test/sample/output", shell=True)
 
 def runPairwiseKmerModeCounter_2_3_0(mode):
     removeOutDir();
@@ -103,7 +103,7 @@ def runPairwiseKmerModeCounter_2_3_0(mode):
         smode = "entries"
     elif mode == 2:
         smode = "weight"
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* --min 1 --max 999 --slicermode " + smode + " test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* --min 1 --max 999 --partitionermode " + smode + " test/sample/kidx test/sample/output", shell=True)
 
 def runTestKmerSequenceSlice(kmer, nslices, mode, samplePath):
     if samplePath:

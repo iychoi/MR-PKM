@@ -1,6 +1,7 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -11,6 +12,9 @@ import java.util.Hashtable;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
@@ -22,21 +26,32 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
     
     private static final Log LOG = LogFactory.getLog(KmerIndexBuilderReducer.class);
     
+    private NamedOutputs namedOutputs = null;
+    private KmerIndexBuilderConfig kmerIndexBuilderConfig = null;
+    private int kmerSize;
     private MultipleOutputs mos;
     private HirodsMultipleOutputs hmos = null;
-    private Hashtable<Integer, String> namedOutputCache;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
-        if(MultipleOutputsHelper.isMultipleOutputs(context.getConfiguration())) {
-            this.mos = new MultipleOutputs(context);
-        }
+        Configuration conf = context.getConfiguration();
         
-        if(MultipleOutputsHelper.isHirodsMultipleOutputs(context.getConfiguration())) {
+        this.namedOutputs = new NamedOutputs();
+        this.namedOutputs.loadFrom(conf);
+        
+        this.kmerIndexBuilderConfig = new KmerIndexBuilderConfig();
+        this.kmerIndexBuilderConfig.loadFrom(conf);
+        
+        if(MultipleOutputsHelper.isMultipleOutputs(conf)) {
+            this.mos = new MultipleOutputs(context);
+        } else if(MultipleOutputsHelper.isHirodsMultipleOutputs(conf)) {
             this.hmos = new HirodsMultipleOutputs(context);
         }
         
-        this.namedOutputCache = new Hashtable<Integer, String>();
+        this.kmerSize = this.kmerIndexBuilderConfig.getKmerSize();
+        if(this.kmerSize <= 0) {
+            throw new IOException("kmer size has to be a positive value");
+        }
     }
     
     @Override
@@ -50,14 +65,7 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         }
         
         int namedoutputID = key.getFileID();
-        String namedOutput = this.namedOutputCache.get(namedoutputID);
-        if (namedOutput == null) {
-            namedOutput = context.getConfiguration().get(KmerIndexHelper.getConfigurationKeyOfNamedOutputName(namedoutputID));
-            if (namedOutput == null) {
-                throw new IOException("no named output found");
-            }
-            this.namedOutputCache.put(namedoutputID, namedOutput);
-        }
+        String namedOutput = this.namedOutputs.getNamedOutputFromID(namedoutputID).getNamedOutputString();
         
         CompressedSequenceWritable outKey = new CompressedSequenceWritable(key.getCompressedSequence(), key.getSequenceLength());
         
@@ -68,11 +76,13 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         if(this.hmos != null) {
             this.hmos.write(namedOutput, outKey, new CompressedIntArrayWritable(readIDs));
         }
-        //context.write(key, new Text(sb.toString()));
     }
     
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
+        this.namedOutputs = null;
+        this.kmerIndexBuilderConfig = null;
+    
         if(this.mos != null) {
             this.mos.close();
         }
@@ -80,7 +90,5 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         if(this.hmos != null) {
             this.hmos.close();
         }
-        
-        this.namedOutputCache = null;
     }
 }

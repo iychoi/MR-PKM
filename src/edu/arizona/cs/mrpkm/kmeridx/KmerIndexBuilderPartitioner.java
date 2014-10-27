@@ -2,8 +2,10 @@ package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.sampler.KmerSampleReader;
 import edu.arizona.cs.mrpkm.sampler.KmerSamplerHelper;
+import edu.arizona.cs.mrpkm.sampler.KmerSamplerReaderConfig;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
@@ -28,8 +30,11 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     private Configuration conf;
     
     private boolean initialized = false;
+    private NamedOutputs namedOutputs = null;
+    private KmerSamplerReaderConfig samplerConf = null;
+    private KmerIndexBuilderConfig kmerIndexBuilderConfig = null;
     private int kmerSize = 0;
-    private String[] samplePaths;
+    private String samplePath;
     private KmerRangePartition[][] partitions;
     private CompressedSequenceWritable[][] partitionEndKeys;
     
@@ -44,34 +49,36 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     }
     
     private void initialize() {
-        this.kmerSize = this.conf.getInt(KmerIndexHelper.getConfigurationKeyOfKmerSize(), -1);
+        this.namedOutputs = new NamedOutputs();
+        this.namedOutputs.loadFrom(conf);
+        
+        this.samplerConf = new KmerSamplerReaderConfig();
+        this.samplerConf.loadFrom(this.conf);
+        
+        this.kmerIndexBuilderConfig = new KmerIndexBuilderConfig();
+        this.kmerIndexBuilderConfig.loadFrom(conf);
+        
+        this.kmerSize = this.kmerIndexBuilderConfig.getKmerSize();
         if (this.kmerSize <= 0) {
             throw new RuntimeException("kmer size has to be a positive value");
         }
         
-        this.samplePaths = this.conf.getStrings(KmerIndexHelper.getConfigurationKeyOfSamplePath(), "");
-        int IDs = this.conf.getInt(KmerIndexHelper.getConfigurationKeyOfNamedOutputNum(), 0);
-        this.partitions = new KmerRangePartition[IDs][];
-        this.partitionEndKeys = new CompressedSequenceWritable[IDs][];
+        this.samplePath = this.samplerConf.getInputPath();
+        
+        this.partitions = new KmerRangePartition[this.namedOutputs.getSize()][];
+        this.partitionEndKeys = new CompressedSequenceWritable[this.namedOutputs.getSize()][];
     }
     
     private void initialize(int fileID, int numReduceTasks) throws IOException {
         if(this.partitionEndKeys[fileID] == null) {
             KmerSampleReader reader = null;
-            boolean found = false;
-            for (String samplePath : this.samplePaths) {
-                // search index file
-                String filename = this.conf.get(KmerIndexHelper.getConfigurationKeyOfFileName(fileID));
-                Path sampleHadoopPath = new Path(samplePath, KmerSamplerHelper.getSamplingFileName(filename));
-                FileSystem fs = sampleHadoopPath.getFileSystem(this.conf);
-                if (fs.exists(sampleHadoopPath)) {
-                    reader = new KmerSampleReader(sampleHadoopPath, this.conf);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
+            // search index file
+            String filename = this.namedOutputs.getNamedOutputFromID(fileID).getInputString();
+            Path sampleHadoopPath = new Path(this.samplePath, KmerSamplerHelper.makeSamplingFileName(filename));
+            FileSystem fs = sampleHadoopPath.getFileSystem(this.conf);
+            if (fs.exists(sampleHadoopPath)) {
+                reader = new KmerSampleReader(sampleHadoopPath, this.conf);
+            } else {
                 throw new IOException("ReadIDIndex is not found in given index paths");
             }
 

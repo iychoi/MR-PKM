@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.types;
+package edu.arizona.cs.mrpkm.namedoutputs;
 
 import org.apache.hadoop.fs.Path;
 

@@ -1,5 +1,6 @@
 package edu.arizona.cs.mrpkm.utils;
 
+import edu.arizona.cs.hadoop.fs.irods.HirodsFileSystem;
 import edu.arizona.cs.mrpkm.types.FastaPathFilter;
 import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
 import edu.arizona.cs.mrpkm.types.ReadIDIndexPathFilter;
@@ -65,6 +66,10 @@ public class FileSystemHelper {
             pathStrings[i] = paths[i].toString();
         }
         return pathStrings;
+    }
+    
+    public static Path[] getAllFastaFilePaths(Configuration conf, String inputPathsCommaSeparated) throws IOException {
+        return getAllFastaFilePaths(conf, makePathFromString(splitCommaSeparated(inputPathsCommaSeparated)));
     }
     
     public static Path[] getAllFastaFilePaths(Configuration conf, String[] inputPaths) throws IOException {
@@ -158,5 +163,19 @@ public class FileSystemHelper {
         
         Path[] files = inputFiles.toArray(new Path[0]);
         return files;
+    }
+    
+    public static boolean isHirodsFileSystemPath(Configuration conf, String path) {
+        return isHirodsFileSystemPath(conf, new Path(path));
+    }
+    
+    public static boolean isHirodsFileSystemPath(Configuration conf, Path path) {
+        try {
+            FileSystem outputFileSystem = path.getFileSystem(conf);
+            if(outputFileSystem instanceof HirodsFileSystem) {
+                return true;
+            }
+        } catch (IOException ex) {}
+        return false;
     }
 }

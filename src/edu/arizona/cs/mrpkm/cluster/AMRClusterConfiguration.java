@@ -18,7 +18,7 @@ public abstract class AMRClusterConfiguration {
         return (AMRClusterConfiguration) ClassHelper.getClassInstance(clazz);
     }
     
-    public void setConfiguration(Configuration conf) {
+    public void configureClusterParamsTo(Configuration conf) {
         // set memory
         if(!isMapReduce2()) {
             if(getMapReduceChildMemSize() != 0) {
