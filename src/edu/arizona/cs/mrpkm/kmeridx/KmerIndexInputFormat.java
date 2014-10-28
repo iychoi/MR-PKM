@@ -1,8 +1,7 @@
-package edu.arizona.cs.mrpkm.kmermatch;
+package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner.PartitionerMode;
+import edu.arizona.cs.mrpkm.kmermatch.KmerMatchHelper;
+import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
 import java.io.IOException;
@@ -18,6 +17,8 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import static org.apache.hadoop.mapreduce.lib.input.FileInputFormat.getInputPathFilter;
+import static org.apache.hadoop.mapreduce.lib.input.FileInputFormat.getInputPaths;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 
@@ -25,43 +26,26 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
  *
  * @author iychoi
  */
-public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequenceWritable, KmerMatchResult> {
-
-    private static final Log LOG = LogFactory.getLog(KmerMatchInputFormat.class);
-
+public class KmerIndexInputFormat extends SequenceFileInputFormat<CompressedSequenceWritable, CompressedIntArrayWritable> {
+    
+    private static final Log LOG = LogFactory.getLog(KmerIndexInputFormat.class);
+    
     @Override
-    public RecordReader<CompressedSequenceWritable, KmerMatchResult> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
-        return new KmerMatchRecordReader();
+    public RecordReader<CompressedSequenceWritable, CompressedIntArrayWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
+        return new KmerIndexRecordReader();
     }
     
-    public static void setKmerSize(JobContext job, int kmerSize) {
-        job.getConfiguration().setInt(KmerMatchHelper.getConfigurationKeyOfKmerSize(), kmerSize);
+    public static void setInputFormatConfig(JobContext job, KmerIndexInputFormatConfig inputFormatConfig) {
+        inputFormatConfig.saveTo(job.getConfiguration());
     }
     
-    public static void setNumPartitions(JobContext job, int numPartitions) {
-        job.getConfiguration().setInt(KmerMatchHelper.getConfigurationKeyOfNumPartitions(), numPartitions);
-    }
-
     public List<InputSplit> getSplits(JobContext job) throws IOException {
-        int kmerSize = job.getConfiguration().getInt(KmerMatchHelper.getConfigurationKeyOfKmerSize(), -1);
-        if(kmerSize <= 0) {
-            throw new IOException("kmer size must be a positive number");
-        }
-        
-        int numSlices = job.getConfiguration().getInt(KmerMatchHelper.getConfigurationKeyOfNumPartitions(), -1);
-        if(numSlices <= 0) {
-            throw new IOException("number of slices must be a positive number");
-        }
-        
-        KmerRangePartitioner.PartitionerMode partitionerMode = job.getConfiguration().getEnum(KmerMatchHelper.getConfigurationPartitionerMode(), KmerRangePartitioner.PartitionerMode.MODE_EQUAL_ENTRIES);
-        
         // generate splits
         List<InputSplit> splits = new ArrayList<InputSplit>();
         List<FileStatus> files = listStatus(job);
         List<Path> indexFiles = new ArrayList<Path>();
         for (FileStatus file : files) {
             Path path = file.getPath();
-            long length = file.getLen();
             indexFiles.add(path);
         }
         
@@ -71,21 +55,16 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         }
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);
-        
-        KmerRangePartitioner partitioner = new KmerRangePartitioner(kmerSize, numSlices);
-        KmerRangePartition[] partitions = null;
-        if(partitionerMode.equals(PartitionerMode.MODE_EQUAL_ENTRIES)) {
-            partitions = partitioner.getEqualAreaPartitions();
-        } else if(partitionerMode.equals(PartitionerMode.MODE_EQUAL_RANGE)) {
-            partitions = partitioner.getEqualRangePartitions();
-        } else if(partitionerMode.equals(PartitionerMode.MODE_WEIGHTED_RANGE)) {
-            partitions = partitioner.getWeightedRangePartitions();
-        } /* else if(partitionerMode.equals(PartitionerMode.MODE_SAMPLING)) {
-            partitions = partitioner.getSamplingPartitions();
-        }*/
-        
-        for(KmerRangePartition partition : partitions) {
-            splits.add(new KmerMatchIndexSplit(indexFilePaths, partition));
+
+        Path[][] groups = KmerIndexHelper.groupKmerIndice(indexFilePaths);
+        LOG.info("Input index groups : " + groups.length);
+        for(int i=0;i<groups.length;i++) {
+            Path[] group = groups[i];
+            LOG.info("Input index group " + i + " : " + group.length);
+            for(int j=0;j<group.length;j++) {
+                LOG.info("> " + group[j].toString());
+            }
+            splits.add(new KmerIndexSplit(group, job.getConfiguration()));
         }
         
         // Save the number of input files in the job-conf

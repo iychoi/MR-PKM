@@ -83,6 +83,14 @@ def runKmerIndexBuilder_2_3_0():
     removeOutDir()
     subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexBuilder -libjars dist/lib/* -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
+def runKmerStandardDiviation_0_20_2():
+    removeOutDir()
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStdDiviation -k 20 test/sample/kidx test/sample/stddv", shell=True)
+
+def runKmerStandardDiviation_2_3_0():
+    removeOutDir()
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerStdDiviation -libjars dist/lib/* -k 20 test/sample/kidx test/sample/stddv", shell=True)
+
 def runPairwiseKmerModeCounter_0_20_2(mode):
     removeOutDir();
     smode = "range"
@@ -120,6 +128,8 @@ def main():
         print "command : ./test.py ridx_2.3.0"
         print "command : ./test.py kidx_0.20.2"
         print "command : ./test.py kidx_2.3.0"
+        print "command : ./test.py stddv_0.20.2"
+        print "command : ./test.py stddv_2.3.0"
         print "command : ./test.py pkm_ee_0.20.2"
         print "command : ./test.py pkm_ee_2.3.0"
         print "command : ./test.py pkm_er_0.20.2"
@@ -145,6 +155,10 @@ def main():
             runKmerIndexBuilder_0_20_2()
         elif command == "kidx_2.3.0":
             runKmerIndexBuilder_2_3_0()
+        elif command == "stddv_0.20.2":
+            runKmerStandardDiviation_0_20_2()
+        elif command == "stddv_2.3.0":
+            runKmerStandardDiviation_2_3_0()
         elif command == "pkm_ee_0.20.2":
             runPairwiseKmerModeCounter_0_20_2(1)
         elif command == "pkm_ee_2.3.0":

@@ -20,11 +20,11 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
 
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        if(!(split instanceof KmerIndexSplit)) {
-            throw new IOException("split is not an instance of KmerIndexSplit");
+        if(!(split instanceof KmerMatchIndexSplit)) {
+            throw new IOException("split is not an instance of KmerMatchIndexSplit");
         }
         
-        KmerIndexSplit kmerIndexSplit = (KmerIndexSplit) split;
+        KmerMatchIndexSplit kmerIndexSplit = (KmerMatchIndexSplit) split;
         this.conf = context.getConfiguration();
         this.inputIndexPaths = kmerIndexSplit.getIndexFilePaths();
         

@@ -20,6 +20,7 @@ public class MRPKM {
     private static final String[] SEARCH_PACKAGES = {
         "edu.arizona.cs.mrpkm.kmeridx",
         "edu.arizona.cs.mrpkm.readididx",
+        "edu.arizona.cs.mrpkm.stddiviation",
         "edu.arizona.cs.mrpkm.kmermatch",
         "edu.arizona.cs.mrpkm.tools"
     };

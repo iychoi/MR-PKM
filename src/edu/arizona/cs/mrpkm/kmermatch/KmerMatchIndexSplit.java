@@ -13,15 +13,15 @@ import org.apache.hadoop.mapreduce.InputSplit;
  *
  * @author iychoi
  */
-public class KmerIndexSplit extends InputSplit implements Writable {
+public class KmerMatchIndexSplit extends InputSplit implements Writable {
 
     private Path[] indexPaths;
     private KmerRangePartition slice;
 
-    public KmerIndexSplit() {    
+    public KmerMatchIndexSplit() {    
     }
     
-    public KmerIndexSplit(Path[] indexFilePaths, KmerRangePartition slice) {
+    public KmerMatchIndexSplit(Path[] indexFilePaths, KmerRangePartition slice) {
         this.indexPaths = indexFilePaths;
         this.slice = slice;
     }
