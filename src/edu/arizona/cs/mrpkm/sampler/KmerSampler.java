@@ -71,6 +71,10 @@ public class KmerSampler {
     }
 
     public void createSamplingFile(Path file, FileSystem fs) throws IOException {
+        if(!fs.exists(file.getParent())) {
+            fs.mkdirs(file.getParent());
+        }
+        
         DataOutputStream writer = fs.create(file, true, 64 * 1024);
         
         Collections.sort(this.sampleKeyList);

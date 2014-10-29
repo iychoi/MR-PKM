@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddiviation;
+package edu.arizona.cs.mrpkm.stddeviation;
 
 import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
@@ -8,13 +8,13 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class KmerStdDiviationCmdParamsParser extends PKMCmdParamsParser<KmerStdDiviationCmdParams> {
-    public KmerStdDiviationCmdParamsParser() {
+public class KmerStdDeviationCmdParamsParser extends PKMCmdParamsParser<KmerStdDeviationCmdParams> {
+    public KmerStdDeviationCmdParamsParser() {
     }
     
     @Override
-    public KmerStdDiviationCmdParams parse(String[] args) {
-        KmerStdDiviationCmdParams cmdargs = new KmerStdDiviationCmdParams();
+    public KmerStdDeviationCmdParams parse(String[] args) {
+        KmerStdDeviationCmdParams cmdargs = new KmerStdDeviationCmdParams();
         CmdLineParser parser = new CmdLineParser(cmdargs);
         CmdLineException parseException = null;
         try {

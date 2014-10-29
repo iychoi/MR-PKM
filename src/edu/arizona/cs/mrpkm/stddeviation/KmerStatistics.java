@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddiviation;
+package edu.arizona.cs.mrpkm.stddeviation;
 
 /**
  *

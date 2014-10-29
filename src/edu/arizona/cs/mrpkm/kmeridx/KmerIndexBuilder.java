@@ -54,6 +54,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
         KmerIndexBuilderCmdParamsParser parser = new KmerIndexBuilderCmdParamsParser();
         KmerIndexCmdParams cmdParams = parser.parse(args);
         
+        int groupSize = cmdParams.getGroupSize();
         int kmerSize = cmdParams.getKmerSize();
         int nodeSize = cmdParams.getNodes();
         Class outputFormat = cmdParams.getOutputFormat();
@@ -62,7 +63,6 @@ public class KmerIndexBuilder extends Configured implements Tool {
         String outputPath = cmdParams.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdParams.getClusterConfig();
         int numReducers = clusterConfig.getKmerIndexBuilderReducerNumber(nodeSize);
-        int groupSize = cmdParams.getGroupSize();
         
         // configuration
         Configuration conf = this.getConf();

@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddiviation;
+package edu.arizona.cs.mrpkm.stddeviation;
 
 import java.util.Hashtable;
 import org.apache.hadoop.conf.Configuration;
@@ -8,10 +8,10 @@ import org.apache.hadoop.conf.Configuration;
  * @author iychoi
  */
 public class KmerStatisticsGroup {
-    private final static String CONF_KMER_STATISTICS_FILENUM = "edu.arizona.cs.mrpkm.stddiviation.filenum";
-    private final static String CONF_KMER_STATISTICS_ID_FILENAME_PREFIX = "edu.arizona.cs.mrpkm.stddiviation.filename.";
-    private final static String CONF_KMER_STATISTICS_ID_UNIQUE_OCCURANCE_PREFIX = "edu.arizona.cs.mrpkm.stddiviation.uniqueoccurance.";
-    private final static String CONF_KMER_STATISTICS_ID_TOTAL_OCCURANCE_PREFIX = "edu.arizona.cs.mrpkm.stddiviation.uniqueoccurance.";
+    private final static String CONF_KMER_STATISTICS_FILENUM = "edu.arizona.cs.mrpkm.stddeviation.filenum";
+    private final static String CONF_KMER_STATISTICS_ID_FILENAME_PREFIX = "edu.arizona.cs.mrpkm.stddeviation.filename.";
+    private final static String CONF_KMER_STATISTICS_ID_UNIQUE_OCCURANCE_PREFIX = "edu.arizona.cs.mrpkm.stddeviation.uniqueoccurance.";
+    private final static String CONF_KMER_STATISTICS_ID_TOTAL_OCCURANCE_PREFIX = "edu.arizona.cs.mrpkm.stddeviation.uniqueoccurance.";
     
     
     private Hashtable<String, KmerStatistics> statisticsTable;

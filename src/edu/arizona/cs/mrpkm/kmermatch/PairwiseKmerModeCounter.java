@@ -282,7 +282,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         
         // Inputs
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
-        Path[] inputFiles = FileSystemHelper.getAllKmerIndexFilePaths(job.getConfiguration(), paths);
+        Path[] inputFiles = KmerIndexHelper.getAllKmerIndexFilePaths(job.getConfiguration(), paths);
         
         for(Path path : inputFiles) {
             LOG.info("Input : " + path);

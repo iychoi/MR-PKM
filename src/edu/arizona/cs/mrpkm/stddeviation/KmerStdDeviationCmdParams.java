@@ -1,15 +1,24 @@
-package edu.arizona.cs.mrpkm.stddiviation;
+package edu.arizona.cs.mrpkm.stddeviation;
 
 import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParams;
 import java.util.ArrayList;
 import java.util.List;
 import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.Option;
 
 /**
  *
  * @author iychoi
  */
-public class KmerStdDiviationCmdParams extends PKMCmdParams {
+public class KmerStdDeviationCmdParams extends PKMCmdParams {
+    
+    @Option(name = "-g", aliases = "--group", usage = "specify group size")
+    private int groupSize = 20;
+    
+    public int getGroupSize() {
+        return this.groupSize;
+    }
+    
     @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
     private List<String> paths = new ArrayList<String>();
 
@@ -62,6 +71,10 @@ public class KmerStdDiviationCmdParams extends PKMCmdParams {
     public boolean checkValidity() {
         if(!super.checkValidity()) {
            return false;
+        }
+        
+        if(this.groupSize < 1) {
+            return false;
         }
         
         if(this.paths == null || this.paths.isEmpty() || this.paths.size() < 2) {

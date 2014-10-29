@@ -1,7 +1,6 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
-import edu.arizona.cs.mrpkm.readididx.*;
 import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParams;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +20,7 @@ public class KmerIndexCmdParams extends PKMCmdParams {
     public int getGroupSize() {
         return this.groupSize;
     }
+    
     private Class outputFormat = MapFileOutputFormat.class;
         
     @Option(name = "-f", aliases = "--outputformat", usage = "specify output format")
@@ -101,6 +101,10 @@ public class KmerIndexCmdParams extends PKMCmdParams {
     public boolean checkValidity() {
         if(!super.checkValidity()) {
            return false;
+        }
+        
+        if(this.groupSize < 1) {
+            return false;
         }
         
         if(this.outputFormat == null || this.ridPath == null || this.ridPath.isEmpty()) {

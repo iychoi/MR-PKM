@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddiviation;
+package edu.arizona.cs.mrpkm.stddeviation;
 
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
@@ -15,33 +15,26 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  *
  * @author iychoi
  */
-public class KmerStdDiviationMapper extends Mapper<CompressedSequenceWritable, CompressedIntArrayWritable, NullWritable, NullWritable> {
+public class KmerStatisticsMapper extends Mapper<CompressedSequenceWritable, CompressedIntArrayWritable, NullWritable, NullWritable> {
     
-    private static final Log LOG = LogFactory.getLog(KmerStdDiviationMapper.class);
+    private static final Log LOG = LogFactory.getLog(KmerStatisticsMapper.class);
     
-    private Counter diffKmerCounter;
-    private KmerStatisticsGroup statisticsGroup;
-    private double average;
+    private Counter uniqueKmerCounter;
+    private Counter totalKmerCounter;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         FileSplit inputSplit = (FileSplit)context.getInputSplit();
         String fastaFileName = KmerIndexHelper.getFastaFileName(inputSplit.getPath().getParent());
         
-        this.diffKmerCounter = context.getCounter(KmerStdDiviationHelper.getCounterGroupNameDifferential(), fastaFileName);
-        
-        this.statisticsGroup = new KmerStatisticsGroup();
-        this.statisticsGroup.loadFrom(context.getConfiguration());
-        
-        KmerStatistics statistics = this.statisticsGroup.getStatistics(fastaFileName);
-        this.average = statistics.getTotalOccurance() / (double)statistics.getUniqueOccurance();
+        this.uniqueKmerCounter = context.getCounter(KmerStdDeviationHelper.getCounterGroupNameUnique(), fastaFileName);
+        this.totalKmerCounter = context.getCounter(KmerStdDeviationHelper.getCounterGroupNameTotal(), fastaFileName);
     }
     
     @Override
     protected void map(CompressedSequenceWritable key, CompressedIntArrayWritable value, Context context) throws IOException, InterruptedException {
-        double diff = value.get().length - this.average;
-        double diff2 = diff * diff;
-        this.diffKmerCounter.increment((long)(diff2 * 1000));
+        this.uniqueKmerCounter.increment(1);
+        this.totalKmerCounter.increment(value.get().length);
     }
     
     @Override

@@ -1,7 +1,15 @@
 package edu.arizona.cs.mrpkm.readididx;
 
+import edu.arizona.cs.mrpkm.types.ReadIDIndexPathFilter;
+import static edu.arizona.cs.mrpkm.utils.FileSystemHelper.makePathFromString;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -28,5 +36,37 @@ public class ReadIDIndexHelper {
             return true;
         }
         return false;
+    }
+    
+    public static Path[] getAllReadIDIndexFilePaths(Configuration conf, String[] inputPaths) throws IOException {
+        return getAllReadIDIndexFilePaths(conf, makePathFromString(inputPaths));
+    }
+    
+    public static Path[] getAllReadIDIndexFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
+        List<Path> inputFiles = new ArrayList<Path>();
+        ReadIDIndexPathFilter filter = new ReadIDIndexPathFilter();
+        
+        for(Path path : inputPaths) {
+            FileSystem fs = path.getFileSystem(conf);
+            FileStatus status = fs.getFileStatus(path);
+            if(status.isDir()) {
+                if(filter.accept(path)) {
+                    inputFiles.add(path);
+                } else {
+                    // check child
+                    FileStatus[] entries = fs.listStatus(path);
+                    for (FileStatus entry : entries) {
+                        if(entry.isDir()) {
+                            if (filter.accept(entry.getPath())) {
+                                inputFiles.add(entry.getPath());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Path[] files = inputFiles.toArray(new Path[0]);
+        return files;
     }
 }
