@@ -28,8 +28,12 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
         this.conf = context.getConfiguration();
         this.inputIndexPaths = kmerIndexSplit.getIndexFilePaths();
         
-        KmerRangePartition partitions = kmerIndexSplit.getSlice();
-        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, this.conf);
+        KmerMatchInputFormatConfig inputFormatConfig = new KmerMatchInputFormatConfig();
+        inputFormatConfig.loadFrom(this.conf);
+        String filterPath = inputFormatConfig.getStdDeviationFilterPath();
+        
+        KmerRangePartition partitions = kmerIndexSplit.getPartition();
+        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, filterPath, this.conf);
     }
 
     @Override

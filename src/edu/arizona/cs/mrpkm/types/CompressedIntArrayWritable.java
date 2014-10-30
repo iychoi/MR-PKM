@@ -20,6 +20,8 @@ public class CompressedIntArrayWritable extends BinaryComparable implements Writ
     private static final Log LOG = LogFactory.getLog(CompressedIntArrayWritable.class);
     
     private int[] intArray;
+    private int positiveEntries;
+    private int negativeEntries;
     
     private byte[] prevBytes;
     
@@ -35,12 +37,31 @@ public class CompressedIntArrayWritable extends BinaryComparable implements Writ
     public void set(int[] intArray) {
         this.intArray = intArray;
         this.prevBytes = null;
+        this.positiveEntries = 0;
+        this.negativeEntries = 0;
+        
+        for(int i: intArray) {
+            if(i >= 0) {
+                this.positiveEntries++;
+            } else {
+                this.negativeEntries++;
+            }
+        }
     }
     
     public void set(List<Integer> intArray) {
+        this.positiveEntries = 0;
+        this.negativeEntries = 0;
+        
         int[] arr = new int[intArray.size()];
         for(int i=0;i<intArray.size();i++) {
             arr[i] = intArray.get(i);
+            
+            if(arr[i] >= 0) {
+                this.positiveEntries++;
+            } else {
+                this.negativeEntries++;
+            }
         }
         this.intArray = arr;
         this.prevBytes = null;
@@ -49,6 +70,8 @@ public class CompressedIntArrayWritable extends BinaryComparable implements Writ
     public void set(CompressedIntArrayWritable that) {
         this.intArray = that.intArray;
         this.prevBytes = that.prevBytes;
+        this.positiveEntries = that.positiveEntries;
+        this.negativeEntries = that.negativeEntries;
     }
 
     /**
@@ -56,6 +79,14 @@ public class CompressedIntArrayWritable extends BinaryComparable implements Writ
      */
     public int[] get() {
         return this.intArray;
+    }
+    
+    public int getPositiveEntriesCount() {
+        return this.positiveEntries;
+    }
+    
+    public int getNegativeEntriesCount() {
+        return this.negativeEntries;
     }
     
     private byte makeFlag(int count, int[] arr) throws IOException {
@@ -104,18 +135,36 @@ public class CompressedIntArrayWritable extends BinaryComparable implements Writ
             throw new IOException("unhandled flag");
         }
         
+        this.positiveEntries = 0;
+        this.negativeEntries = 0;
+        
         int[] arr = new int[count];
         if((flag & 0xf0) == 0x00) {
             for (int i = 0; i < count; i++) {
                 arr[i] = in.readByte();
+                if(arr[i] >= 0) {
+                    this.positiveEntries++;
+                } else {
+                    this.negativeEntries++;
+                }
             }
         } else if((flag & 0xf0) == 0x10) {
             for (int i = 0; i < count; i++) {
                 arr[i] = in.readShort();
+                if(arr[i] >= 0) {
+                    this.positiveEntries++;
+                } else {
+                    this.negativeEntries++;
+                }
             }
         } else if((flag & 0xf0) == 0x20) {
             for (int i = 0; i < count; i++) {
                 arr[i] = in.readInt();
+                if(arr[i] >= 0) {
+                    this.positiveEntries++;
+                } else {
+                    this.negativeEntries++;
+                }
             }
         } else {
             throw new IOException("unhandled flag");

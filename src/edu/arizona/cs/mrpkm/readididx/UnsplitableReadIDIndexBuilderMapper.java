@@ -1,11 +1,11 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerWriterConfig;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramWriterConfig;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
 import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.sampler.KmerSampler;
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerHelper;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramWriter;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
@@ -30,8 +30,8 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
     private MultipleOutputs mos = null;
     private HirodsMultipleOutputs hmos = null;
     private int[] readIDs;
-    private KmerSamplerWriterConfig samplerConf;
-    private KmerSampler[] samplers;
+    private KmerHistogramWriterConfig histogramWriterConf;
+    private KmerHistogramWriter[] histogramWriters;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -51,14 +51,14 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
             this.readIDs[i] = 0;
         }
         
-        this.samplerConf = new KmerSamplerWriterConfig();
-        this.samplerConf.loadFrom(conf);
+        this.histogramWriterConf = new KmerHistogramWriterConfig();
+        this.histogramWriterConf.loadFrom(conf);
         
-        if(this.samplerConf.getKmerSize() <= 0) {
+        if(this.histogramWriterConf.getKmerSize() <= 0) {
             throw new IOException("kmer size has to be a positive value");
         }
         
-        this.samplers = new KmerSampler[this.namedOutputs.getSize()];
+        this.histogramWriters = new KmerHistogramWriter[this.namedOutputs.getSize()];
     }
     
     @Override
@@ -73,11 +73,11 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
             this.hmos.write(namedOutput, new LongWritable(value.getReadOffset()), new IntWritable(this.readIDs[namedoutputID]));
         }
         
-        if(this.samplers[namedoutputID] == null) {
-            this.samplers[namedoutputID] = new KmerSampler(namedOutput, this.samplerConf.getKmerSize());
+        if(this.histogramWriters[namedoutputID] == null) {
+            this.histogramWriters[namedoutputID] = new KmerHistogramWriter(namedOutput, this.histogramWriterConf.getKmerSize());
         }
         
-        this.samplers[namedoutputID].takeSample(value.getSequence());
+        this.histogramWriters[namedoutputID].takeSample(value.getSequence());
     }
     
     @Override
@@ -90,23 +90,23 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
             this.hmos.close();
         }
         
-        for(int i=0;i<this.samplers.length;i++) {
-            if(this.samplers[i] != null) {
-                if(this.samplers[i].getSampleCount() > 0) {
-                    String sampleName = this.samplers[i].getSampleName();
-                    String sampleFileName = KmerSamplerHelper.makeSamplingFileName(sampleName);
-                    LOG.info("making sampling file : " + sampleFileName);
-                    Path samplingOutputFile = new Path(this.samplerConf.getOutputPath(), sampleFileName);
-                    FileSystem outputFileSystem = samplingOutputFile.getFileSystem(context.getConfiguration());
+        for(int i=0;i<this.histogramWriters.length;i++) {
+            if(this.histogramWriters[i] != null) {
+                if(this.histogramWriters[i].getSampleCount() > 0) {
+                    String sampleName = this.histogramWriters[i].getInputName();
+                    String histogramFileName = KmerHistogramHelper.makeHistogramFileName(sampleName);
+                    LOG.info("making histogram file : " + histogramFileName);
+                    Path histogramOutputFile = new Path(this.histogramWriterConf.getOutputPath(), histogramFileName);
+                    FileSystem outputFileSystem = histogramOutputFile.getFileSystem(context.getConfiguration());
         
-                    this.samplers[i].createSamplingFile(samplingOutputFile, outputFileSystem);
+                    this.histogramWriters[i].createHistogramFile(histogramOutputFile, outputFileSystem);
                 }
-                this.samplers[i] = null;
+                this.histogramWriters[i] = null;
             }
         }
-        this.samplers = null;
+        this.histogramWriters = null;
         
         this.namedOutputs = null;
-        this.samplerConf = null;
+        this.histogramWriterConf = null;
     }
 }

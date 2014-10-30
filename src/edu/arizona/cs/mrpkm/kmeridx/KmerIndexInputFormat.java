@@ -1,6 +1,5 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmermatch.KmerMatchHelper;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
@@ -29,6 +28,8 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 public class KmerIndexInputFormat extends SequenceFileInputFormat<CompressedSequenceWritable, CompressedIntArrayWritable> {
     
     private static final Log LOG = LogFactory.getLog(KmerIndexInputFormat.class);
+    
+    private final static String NUM_INPUT_FILES = "mapreduce.input.num.files";
     
     @Override
     public RecordReader<CompressedSequenceWritable, CompressedIntArrayWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
@@ -68,7 +69,7 @@ public class KmerIndexInputFormat extends SequenceFileInputFormat<CompressedSequ
         }
         
         // Save the number of input files in the job-conf
-        job.getConfiguration().setLong(KmerMatchHelper.getConfigurationKeyOfInputFileNum(), files.size());
+        job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
 
         LOG.debug("Total # of splits: " + splits.size());
         return splits;

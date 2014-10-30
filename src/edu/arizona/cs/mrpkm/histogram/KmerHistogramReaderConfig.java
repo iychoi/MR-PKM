@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.sampler;
+package edu.arizona.cs.mrpkm.histogram;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -6,12 +6,12 @@ import org.apache.hadoop.conf.Configuration;
  *
  * @author iychoi
  */
-public class KmerSamplerReaderConfig {
-    private final static String CONF_KMER_SAMPLER_INPUT_PATH = "edu.arizona.cs.mrpkm.kmersampler.input_path";
+public class KmerHistogramReaderConfig {
+    private final static String CONF_KMER_HISTOGRAM_INPUT_PATH = "edu.arizona.cs.mrpkm.histogram.input_path";
     
     private String inputPath;
     
-    public KmerSamplerReaderConfig() {
+    public KmerHistogramReaderConfig() {
     }
     
     public void setInputPath(String inputPath) {
@@ -23,10 +23,10 @@ public class KmerSamplerReaderConfig {
     }
     
     public void saveTo(Configuration conf) {
-        conf.set(CONF_KMER_SAMPLER_INPUT_PATH, this.inputPath);
+        conf.set(CONF_KMER_HISTOGRAM_INPUT_PATH, this.inputPath);
     }
     
     public void loadFrom(Configuration conf) {
-        this.inputPath = conf.get(CONF_KMER_SAMPLER_INPUT_PATH, null);
+        this.inputPath = conf.get(CONF_KMER_HISTOGRAM_INPUT_PATH, null);
     }
 }

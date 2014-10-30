@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.sampler;
+package edu.arizona.cs.mrpkm.histogram;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -11,15 +11,15 @@ import org.apache.hadoop.io.Text;
  *
  * @author iychoi
  */
-public class KmerSampleReader {
+public class KmerHistogramReader {
     
     private Path inputFileName;
     private Configuration conf;
     
-    private KmerSamplerRecord[] records;
+    private KmerHistogramRecord[] records;
     private long sumCounts;
 
-    public KmerSampleReader(Path inputFileName, Configuration conf) throws IOException {
+    public KmerHistogramReader(Path inputFileName, Configuration conf) throws IOException {
         this.inputFileName = inputFileName;
         this.conf = conf;
         this.records = null;
@@ -28,7 +28,7 @@ public class KmerSampleReader {
         readRecords();
     }
     
-    public KmerSamplerRecord[] getRecords() {
+    public KmerHistogramRecord[] getRecords() {
         return this.records;
     }
 
@@ -41,13 +41,13 @@ public class KmerSampleReader {
         DataInputStream reader = inputFileSystem.open(this.inputFileName);
         
         int recordNum = reader.readInt();
-        this.records = new KmerSamplerRecord[recordNum];
+        this.records = new KmerHistogramRecord[recordNum];
         this.sumCounts = 0;
         for(int i=0;i<recordNum;i++) {
             String key = Text.readString(reader);
             long cnt = reader.readLong();
             
-            this.records[i] = new KmerSamplerRecord(key, cnt);
+            this.records[i] = new KmerHistogramRecord(key, cnt);
             this.sumCounts += cnt;
         }
         reader.close();

@@ -1,6 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.MutableInteger;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
@@ -10,6 +11,7 @@ import java.util.Hashtable;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -20,38 +22,32 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
  * @author iychoi
  */
 public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWritable, Text, Text> {
+    
     private static final Log LOG = LogFactory.getLog(PairwiseKmerModeCounterReducer.class);
     
+    private NamedOutputs namedOutputs = null;
     private MultipleOutputs mos;
     private HirodsMultipleOutputs hmos = null;
-    private Hashtable<Integer, String> namedOutputCache;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
-        if(MultipleOutputsHelper.isMultipleOutputs(context.getConfiguration())) {
-            this.mos = new MultipleOutputs(context);
-        }
+        Configuration conf = context.getConfiguration();
         
-        if(MultipleOutputsHelper.isHirodsMultipleOutputs(context.getConfiguration())) {
+        this.namedOutputs = new NamedOutputs();
+        this.namedOutputs.loadFrom(conf);
+        
+        if(MultipleOutputsHelper.isMultipleOutputs(conf)) {
+            this.mos = new MultipleOutputs(context);
+        } else if(MultipleOutputsHelper.isHirodsMultipleOutputs(conf)) {
             this.hmos = new HirodsMultipleOutputs(context);
         }
-        
-        this.namedOutputCache = new Hashtable<Integer, String>();
     }
     
     @Override
     protected void reduce(MultiFileReadIDWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
         int namedoutputID = key.getFileID();
-        String namedOutput = this.namedOutputCache.get(namedoutputID);
-        if (namedOutput == null) {
-            String[] namedOutputs = context.getConfiguration().getStrings(PairwiseKmerModeCounterHelper.getConfigurationKeyOfNamedOutputName(namedoutputID));
-            if (namedOutputs.length != 1) {
-                throw new IOException("no named output found");
-            }
-            namedOutput = namedOutputs[0];
-            this.namedOutputCache.put(namedoutputID, namedOutput);
-        }
-        
+        String namedOutput = this.namedOutputs.getNamedOutputFromID(namedoutputID).getNamedOutputString();
+                
         List<Integer> forward_list = new ArrayList<Integer>();
         List<Integer> reverse_list = new ArrayList<Integer>();
         for(IntWritable value : values) {
@@ -66,7 +62,7 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
         int[] forward_mode = getMode(forward_list);
         int[] reverse_mode = getMode(reverse_list);
         
-        // TODO: pick max count
+        // pick max count
         int larger_mode = 0;
         if(forward_mode[1] >= reverse_mode[1]) {
             larger_mode = forward_mode[0];
@@ -83,7 +79,6 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
         if(this.hmos != null) {
             this.hmos.write(namedOutput, new Text(String.valueOf(key.getReadID())), new Text(out_value));
         }
-        //context.write(key, value);
     }
     
     private int[] getMode(List<Integer> values) throws IOException {
@@ -143,6 +138,8 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
     
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
+        this.namedOutputs = null;
+        
         if(this.mos != null) {
             this.mos.close();
         }
@@ -150,7 +147,5 @@ public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWrita
         if(this.hmos != null) {
             this.hmos.close();
         }
-        
-        this.namedOutputCache = null;
     }
 }

@@ -33,7 +33,6 @@ public abstract class AMRClusterConfiguration {
     }
     
     public abstract int getCoresPerMachine();
-    public abstract int getReadIndexBuilderReducerNumber(int nodes);
     public abstract int getKmerIndexBuilderReducerNumber(int nodes);
     public abstract int getPairwiseKmerModeCounterReducerNumber(int nodes);
     public abstract int getMapReduceChildMemSize();

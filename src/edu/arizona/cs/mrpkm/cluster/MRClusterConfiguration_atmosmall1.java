@@ -16,11 +16,6 @@ public class MRClusterConfiguration_atmosmall1 extends AMRClusterConfiguration {
     }
 
     @Override
-    public int getReadIndexBuilderReducerNumber(int nodes) {
-        return nodes;
-    }
-    
-    @Override
     public int getKmerIndexBuilderReducerNumber(int nodes) {
         return nodes;
     }

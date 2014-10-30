@@ -1,14 +1,14 @@
-package edu.arizona.cs.mrpkm.sampler;
+package edu.arizona.cs.mrpkm.histogram;
 
 /**
  *
  * @author iychoi
  */
-public class KmerSamplerRecord implements Comparable<KmerSamplerRecord> {
+public class KmerHistogramRecord implements Comparable<KmerHistogramRecord> {
     private String key;
     private long count;
     
-    public KmerSamplerRecord(String key, long count) {
+    public KmerHistogramRecord(String key, long count) {
         this.key = key;
         this.count = count;
     }
@@ -22,7 +22,7 @@ public class KmerSamplerRecord implements Comparable<KmerSamplerRecord> {
     }
 
     @Override
-    public int compareTo(KmerSamplerRecord right) {
+    public int compareTo(KmerHistogramRecord right) {
         return this.key.compareTo(right.key);
     }
 

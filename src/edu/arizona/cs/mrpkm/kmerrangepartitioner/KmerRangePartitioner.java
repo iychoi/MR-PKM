@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmerrangepartitioner;
 
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerRecord;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramRecord;
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -24,7 +24,7 @@ public class KmerRangePartitioner {
         MODE_EQUAL_RANGE,
         MODE_EQUAL_ENTRIES,
         MODE_WEIGHTED_RANGE,
-        MODE_SAMPLING,
+        MODE_HISTOGRAM,
     }
 
     public KmerRangePartitioner(int kmerSize, int numPartitions) {
@@ -32,7 +32,7 @@ public class KmerRangePartitioner {
         this.numPartitions = numPartitions;
     }
     
-    public KmerRangePartition[] getSamplingPartitions(KmerSamplerRecord[] records, long samples) {
+    public KmerRangePartition[] getHistogramPartitions(KmerHistogramRecord[] records, long samples) {
         KmerRangePartition[] partitions = new KmerRangePartition[this.numPartitions];
         
         // calc 4^kmerSize

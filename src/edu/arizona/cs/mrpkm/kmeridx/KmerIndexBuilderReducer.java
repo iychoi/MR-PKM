@@ -8,13 +8,10 @@ import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
@@ -27,9 +24,7 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
     private static final Log LOG = LogFactory.getLog(KmerIndexBuilderReducer.class);
     
     private NamedOutputs namedOutputs = null;
-    private KmerIndexBuilderConfig kmerIndexBuilderConfig = null;
-    private int kmerSize;
-    private MultipleOutputs mos;
+    private MultipleOutputs mos = null;
     private HirodsMultipleOutputs hmos = null;
     
     @Override
@@ -39,18 +34,10 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         this.namedOutputs = new NamedOutputs();
         this.namedOutputs.loadFrom(conf);
         
-        this.kmerIndexBuilderConfig = new KmerIndexBuilderConfig();
-        this.kmerIndexBuilderConfig.loadFrom(conf);
-        
         if(MultipleOutputsHelper.isMultipleOutputs(conf)) {
             this.mos = new MultipleOutputs(context);
         } else if(MultipleOutputsHelper.isHirodsMultipleOutputs(conf)) {
             this.hmos = new HirodsMultipleOutputs(context);
-        }
-        
-        this.kmerSize = this.kmerIndexBuilderConfig.getKmerSize();
-        if(this.kmerSize <= 0) {
-            throw new IOException("kmer size has to be a positive value");
         }
     }
     
@@ -81,7 +68,6 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         this.namedOutputs = null;
-        this.kmerIndexBuilderConfig = null;
     
         if(this.mos != null) {
             this.mos.close();

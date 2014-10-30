@@ -12,7 +12,7 @@ import org.kohsuke.args4j.Option;
  *
  * @author iychoi
  */
-public class KmerIndexCmdParams extends PKMCmdParams {
+public class KmerIndexBuilderCmdParams extends PKMCmdParams {
     
     @Option(name = "-g", aliases = "--group", usage = "specify group size")
     private int groupSize = 1;
@@ -47,6 +47,13 @@ public class KmerIndexCmdParams extends PKMCmdParams {
         
     public String getReadIDIndexPath() {
         return this.ridPath;
+    }
+    
+    @Option(name = "-s", aliases = "--histogrampath", required = true, usage = "specify Histogram path")
+    private String histogramPath = null;
+    
+    public String getHistogramPath() {
+        return this.histogramPath;
     }
     
     @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
@@ -107,7 +114,15 @@ public class KmerIndexCmdParams extends PKMCmdParams {
             return false;
         }
         
-        if(this.outputFormat == null || this.ridPath == null || this.ridPath.isEmpty()) {
+        if(this.ridPath == null || this.ridPath.isEmpty()) {
+            return false;
+        }
+        
+        if(this.histogramPath == null || this.histogramPath.isEmpty()) {
+            return false;
+        }
+        
+        if(this.outputFormat == null) {
             return false;
         }
         

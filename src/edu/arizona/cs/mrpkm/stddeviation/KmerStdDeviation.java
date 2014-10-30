@@ -226,6 +226,7 @@ public class KmerStdDeviation extends Configured implements Tool {
                 double diffsum = next.getValue() / (double)1000;
                 double distribution = diffsum / statistics.getUniqueOccurance();
                 double stddeviation = Math.sqrt(distribution);
+                LOG.info("average " + next.getName() + " : " + avg);
                 LOG.info("std-deviation " + next.getName() + " : " + stddeviation);
                 //LOG.info("diff*diff " + next.getName() + " : " + next.getValue());
                 

@@ -14,7 +14,7 @@ import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.namedoutputs.NamedOutput;
 import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerReaderConfig;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramReaderConfig;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
 import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
@@ -52,13 +52,14 @@ public class KmerIndexBuilder extends Configured implements Tool {
     @Override
     public int run(String[] args) throws Exception {
         KmerIndexBuilderCmdParamsParser parser = new KmerIndexBuilderCmdParamsParser();
-        KmerIndexCmdParams cmdParams = parser.parse(args);
+        KmerIndexBuilderCmdParams cmdParams = parser.parse(args);
         
         int groupSize = cmdParams.getGroupSize();
         int kmerSize = cmdParams.getKmerSize();
         int nodeSize = cmdParams.getNodes();
         Class outputFormat = cmdParams.getOutputFormat();
         String readIDIndexPath = cmdParams.getReadIDIndexPath();
+        String histogramPath = cmdParams.getHistogramPath();
         String inputPath = cmdParams.getCommaSeparatedInputPath();
         String outputPath = cmdParams.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdParams.getClusterConfig();
@@ -73,9 +74,9 @@ public class KmerIndexBuilder extends Configured implements Tool {
         indexBuilderConfig.setReadIDIndexPath(readIDIndexPath);
         indexBuilderConfig.saveTo(conf);
         
-        KmerSamplerReaderConfig samplerReaderConfig = new KmerSamplerReaderConfig();
-        samplerReaderConfig.setInputPath(readIDIndexPath);
-        samplerReaderConfig.saveTo(conf);
+        KmerHistogramReaderConfig histogramReaderConfig = new KmerHistogramReaderConfig();
+        histogramReaderConfig.setInputPath(histogramPath);
+        histogramReaderConfig.saveTo(conf);
         
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
         Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);

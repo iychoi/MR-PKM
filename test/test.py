@@ -83,35 +83,21 @@ def runKmerIndexBuilder_2_3_0():
     removeOutDir()
     subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexBuilder -libjars dist/lib/* -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
 
-def runKmerStandardDiviation_0_20_2():
+def runKmerStandardDeviation_0_20_2():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStdDiviation -k 20 test/sample/kidx test/sample/stddv", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStdDeviation -k 20 test/sample/kidx test/sample/stddv", shell=True)
 
-def runKmerStandardDiviation_2_3_0():
+def runKmerStandardDeviation_2_3_0():
     removeOutDir()
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerStdDiviation -libjars dist/lib/* -k 20 test/sample/kidx test/sample/stddv", shell=True)
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerStdDeviation -libjars dist/lib/* -k 20 test/sample/kidx test/sample/stddv", shell=True)
 
-def runPairwiseKmerModeCounter_0_20_2(mode):
+def runPairwiseKmerModeCounter_0_20_2():
     removeOutDir();
-    smode = "range"
-    if mode == 0:
-        smode = "range"
-    elif mode == 1:
-        smode = "entries"
-    elif mode == 2:
-        smode = "weight"
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter --min 1 --max 999 --partitionermode " + smode + " test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM PairwiseKmerModeCounter -k 20 -f test/sample/stddv test/sample/kidx test/sample/output", shell=True)
 
-def runPairwiseKmerModeCounter_2_3_0(mode):
+def runPairwiseKmerModeCounter_2_3_0():
     removeOutDir();
-    smode = "range"
-    if mode == 0:
-        smode = "range"
-    elif mode == 1:
-        smode = "entries"
-    elif mode == 2:
-        smode = "weight"
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* --min 1 --max 999 --partitionermode " + smode + " test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerModeCounter -libjars dist/lib/* -k 20 -f test/sample/stddv test/sample/kidx test/sample/output", shell=True)
 
 def runTestKmerSequenceSlice(kmer, nslices, mode, samplePath):
     if samplePath:
@@ -130,10 +116,8 @@ def main():
         print "command : ./test.py kidx_2.3.0"
         print "command : ./test.py stddv_0.20.2"
         print "command : ./test.py stddv_2.3.0"
-        print "command : ./test.py pkm_ee_0.20.2"
-        print "command : ./test.py pkm_ee_2.3.0"
-        print "command : ./test.py pkm_er_0.20.2"
-        print "command : ./test.py pkm_er_2.3.0"
+        print "command : ./test.py pkm_0.20.2"
+        print "command : ./test.py pkm_2.3.0"
         print "command : ./test.py test_kslice_ee <kmer size> <num of slices>"
         print "command : ./test.py test_kslice_er <kmer size> <num of slices>"
         print "command : ./test.py test_kslice_wr <kmer size> <num of slices>"
@@ -156,17 +140,13 @@ def main():
         elif command == "kidx_2.3.0":
             runKmerIndexBuilder_2_3_0()
         elif command == "stddv_0.20.2":
-            runKmerStandardDiviation_0_20_2()
+            runKmerStandardDeviation_0_20_2()
         elif command == "stddv_2.3.0":
-            runKmerStandardDiviation_2_3_0()
-        elif command == "pkm_ee_0.20.2":
-            runPairwiseKmerModeCounter_0_20_2(1)
-        elif command == "pkm_ee_2.3.0":
-            runPairwiseKmerModeCounter_2_3_0(1)
-        elif command == "pkm_er_0.20.2":
-            runPairwiseKmerModeCounter_0_20_2(0)
-        elif command == "pkm_er_2.3.0":
-            runPairwiseKmerModeCounter_2_3_0(0)
+            runKmerStandardDeviation_2_3_0()
+        elif command == "pkm_0.20.2":
+            runPairwiseKmerModeCounter_0_20_2()
+        elif command == "pkm_2.3.0":
+            runPairwiseKmerModeCounter_2_3_0()
         elif command == "test_kslice_ee":
             runTestKmerSequenceSlice(int(sys.argv[2]), int(sys.argv[3]), 1, None)
         elif command == "test_kslice_wr":

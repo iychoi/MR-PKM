@@ -12,11 +12,6 @@ public class MRClusterConfiguration_default extends AMRClusterConfiguration {
     public int getCoresPerMachine() {
         return CPU_CORE_PER_NODE;
     }
-
-    @Override
-    public int getReadIndexBuilderReducerNumber(int nodes) {
-        return nodes;
-    }
     
     @Override
     public int getKmerIndexBuilderReducerNumber(int nodes) {

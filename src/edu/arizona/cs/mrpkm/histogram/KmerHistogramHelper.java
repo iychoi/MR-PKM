@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.sampler;
+package edu.arizona.cs.mrpkm.histogram;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,13 +8,13 @@ import org.apache.hadoop.fs.Path;
  *
  * @author iychoi
  */
-public class KmerSamplerHelper {
+public class KmerHistogramHelper {
     private final static String OUTPUT_NAME_SUFFIX = "smpl";
     
-    private final static String SAMPLINGPATH_EXP = ".+\\." + OUTPUT_NAME_SUFFIX + "$";
-    private final static Pattern SAMPLINGPATH_PATTERN = Pattern.compile(SAMPLINGPATH_EXP);
+    private final static String HISTOGRAMPATH_EXP = ".+\\." + OUTPUT_NAME_SUFFIX + "$";
+    private final static Pattern HISTOGRAMPATH_PATTERN = Pattern.compile(HISTOGRAMPATH_EXP);
     
-    public static String makeSamplingFileName(String inputFileName) {
+    public static String makeHistogramFileName(String inputFileName) {
         return inputFileName + "." + OUTPUT_NAME_SUFFIX;
     }
     
@@ -26,12 +26,12 @@ public class KmerSamplerHelper {
         return filename;
     }
     
-    public static boolean isSamplingFile(Path path) {
-        return isSamplingFile(path.getName());
+    public static boolean isHistogramFile(Path path) {
+        return isHistogramFile(path.getName());
     }
     
-    public static boolean isSamplingFile(String path) {
-        Matcher matcher = SAMPLINGPATH_PATTERN.matcher(path.toLowerCase());
+    public static boolean isHistogramFile(String path) {
+        Matcher matcher = HISTOGRAMPATH_PATTERN.matcher(path.toLowerCase());
         if(matcher.matches()) {
             return true;
         }

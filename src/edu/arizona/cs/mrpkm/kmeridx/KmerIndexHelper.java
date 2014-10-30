@@ -1,6 +1,7 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
+import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
 import static edu.arizona.cs.mrpkm.utils.FileSystemHelper.makePathFromString;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -113,6 +114,10 @@ public class KmerIndexHelper {
             return Integer.parseInt(partID);
         }
         return -1;
+    }
+    
+    public static Path[] getAllKmerIndexFilePaths(Configuration conf, String inputPathsCommaSeparated) throws IOException {
+        return getAllKmerIndexFilePaths(conf, makePathFromString(FileSystemHelper.splitCommaSeparated(inputPathsCommaSeparated)));
     }
     
     public static Path[] getAllKmerIndexFilePaths(Configuration conf, String[] inputPaths) throws IOException {

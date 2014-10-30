@@ -2,7 +2,6 @@ package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner.PartitionerMode;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
 import java.io.IOException;
@@ -29,31 +28,30 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
 
     private static final Log LOG = LogFactory.getLog(KmerMatchInputFormat.class);
 
+    private final static String NUM_INPUT_FILES = "mapreduce.input.num.files";
+    
     @Override
     public RecordReader<CompressedSequenceWritable, KmerMatchResult> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
         return new KmerMatchRecordReader();
     }
     
-    public static void setKmerSize(JobContext job, int kmerSize) {
-        job.getConfiguration().setInt(KmerMatchHelper.getConfigurationKeyOfKmerSize(), kmerSize);
+    public static void setInputFormatConfig(JobContext job, KmerMatchInputFormatConfig inputFormatConfig) {
+        inputFormatConfig.saveTo(job.getConfiguration());
     }
     
-    public static void setNumPartitions(JobContext job, int numPartitions) {
-        job.getConfiguration().setInt(KmerMatchHelper.getConfigurationKeyOfNumPartitions(), numPartitions);
-    }
-
     public List<InputSplit> getSplits(JobContext job) throws IOException {
-        int kmerSize = job.getConfiguration().getInt(KmerMatchHelper.getConfigurationKeyOfKmerSize(), -1);
+        KmerMatchInputFormatConfig inputFormatConfig = new KmerMatchInputFormatConfig();
+        inputFormatConfig.loadFrom(job.getConfiguration());
+        
+        int kmerSize = inputFormatConfig.getKmerSize();
         if(kmerSize <= 0) {
             throw new IOException("kmer size must be a positive number");
         }
         
-        int numSlices = job.getConfiguration().getInt(KmerMatchHelper.getConfigurationKeyOfNumPartitions(), -1);
-        if(numSlices <= 0) {
+        int numPartitions = inputFormatConfig.getPartitionNum();
+        if(numPartitions <= 0) {
             throw new IOException("number of slices must be a positive number");
         }
-        
-        KmerRangePartitioner.PartitionerMode partitionerMode = job.getConfiguration().getEnum(KmerMatchHelper.getConfigurationPartitionerMode(), KmerRangePartitioner.PartitionerMode.MODE_EQUAL_ENTRIES);
         
         // generate splits
         List<InputSplit> splits = new ArrayList<InputSplit>();
@@ -61,7 +59,6 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         List<Path> indexFiles = new ArrayList<Path>();
         for (FileStatus file : files) {
             Path path = file.getPath();
-            long length = file.getLen();
             indexFiles.add(path);
         }
         
@@ -72,24 +69,15 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);
         
-        KmerRangePartitioner partitioner = new KmerRangePartitioner(kmerSize, numSlices);
-        KmerRangePartition[] partitions = null;
-        if(partitionerMode.equals(PartitionerMode.MODE_EQUAL_ENTRIES)) {
-            partitions = partitioner.getEqualAreaPartitions();
-        } else if(partitionerMode.equals(PartitionerMode.MODE_EQUAL_RANGE)) {
-            partitions = partitioner.getEqualRangePartitions();
-        } else if(partitionerMode.equals(PartitionerMode.MODE_WEIGHTED_RANGE)) {
-            partitions = partitioner.getWeightedRangePartitions();
-        } /* else if(partitionerMode.equals(PartitionerMode.MODE_SAMPLING)) {
-            partitions = partitioner.getSamplingPartitions();
-        }*/
+        KmerRangePartitioner partitioner = new KmerRangePartitioner(kmerSize, numPartitions);
+        KmerRangePartition[] partitions = partitioner.getEqualRangePartitions();
         
         for(KmerRangePartition partition : partitions) {
             splits.add(new KmerMatchIndexSplit(indexFilePaths, partition));
         }
         
         // Save the number of input files in the job-conf
-        job.getConfiguration().setLong(KmerMatchHelper.getConfigurationKeyOfInputFileNum(), files.size());
+        job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
 
         LOG.debug("Total # of splits: " + splits.size());
         return splits;

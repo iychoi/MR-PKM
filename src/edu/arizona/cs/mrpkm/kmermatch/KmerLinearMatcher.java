@@ -2,9 +2,10 @@ package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmeridx.AKmerIndexReader;
+import edu.arizona.cs.mrpkm.kmeridx.FilteredKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
-import edu.arizona.cs.mrpkm.kmeridx.MultiKmerIndexReader;
-import edu.arizona.cs.mrpkm.kmeridx.SingleKmerIndexReader;
+import edu.arizona.cs.mrpkm.stddeviation.KmerStdDeviationHelper;
+import edu.arizona.cs.mrpkm.stddeviation.KmerStdDeviationReader;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -44,13 +45,12 @@ public class KmerLinearMatcher {
     private List<Integer> stepMinKeys;
     private boolean stepStarted;
     private int reportCounter;
-
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, Configuration conf) throws IOException {
-        initialize(inputIndexPaths, slice, conf);
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, Configuration conf) throws IOException {
+        initialize(inputIndexPaths, slice, filterPath, conf);
     }
     
-    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, Configuration conf) throws IOException {
+    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, Configuration conf) throws IOException {
         this.inputIndexPaths = inputIndexPaths;
         this.slice = slice;
         this.conf = conf;
@@ -60,12 +60,15 @@ public class KmerLinearMatcher {
         LOG.info("# of KmerIndexReader : " + indice.length);
         for(int i=0;i<indice.length;i++) {
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
-            if(indice[i].length == 1) {
-                // better performance
-                this.readers[i] = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i])[0], this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf);
-            } else {
-                this.readers[i] = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf);
-            }
+            String fastaFilename = KmerIndexHelper.getFastaFileName(indice[i][0]);
+            String stddevFilename = KmerStdDeviationHelper.makeStdDeviationFileName(fastaFilename);
+            Path stdDeviationPath = new Path(filterPath, stddevFilename);
+            
+            KmerStdDeviationReader stddevReader = new KmerStdDeviationReader(stdDeviationPath, this.conf);
+            double avg = stddevReader.getAverageCounts();
+            double stddev = stddevReader.getStandardDeviation();
+            double factor = 2;
+            this.readers[i] = new FilteredKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf, avg, stddev, factor);
         }
         
         this.sliceSize = slice.getPartitionSize();

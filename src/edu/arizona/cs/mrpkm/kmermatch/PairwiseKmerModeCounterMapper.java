@@ -1,6 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
+import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.MultiFileReadIDWritable;
@@ -17,19 +18,20 @@ import org.apache.hadoop.mapreduce.Mapper;
  * @author iychoi
  */
 public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWritable, KmerMatchResult, MultiFileReadIDWritable, IntWritable> {
+    
     private static final Log LOG = LogFactory.getLog(PairwiseKmerModeCounterMapper.class);
     
-    private Hashtable<String, Integer> namedOutputIDCache;
-    private int matchFilterMin = 0;
-    private int matchFilterMax = 0;
+    private NamedOutputs namedOutputs = null;
+    private Hashtable<String, String> fastaFilenameTable;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         
-        this.namedOutputIDCache = new Hashtable<String, Integer>();
-        this.matchFilterMin = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMin(), 0);
-        this.matchFilterMax = conf.getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfMatchFilterMax(), 0);
+        this.namedOutputs = new NamedOutputs();
+        this.namedOutputs.loadFrom(conf);
+        
+        this.fastaFilenameTable = new Hashtable<String, String>();
     }
     
     @Override
@@ -43,67 +45,30 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
         int[] count_neg_vals = new int[vals.length];
         
         for(int i=0;i<vals.length;i++) {
-            int pos = 0;
-            int neg = 0;
-            int[] ids = vals[i].get();
-            for(int j=0;j<ids.length;j++) {
-                if(ids[j] >= 0) {
-                    pos++;
-                } else {
-                    neg++;
-                }
-            }
-            
-            boolean pos_filtered = false;
-            boolean neg_filtered = false;
-            if(this.matchFilterMin > 0 && pos < this.matchFilterMin) {
-                pos_filtered = true;
-            }
-
-            if(this.matchFilterMax > 0 && pos > this.matchFilterMax) {
-                pos_filtered = true;
-            }
-
-            if(this.matchFilterMin > 0 && neg < this.matchFilterMin) {
-                neg_filtered = true;
-            }
-
-            if(this.matchFilterMax > 0 && neg > this.matchFilterMax) {
-                neg_filtered = true;
-            }
-            
-            if(pos_filtered) {
-                count_pos_vals[i] = 0;
-            } else {
-                count_pos_vals[i] = pos;
-            }
-            
-            if(neg_filtered) {
-                count_neg_vals[i] = 0;
-            } else {
-                count_neg_vals[i] = neg;
-            }
+            count_pos_vals[i] = vals[i].getPositiveEntriesCount();
+            count_neg_vals[i] = vals[i].getNegativeEntriesCount();
         }
         
-        
         for(int i=0;i<vals.length;i++) {
-            String thisFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[i][0]);
+            String thisFastaFileName = this.fastaFilenameTable.get(value.getIndexPaths()[i][0]);
+            if(thisFastaFileName == null) {
+                thisFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[i][0]);
+                this.fastaFilenameTable.put(value.getIndexPaths()[i][0], thisFastaFileName);
+            }
+            
             CompressedIntArrayWritable thisVal = vals[i];
             int[] thisValInt = thisVal.get();
             
             for(int j=0;j<vals.length;j++) {
                 if(i != j) {
-                    String thatFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[j][0]);
-                    
-                    String matchOutputName = PairwiseKmerModeCounterHelper.getPairwiseModeCounterOutputName(thisFastaFileName, thatFastaFileName);
-                    Integer namedoutputID = this.namedOutputIDCache.get(matchOutputName);
-                    if (namedoutputID == null) {
-                        namedoutputID = context.getConfiguration().getInt(PairwiseKmerModeCounterHelper.getConfigurationKeyOfNamedOutputID(matchOutputName), -1);
-                        if (namedoutputID < 0) {
-                            throw new IOException("No named output found : " + PairwiseKmerModeCounterHelper.getConfigurationKeyOfNamedOutputID(matchOutputName));
-                        }
-                        this.namedOutputIDCache.put(matchOutputName, namedoutputID);
+                    String thatFastaFileName = this.fastaFilenameTable.get(value.getIndexPaths()[j][0]);
+                    if(thatFastaFileName == null) {
+                        thatFastaFileName = KmerIndexHelper.getFastaFileName(value.getIndexPaths()[j][0]);
+                        this.fastaFilenameTable.put(value.getIndexPaths()[j][0], thatFastaFileName);
                     }
+            
+                    String matchOutputName = PairwiseKmerModeCounterHelper.getPairwiseModeCounterOutputName(thisFastaFileName, thatFastaFileName);
+                    int namedoutputID = this.namedOutputs.getIDFromOutput(matchOutputName);
                     
                     for(int k=0;k<thisValInt.length;k++) {
                         int readID = thisValInt[k];
@@ -139,7 +104,8 @@ public class PairwiseKmerModeCounterMapper extends Mapper<CompressedSequenceWrit
     
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        this.namedOutputIDCache.clear();
-        this.namedOutputIDCache = null;
+        this.namedOutputs = null;
+        this.fastaFilenameTable.clear();
+        this.fastaFilenameTable = null;
     }
 }

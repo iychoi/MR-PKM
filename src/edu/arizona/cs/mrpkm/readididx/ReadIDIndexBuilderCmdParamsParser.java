@@ -8,13 +8,13 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderCmdParamsParser extends PKMCmdParamsParser<ReadIDIndexCmdParams> {
+public class ReadIDIndexBuilderCmdParamsParser extends PKMCmdParamsParser<ReadIDIndexBuilderCmdParams> {
     public ReadIDIndexBuilderCmdParamsParser() {
     }
     
     @Override
-    public ReadIDIndexCmdParams parse(String[] args) {
-        ReadIDIndexCmdParams cmdargs = new ReadIDIndexCmdParams();
+    public ReadIDIndexBuilderCmdParams parse(String[] args) {
+        ReadIDIndexBuilderCmdParams cmdargs = new ReadIDIndexBuilderCmdParams();
         CmdLineParser parser = new CmdLineParser(cmdargs);
         CmdLineException parseException = null;
         try {

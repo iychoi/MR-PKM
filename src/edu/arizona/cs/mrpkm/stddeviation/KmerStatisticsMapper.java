@@ -33,8 +33,16 @@ public class KmerStatisticsMapper extends Mapper<CompressedSequenceWritable, Com
     
     @Override
     protected void map(CompressedSequenceWritable key, CompressedIntArrayWritable value, Context context) throws IOException, InterruptedException {
-        this.uniqueKmerCounter.increment(1);
-        this.totalKmerCounter.increment(value.get().length);
+        if(value.getPositiveEntriesCount() > 0 && value.getNegativeEntriesCount() > 0) {
+            this.uniqueKmerCounter.increment(4);
+            this.totalKmerCounter.increment(value.getPositiveEntriesCount() * 2 + value.getNegativeEntriesCount() * 2);
+        } else if(value.getPositiveEntriesCount() > 0) {
+            this.uniqueKmerCounter.increment(1);
+            this.totalKmerCounter.increment(value.getPositiveEntriesCount());
+        } else if(value.getNegativeEntriesCount() > 0) {
+            this.uniqueKmerCounter.increment(1);
+            this.totalKmerCounter.increment(value.getNegativeEntriesCount());
+        }
     }
     
     @Override

@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.sampler;
+package edu.arizona.cs.mrpkm.histogram;
 
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.io.DataOutputStream;
@@ -17,28 +17,28 @@ import org.apache.hadoop.io.Text;
  *
  * @author iychoi
  */
-public class KmerSampler {
+public class KmerHistogramWriter {
     
     private static final int SAMPLING_CHARS = 6;
     
-    private String sampleName;
+    private String inputName;
     private int kmerSize;
     
-    private Hashtable<String, KmerSamplerRecord> samples;
-    private List<String> sampleKeyList;
+    private Hashtable<String, KmerHistogramRecord> records;
+    private List<String> recordKeyList;
     private long sumCounts;
     
-    public KmerSampler(String sampleName, int kmerSize) {
-        this.sampleName = sampleName;
+    public KmerHistogramWriter(String inputName, int kmerSize) {
+        this.inputName = inputName;
         
         this.kmerSize = kmerSize;
-        this.samples = new Hashtable<String, KmerSamplerRecord>();
-        this.sampleKeyList = new ArrayList<String>();
+        this.records = new Hashtable<String, KmerHistogramRecord>();
+        this.recordKeyList = new ArrayList<String>();
         this.sumCounts = 0;
     }
     
-    public String getSampleName() {
-        return this.sampleName;
+    public String getInputName() {
+        return this.inputName;
     }
     
     public void takeSample(String sequence) {
@@ -59,10 +59,10 @@ public class KmerSampler {
     }
     
     private void addKey(String key) {
-        KmerSamplerRecord existRecord = this.samples.get(key);
+        KmerHistogramRecord existRecord = this.records.get(key);
         if(existRecord == null) {
-            this.samples.put(key, new KmerSamplerRecord(key, 1));
-            this.sampleKeyList.add(key);
+            this.records.put(key, new KmerHistogramRecord(key, 1));
+            this.recordKeyList.add(key);
         } else {
             existRecord.increaseCount();
         }
@@ -70,18 +70,18 @@ public class KmerSampler {
         this.sumCounts++;
     }
 
-    public void createSamplingFile(Path file, FileSystem fs) throws IOException {
+    public void createHistogramFile(Path file, FileSystem fs) throws IOException {
         if(!fs.exists(file.getParent())) {
             fs.mkdirs(file.getParent());
         }
         
         DataOutputStream writer = fs.create(file, true, 64 * 1024);
         
-        Collections.sort(this.sampleKeyList);
-        new IntWritable(this.sampleKeyList.size()).write(writer);
+        Collections.sort(this.recordKeyList);
+        new IntWritable(this.recordKeyList.size()).write(writer);
         
-        for(String key : this.sampleKeyList) {
-            long keyCnt = this.samples.get(key).getCount();
+        for(String key : this.recordKeyList) {
+            long keyCnt = this.records.get(key).getCount();
             new Text(key).write(writer);
             new LongWritable(keyCnt).write(writer);
         }

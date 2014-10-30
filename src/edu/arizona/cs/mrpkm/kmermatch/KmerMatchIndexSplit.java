@@ -16,22 +16,22 @@ import org.apache.hadoop.mapreduce.InputSplit;
 public class KmerMatchIndexSplit extends InputSplit implements Writable {
 
     private Path[] indexPaths;
-    private KmerRangePartition slice;
+    private KmerRangePartition partition;
 
     public KmerMatchIndexSplit() {    
     }
     
-    public KmerMatchIndexSplit(Path[] indexFilePaths, KmerRangePartition slice) {
+    public KmerMatchIndexSplit(Path[] indexFilePaths, KmerRangePartition partition) {
         this.indexPaths = indexFilePaths;
-        this.slice = slice;
+        this.partition = partition;
     }
     
     public Path[] getIndexFilePaths() {
         return this.indexPaths;
     }
     
-    public KmerRangePartition getSlice() {
-        return this.slice;
+    public KmerRangePartition getPartition() {
+        return this.partition;
     }
     
     @Override
@@ -43,7 +43,7 @@ public class KmerMatchIndexSplit extends InputSplit implements Writable {
             }
             sb.append(path.toString());
         }
-        return this.slice.toString() + "\n" + sb.toString();
+        return this.partition.toString() + "\n" + sb.toString();
     }
 
     @Override
@@ -57,7 +57,7 @@ public class KmerMatchIndexSplit extends InputSplit implements Writable {
         for (Path indexPath : this.indexPaths) {
             Text.writeString(out, indexPath.toString());
         }
-        this.slice.write(out);
+        this.partition.write(out);
     }
 
     @Override
@@ -66,12 +66,12 @@ public class KmerMatchIndexSplit extends InputSplit implements Writable {
         for(int i=0;i<this.indexPaths.length;i++) {
             this.indexPaths[i] = new Path(Text.readString(in));
         }
-        this.slice = new KmerRangePartition();
-        this.slice.read(in);
+        this.partition = new KmerRangePartition();
+        this.partition.read(in);
     }
 
     @Override
     public long getLength() throws IOException, InterruptedException {
-        return this.slice.getPartitionSize().longValue();
+        return this.partition.getPartitionSize().longValue();
     }
 }

@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerWriterConfig;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramWriterConfig;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
@@ -8,7 +8,7 @@ import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerHelper;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramHelper;
 import edu.arizona.cs.mrpkm.namedoutputs.NamedOutput;
 import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
@@ -48,7 +48,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
     @Override
     public int run(String[] args) throws Exception {
         ReadIDIndexBuilderCmdParamsParser parser = new ReadIDIndexBuilderCmdParamsParser();
-        ReadIDIndexCmdParams cmdParams = parser.parse(args);
+        ReadIDIndexBuilderCmdParams cmdParams = parser.parse(args);
         
         int kmerSize = cmdParams.getKmerSize();
         String inputPath = cmdParams.getCommaSeparatedInputPath();
@@ -102,10 +102,10 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         }
         
         // sampling
-        KmerSamplerWriterConfig samplerConfig = new KmerSamplerWriterConfig();
-        samplerConfig.setOutputPath(outputPath);
-        samplerConfig.setKmerSize(kmerSize);
-        samplerConfig.saveTo(conf);
+        KmerHistogramWriterConfig histogramWriterConfig = new KmerHistogramWriterConfig();
+        histogramWriterConfig.setOutputPath(outputPath);
+        histogramWriterConfig.setKmerSize(kmerSize);
+        histogramWriterConfig.saveTo(conf);
         
         for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
             if(hirodsOutputPath) {
@@ -151,11 +151,11 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                 // remove unnecessary outputs
                 if(MapReduceHelper.isLogFiles(entryPath)) {
                     fs.delete(entryPath, true);
-                } else if(KmerSamplerHelper.isSamplingFile(entryPath)) {
-                    // rename sampling output
-                    NamedOutput namedOutput = namedOutputs.getNamedOutput(KmerSamplerHelper.getInputFileName(entryPath.getName()));
+                } else if(KmerHistogramHelper.isHistogramFile(entryPath)) {
+                    // rename histogram output
+                    NamedOutput namedOutput = namedOutputs.getNamedOutput(KmerHistogramHelper.getInputFileName(entryPath.getName()));
                     if(namedOutput != null) {
-                        Path toPath = new Path(entryPath.getParent(), KmerSamplerHelper.makeSamplingFileName(namedOutput.getInputString()));
+                        Path toPath = new Path(entryPath.getParent(), KmerHistogramHelper.makeHistogramFileName(namedOutput.getInputString()));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

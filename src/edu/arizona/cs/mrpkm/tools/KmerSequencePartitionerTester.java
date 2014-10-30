@@ -3,8 +3,8 @@ package edu.arizona.cs.mrpkm.tools;
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
 import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner.PartitionerMode;
-import edu.arizona.cs.mrpkm.sampler.KmerSampleReader;
-import edu.arizona.cs.mrpkm.sampler.KmerSamplerRecord;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramReader;
+import edu.arizona.cs.mrpkm.histogram.KmerHistogramRecord;
 import edu.arizona.cs.mrpkm.utils.SequenceHelper;
 import java.math.BigInteger;
 import org.apache.hadoop.conf.Configuration;
@@ -43,14 +43,14 @@ public class KmerSequencePartitionerTester extends Configured implements Tool {
             partitions = partitioner.getEqualRangePartitions();
         } else if(mode.equals(PartitionerMode.MODE_WEIGHTED_RANGE)) {
             partitions = partitioner.getWeightedRangePartitions();
-        } else if(mode.equals(PartitionerMode.MODE_SAMPLING)) {
-            String samplerPath = args[3];
-            KmerSampleReader reader = new KmerSampleReader(new Path(samplerPath), conf);
+        } else if(mode.equals(PartitionerMode.MODE_HISTOGRAM)) {
+            String histogramPath = args[3];
+            KmerHistogramReader reader = new KmerHistogramReader(new Path(histogramPath), conf);
             System.out.println("total : " + reader.getSampleCount());
             long partitionWidth = reader.getSampleCount() / numPartitions;
             System.out.println("partitionWidth : " + partitionWidth);
             long partitionRem = partitionWidth;
-            for(KmerSamplerRecord rec : reader.getRecords()) {
+            for(KmerHistogramRecord rec : reader.getRecords()) {
                 if(partitionRem - rec.getCount() <= 0) {
                     System.out.println("rec : " + rec.getKey() + " : " + rec.getCount() + " -- part : " + partitionRem);
                     partitionRem = partitionWidth - (rec.getCount() - partitionRem);
@@ -59,7 +59,7 @@ public class KmerSequencePartitionerTester extends Configured implements Tool {
                     partitionRem -= rec.getCount();
                 }
             }
-            partitions = partitioner.getSamplingPartitions(reader.getRecords(), reader.getSampleCount());
+            partitions = partitioner.getHistogramPartitions(reader.getRecords(), reader.getSampleCount());
         }
         
         BigInteger lastEnd = BigInteger.ZERO;

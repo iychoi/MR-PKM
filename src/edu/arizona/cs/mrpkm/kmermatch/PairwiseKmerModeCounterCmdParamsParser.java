@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.kmeridx;
+package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
@@ -8,13 +8,13 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class KmerIndexBuilderCmdParamsParser extends PKMCmdParamsParser<KmerIndexBuilderCmdParams> {
-    public KmerIndexBuilderCmdParamsParser() {
+public class PairwiseKmerModeCounterCmdParamsParser extends PKMCmdParamsParser<PairwiseKmerModeCounterCmdParams> {
+    public PairwiseKmerModeCounterCmdParamsParser() {
     }
 
     @Override
-    public KmerIndexBuilderCmdParams parse(String[] args) {
-        KmerIndexBuilderCmdParams cmdargs = new KmerIndexBuilderCmdParams();
+    public PairwiseKmerModeCounterCmdParams parse(String[] args) {
+        PairwiseKmerModeCounterCmdParams cmdargs = new PairwiseKmerModeCounterCmdParams();
         CmdLineParser parser = new CmdLineParser(cmdargs);
         CmdLineException parseException = null;
         try {
