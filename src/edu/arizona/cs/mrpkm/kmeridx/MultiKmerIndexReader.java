@@ -79,28 +79,43 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         
         this.mapfileReaders = new IndexCloseableMapFileReader[this.indexPaths.length];
         
+        boolean bFound = false;
         for(int i=0;i<this.indexPaths.length;i++) {
             this.mapfileReaders[i] = new IndexCloseableMapFileReader(fs, this.indexPaths[i], conf);
             
-            CompressedSequenceWritable finalKey = new CompressedSequenceWritable();
-            this.mapfileReaders[i].finalKey(finalKey);
-            if(finalKey.compareTo(beginKey) >= 0) {
+            if(beginKey != null) {
+                CompressedSequenceWritable finalKey = new CompressedSequenceWritable();
+                this.mapfileReaders[i].finalKey(finalKey);
+                if(finalKey.compareTo(beginKey) >= 0) {
+                    this.currentIndex = i;
+                    this.mapfileReaders[i].reset();
+
+                    seek(beginKey);
+
+                    //this.mapfileReaders[i].closeIndex();
+                    bFound = true;
+                    break;
+                } else {
+                    this.mapfileReaders[i].close();
+                    this.mapfileReaders[i] = null;
+                }
+            } else {
                 this.currentIndex = i;
                 this.mapfileReaders[i].reset();
-                
-                if(beginKey != null) {
-                    seek(beginKey);
-                } else {
-                    this.eof = false;
-                    fillBuffer();
-                }
-                
-                this.mapfileReaders[i].closeIndex();
+
+                this.eof = false;
+                fillBuffer();
+
+                //this.mapfileReaders[i].closeIndex();
+                bFound = true;
                 break;
-            } else {
-                this.mapfileReaders[i].close();
-                this.mapfileReaders[i] = null;
             }
+        }
+        
+        if(!bFound) {
+            this.eof = true;
+        } else {
+            LOG.info("found kmer begin");
         }
     }
     

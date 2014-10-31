@@ -50,12 +50,19 @@ public class FileSystemHelper {
         return inputs;
     }
     
-    public static Path[] makePathFromString(String[] pathStrings) {
-        Path[] paths = new Path[pathStrings.length];
-        for(int i=0;i<pathStrings.length;i++) {
-            paths[i] = new Path(pathStrings[i]);
+    public static Path[] makePathFromString(Configuration conf, String[] pathStrings) throws IOException {
+        List<Path> paths = new ArrayList<Path>();
+        for(String path : pathStrings) {
+            if(hasWildcard(path)) {
+                Path[] patharr = resolveWildcard(conf, path);
+                for(Path pathentry : patharr) {
+                    paths.add(pathentry);
+                }
+            } else {
+                paths.add(new Path(path));
+            }
         }
-        return paths;
+        return paths.toArray(new Path[0]);
     }
     
     public static String[] makeStringFromPath(Path[] paths) {
@@ -67,11 +74,11 @@ public class FileSystemHelper {
     }
     
     public static Path[] getAllFastaFilePaths(Configuration conf, String inputPathsCommaSeparated) throws IOException {
-        return getAllFastaFilePaths(conf, makePathFromString(splitCommaSeparated(inputPathsCommaSeparated)));
+        return getAllFastaFilePaths(conf, makePathFromString(conf, splitCommaSeparated(inputPathsCommaSeparated)));
     }
     
     public static Path[] getAllFastaFilePaths(Configuration conf, String[] inputPaths) throws IOException {
-        return getAllFastaFilePaths(conf, makePathFromString(inputPaths));
+        return getAllFastaFilePaths(conf, makePathFromString(conf, inputPaths));
     }
     
     public static Path[] getAllFastaFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
@@ -87,10 +94,6 @@ public class FileSystemHelper {
                     if(filter.accept(entry.getPath())) {
                         inputFiles.add(entry.getPath());
                     }
-                }
-            } else {
-                if(filter.accept(path)) {
-                    inputFiles.add(path);
                 }
             }
         }
@@ -111,5 +114,59 @@ public class FileSystemHelper {
             }
         } catch (IOException ex) {}
         return false;
+    }
+
+    public static boolean hasWildcard(String path) {
+        if(path.indexOf("*") >= 0) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    private static Path[] resolveWildcard(Configuration conf, String path) throws IOException {
+        List<Path> paths = new ArrayList<Path>();
+        
+        int idxWildcard = path.lastIndexOf("*");
+        if(idxWildcard >= 0) {
+            String left = null;
+            String right = path.substring(idxWildcard+1);
+            
+            String parentPath = path.substring(0, idxWildcard);
+            int idxParent = parentPath.lastIndexOf("/");
+            if(idxParent >= 0) {
+                parentPath = parentPath.substring(0, idxParent);
+                left = path.substring(idxParent+1, idxWildcard);
+            } else {
+                parentPath = "";
+                left = path.substring(0, idxWildcard);
+            }
+            
+            Path parent = new Path(parentPath);
+            FileSystem fs = parent.getFileSystem(conf);
+            FileStatus status = fs.getFileStatus(parent);
+            if(status.isDir()) {
+                FileStatus[] entries = fs.listStatus(parent);
+                for(FileStatus entry : entries) {
+                    if(!left.isEmpty()) {
+                        if(!entry.getPath().getName().startsWith(left)) {
+                            // skip
+                            continue;
+                        }
+                    }
+                    
+                    if(!right.isEmpty()) {
+                        if(!entry.getPath().getName().endsWith(right)) {
+                            // skip
+                            continue;
+                        }
+                    }
+                    
+                    paths.add(entry.getPath());
+                }
+            }
+        }
+        
+        return paths.toArray(new Path[0]);
     }
 }

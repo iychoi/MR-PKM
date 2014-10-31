@@ -62,12 +62,6 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         Configuration conf = this.getConf();
         clusterConfig.configureClusterParamsTo(conf);
         
-        KmerMatchInputFormatConfig matchInputFormatConfig = new KmerMatchInputFormatConfig();
-        matchInputFormatConfig.setKmerSize(kmerSize);
-        matchInputFormatConfig.setPartitionNum(partitionNum);
-        matchInputFormatConfig.setStdDeviationFilterPath(stddevFilterPath);
-        matchInputFormatConfig.saveTo(conf);
-        
         /*
         KmerHistogramReaderConfig histogramReaderConfig = new KmerHistogramReaderConfig();
         histogramReaderConfig.setInputPath(histogramPath);
@@ -98,6 +92,11 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         // Inputs
         Path[] inputFiles = KmerIndexHelper.getAllKmerIndexFilePaths(conf, inputPath);
         KmerMatchInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputFiles));
+        
+        KmerMatchInputFormatConfig matchInputFormatConfig = new KmerMatchInputFormatConfig();
+        matchInputFormatConfig.setKmerSize(kmerSize);
+        matchInputFormatConfig.setPartitionNum(partitionNum);
+        matchInputFormatConfig.setStdDeviationFilterPath(stddevFilterPath);
         KmerMatchInputFormat.setInputFormatConfig(job, matchInputFormatConfig);
         
         for(Path path : inputFiles) {
@@ -113,6 +112,7 @@ public class PairwiseKmerModeCounter extends Configured implements Tool {
         LOG.info("Input index groups : " + groups.length);
         
         // Register named outputs
+        LOG.info("Adding named outputs");
         NamedOutputs namedOutputs = new NamedOutputs();
         for(int i=0;i<groups.length;i++) {
             Path[] thisGroup = groups[i];

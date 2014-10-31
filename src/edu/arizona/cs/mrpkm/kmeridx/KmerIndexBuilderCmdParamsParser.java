@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsParser;
+import edu.arizona.cs.mrpkm.cmdparams.APKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -8,7 +8,7 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class KmerIndexBuilderCmdParamsParser extends PKMCmdParamsParser<KmerIndexBuilderCmdParams> {
+public class KmerIndexBuilderCmdParamsParser extends APKMCmdParamsParser<KmerIndexBuilderCmdParams> {
     public KmerIndexBuilderCmdParamsParser() {
     }
 

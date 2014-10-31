@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsParser;
+import edu.arizona.cs.mrpkm.cmdparams.APKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -8,7 +8,7 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderCmdParamsParser extends PKMCmdParamsParser<ReadIDIndexBuilderCmdParams> {
+public class ReadIDIndexBuilderCmdParamsParser extends APKMCmdParamsParser<ReadIDIndexBuilderCmdParams> {
     public ReadIDIndexBuilderCmdParamsParser() {
     }
     

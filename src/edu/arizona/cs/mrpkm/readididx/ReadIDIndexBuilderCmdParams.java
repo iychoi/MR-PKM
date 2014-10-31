@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParams;
+import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsBase;
 import java.util.ArrayList;
 import java.util.List;
 import org.kohsuke.args4j.Argument;
@@ -9,7 +9,7 @@ import org.kohsuke.args4j.Argument;
  *
  * @author iychoi
  */
-public class ReadIDIndexBuilderCmdParams extends PKMCmdParams {
+public class ReadIDIndexBuilderCmdParams extends PKMCmdParamsBase {
     @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
     private List<String> paths = new ArrayList<String>();
 

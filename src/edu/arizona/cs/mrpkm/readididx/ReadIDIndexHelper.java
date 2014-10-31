@@ -39,7 +39,7 @@ public class ReadIDIndexHelper {
     }
     
     public static Path[] getAllReadIDIndexFilePaths(Configuration conf, String[] inputPaths) throws IOException {
-        return getAllReadIDIndexFilePaths(conf, makePathFromString(inputPaths));
+        return getAllReadIDIndexFilePaths(conf, makePathFromString(conf, inputPaths));
     }
     
     public static Path[] getAllReadIDIndexFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
@@ -48,17 +48,19 @@ public class ReadIDIndexHelper {
         
         for(Path path : inputPaths) {
             FileSystem fs = path.getFileSystem(conf);
-            FileStatus status = fs.getFileStatus(path);
-            if(status.isDir()) {
-                if(filter.accept(path)) {
-                    inputFiles.add(path);
-                } else {
-                    // check child
-                    FileStatus[] entries = fs.listStatus(path);
-                    for (FileStatus entry : entries) {
-                        if(entry.isDir()) {
-                            if (filter.accept(entry.getPath())) {
-                                inputFiles.add(entry.getPath());
+            if(fs.exists(path)) {
+                FileStatus status = fs.getFileStatus(path);
+                if(status.isDir()) {
+                    if(filter.accept(path)) {
+                        inputFiles.add(path);
+                    } else {
+                        // check child
+                        FileStatus[] entries = fs.listStatus(path);
+                        for (FileStatus entry : entries) {
+                            if(entry.isDir()) {
+                                if (filter.accept(entry.getPath())) {
+                                    inputFiles.add(entry.getPath());
+                                }
                             }
                         }
                     }

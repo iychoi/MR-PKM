@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
-import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParams;
+import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsBase;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
@@ -12,7 +12,7 @@ import org.kohsuke.args4j.Option;
  *
  * @author iychoi
  */
-public class KmerIndexBuilderCmdParams extends PKMCmdParams {
+public class KmerIndexBuilderCmdParams extends PKMCmdParamsBase {
     
     @Option(name = "-g", aliases = "--group", usage = "specify group size")
     private int groupSize = 1;

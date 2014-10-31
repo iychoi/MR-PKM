@@ -8,7 +8,7 @@ import org.kohsuke.args4j.Option;
  *
  * @author iychoi
  */
-public class PKMCmdParams {
+public class PKMCmdParamsBase {
     
     protected static final int DEFAULT_KMERSIZE = 20;
     

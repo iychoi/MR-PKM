@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParams;
+import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsBase;
 import java.util.ArrayList;
 import java.util.List;
 import org.kohsuke.args4j.Argument;
@@ -10,7 +10,7 @@ import org.kohsuke.args4j.Option;
  *
  * @author iychoi
  */
-public class PairwiseKmerModeCounterCmdParams extends PKMCmdParams {
+public class PairwiseKmerModeCounterCmdParams extends PKMCmdParamsBase {
     
     private static final int DEFAULT_PARTITIONS = 1000;
     private static final int PARTITIONS_PER_CORE = 10;

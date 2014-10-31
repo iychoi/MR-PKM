@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsParser;
+import edu.arizona.cs.mrpkm.cmdparams.APKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -8,7 +8,7 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class PairwiseKmerModeCounterCmdParamsParser extends PKMCmdParamsParser<PairwiseKmerModeCounterCmdParams> {
+public class PairwiseKmerModeCounterCmdParamsParser extends APKMCmdParamsParser<PairwiseKmerModeCounterCmdParams> {
     public PairwiseKmerModeCounterCmdParamsParser() {
     }
 

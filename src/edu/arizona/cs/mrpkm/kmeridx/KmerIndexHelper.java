@@ -117,11 +117,11 @@ public class KmerIndexHelper {
     }
     
     public static Path[] getAllKmerIndexFilePaths(Configuration conf, String inputPathsCommaSeparated) throws IOException {
-        return getAllKmerIndexFilePaths(conf, makePathFromString(FileSystemHelper.splitCommaSeparated(inputPathsCommaSeparated)));
+        return getAllKmerIndexFilePaths(conf, makePathFromString(conf, FileSystemHelper.splitCommaSeparated(inputPathsCommaSeparated)));
     }
     
     public static Path[] getAllKmerIndexFilePaths(Configuration conf, String[] inputPaths) throws IOException {
-        return getAllKmerIndexFilePaths(conf, makePathFromString(inputPaths));
+        return getAllKmerIndexFilePaths(conf, makePathFromString(conf, inputPaths));
     }
     
     public static Path[] getAllKmerIndexFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
@@ -130,17 +130,19 @@ public class KmerIndexHelper {
         
         for(Path path : inputPaths) {
             FileSystem fs = path.getFileSystem(conf);
-            FileStatus status = fs.getFileStatus(path);
-            if(status.isDir()) {
-                if(filter.accept(path)) {
-                    inputFiles.add(path);
-                } else {
-                    // check child
-                    FileStatus[] entries = fs.listStatus(path);
-                    for (FileStatus entry : entries) {
-                        if(entry.isDir()) {
-                            if (filter.accept(entry.getPath())) {
-                                inputFiles.add(entry.getPath());
+            if(fs.exists(path)) {
+                FileStatus status = fs.getFileStatus(path);
+                if(status.isDir()) {
+                    if(filter.accept(path)) {
+                        inputFiles.add(path);
+                    } else {
+                        // check child
+                        FileStatus[] entries = fs.listStatus(path);
+                        for (FileStatus entry : entries) {
+                            if(entry.isDir()) {
+                                if (filter.accept(entry.getPath())) {
+                                    inputFiles.add(entry.getPath());
+                                }
                             }
                         }
                     }
@@ -153,7 +155,7 @@ public class KmerIndexHelper {
     }
     
     public static Path[] getAllKmerIndexDataFilePaths(Configuration conf, String[] inputPaths) throws IOException {
-        return getAllKmerIndexDataFilePaths(conf, makePathFromString(inputPaths));
+        return getAllKmerIndexDataFilePaths(conf, makePathFromString(conf, inputPaths));
     }
     
     public static Path[] getAllKmerIndexDataFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
@@ -162,17 +164,19 @@ public class KmerIndexHelper {
         
         for(Path path : inputPaths) {
             FileSystem fs = path.getFileSystem(conf);
-            FileStatus status = fs.getFileStatus(path);
-            if(status.isDir()) {
-                if(filter.accept(path)) {
-                    inputFiles.add(new Path(path, MapFile.DATA_FILE_NAME));
-                } else {
-                    // check child
-                    FileStatus[] entries = fs.listStatus(path);
-                    for (FileStatus entry : entries) {
-                        if(entry.isDir()) {
-                            if (filter.accept(entry.getPath())) {
-                                inputFiles.add(new Path(entry.getPath(), MapFile.DATA_FILE_NAME));
+            if(fs.exists(path)) {
+                FileStatus status = fs.getFileStatus(path);
+                if(status.isDir()) {
+                    if(filter.accept(path)) {
+                        inputFiles.add(new Path(path, MapFile.DATA_FILE_NAME));
+                    } else {
+                        // check child
+                        FileStatus[] entries = fs.listStatus(path);
+                        for (FileStatus entry : entries) {
+                            if(entry.isDir()) {
+                                if (filter.accept(entry.getPath())) {
+                                    inputFiles.add(new Path(entry.getPath(), MapFile.DATA_FILE_NAME));
+                                }
                             }
                         }
                     }
