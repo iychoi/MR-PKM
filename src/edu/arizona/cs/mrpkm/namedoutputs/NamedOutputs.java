@@ -6,15 +6,21 @@ import java.util.Hashtable;
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  *
  * @author iychoi
  */
 public class NamedOutputs {
-    private final static String CONF_NAMED_OUTPUT_NUM = "edu.arizona.cs.mrpkm.namedoutputs.named_outputs.num";
-    private final static String CONF_NAMED_OUTPUT_ID_TO_NAME_PREFIX = "edu.arizona.cs.mrpkm.namedoutputs.named_output.id_name.";
-    private final static String CONF_NAMED_OUTPUT_ID_TO_FILENAME_PREFIX = "edu.arizona.cs.mrpkm.namedoutputs.named_output.id_filename.";
+    private final static String CONF_NAMED_OUTPUT_JSON = "edu.arizona.cs.mrpkm.namedoutputs.named_outputs.json";
+    
+    private final static String JSON_CONF_OUTPUT_NUM = "itemcounts";
+    private final static String JSON_CONF_OUTPUTS = "items";
+    private final static String JSON_CONF_OUTPUT_ID = "id";
+    private final static String JSON_CONF_OUTPUT_NAMEDOUTPUT = "namedoutput";
+    private final static String JSON_CONF_OUTPUT_FILENAME = "filename";
     
     private Hashtable<String, Integer> outputnameTable;
     private Hashtable<String, Integer> outputTable;
@@ -110,31 +116,58 @@ public class NamedOutputs {
     public int getSize() {
         return this.objList.size();
     }
-
-    public void saveTo(Configuration conf) {
-        // set output num
-        conf.setInt(CONF_NAMED_OUTPUT_NUM, this.objList.size());
-        for(int i=0;i<this.objList.size();i++) {
-            NamedOutput namedoutput = this.objList.get(i);
-            conf.set(CONF_NAMED_OUTPUT_ID_TO_NAME_PREFIX + i, namedoutput.getNamedOutputString());
-            conf.set(CONF_NAMED_OUTPUT_ID_TO_FILENAME_PREFIX + i, namedoutput.getInputString());
-        }
-    }
     
-    public void loadFrom(Configuration conf) {
+    public void loadFromJson(String json) {
         this.outputnameTable.clear();
         this.outputTable.clear();
         this.objList.clear();
         
-        int outputNum = conf.getInt(CONF_NAMED_OUTPUT_NUM, 0);
-        for(int i=0;i<outputNum;i++) {
-            String namedoutputString = conf.get(CONF_NAMED_OUTPUT_ID_TO_NAME_PREFIX + i, null);
-            String output = conf.get(CONF_NAMED_OUTPUT_ID_TO_FILENAME_PREFIX + i, null);
-            
-            NamedOutput namedOutput = new NamedOutput(output, namedoutputString);
-            this.outputnameTable.put(namedoutputString, i);
-            this.outputTable.put(output, i);
-            this.objList.add(namedOutput);
+        JSONObject jsonobj = new JSONObject(json);
+        int size = jsonobj.getInt(JSON_CONF_OUTPUT_NUM);
+        
+        NamedOutput[] tempArray = new NamedOutput[size];
+        JSONArray outputsArray = jsonobj.getJSONArray(JSON_CONF_OUTPUTS);
+        for(int i=0;i<size;i++) {
+            JSONObject itemjsonobj = (JSONObject) outputsArray.get(i);
+            int id = itemjsonobj.getInt(JSON_CONF_OUTPUT_ID);
+            String namedoutput = itemjsonobj.getString(JSON_CONF_OUTPUT_NAMEDOUTPUT);
+            String filename = itemjsonobj.getString(JSON_CONF_OUTPUT_FILENAME);
+            NamedOutput namedOutput = new NamedOutput(filename, namedoutput);
+            tempArray[id] = namedOutput;
         }
+        
+        for(int i=0;i<size;i++) {
+            this.objList.add(tempArray[i]);
+            this.outputnameTable.put(tempArray[i].getNamedOutputString(), i);
+            this.outputTable.put(tempArray[i].getInputString(), i);
+        }
+    }
+    
+    public String createJson() {
+        JSONObject jsonobj = new JSONObject();
+        // set size
+        jsonobj.put(JSON_CONF_OUTPUT_NUM, this.objList.size());
+        
+        // set array
+        JSONArray outputsArray = new JSONArray();
+        for(int i=0;i<this.objList.size();i++) {
+            NamedOutput namedoutput = this.objList.get(i);
+            JSONObject itemjsonobj = new JSONObject();
+            itemjsonobj.put(JSON_CONF_OUTPUT_ID, i);
+            itemjsonobj.put(JSON_CONF_OUTPUT_NAMEDOUTPUT, namedoutput.getNamedOutputString());
+            itemjsonobj.put(JSON_CONF_OUTPUT_FILENAME, namedoutput.getInputString());
+            outputsArray.put(itemjsonobj);
+        }
+        jsonobj.put(JSON_CONF_OUTPUTS, outputsArray);
+        
+        return jsonobj.toString();
+    }
+
+    public void saveTo(Configuration conf) {
+        conf.set(CONF_NAMED_OUTPUT_JSON, createJson());
+    }
+    
+    public void loadFrom(Configuration conf) {
+        loadFromJson(conf.get(CONF_NAMED_OUTPUT_JSON));
     }
 }
