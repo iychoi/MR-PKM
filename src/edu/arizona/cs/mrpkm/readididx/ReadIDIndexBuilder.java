@@ -117,10 +117,15 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);
-        
+
         // commit results
         if(result) {
-            commit(new Path(outputPath), conf, namedOutputs);
+            if(outputPath.compareToIgnoreCase(histogramPath) == 0) {
+                commit(new Path(outputPath), conf, namedOutputs);
+            } else {
+                commit(new Path(outputPath), conf, namedOutputs);
+                commit(new Path(histogramPath), conf, namedOutputs);
+            }
         }
         
         // notify
