@@ -1,15 +1,14 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramReader;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramHelper;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramReaderConfig;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.utils.SequenceHelper;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartitioner;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogram;
+import edu.arizona.cs.mrpkm.readididx.KmerHistogramHelper;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -31,10 +30,7 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     
     private boolean initialized = false;
     private NamedOutputs namedOutputs = null;
-    private KmerHistogramReaderConfig histogramReaderConf = null;
-    private KmerIndexBuilderConfig kmerIndexBuilderConfig = null;
-    private int kmerSize = 0;
-    private String histogramInputPath;
+    private KmerIndexBuilderConfig builderConfig = null;
     private KmerRangePartition[][] partitions;
     private CompressedSequenceWritable[][] partitionEndKeys;
     
@@ -52,18 +48,12 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
         this.namedOutputs = new NamedOutputs();
         this.namedOutputs.loadFrom(conf);
         
-        this.histogramReaderConf = new KmerHistogramReaderConfig();
-        this.histogramReaderConf.loadFrom(this.conf);
+        this.builderConfig = new KmerIndexBuilderConfig();
+        this.builderConfig.loadFrom(conf);
         
-        this.kmerIndexBuilderConfig = new KmerIndexBuilderConfig();
-        this.kmerIndexBuilderConfig.loadFrom(conf);
-        
-        this.kmerSize = this.kmerIndexBuilderConfig.getKmerSize();
-        if (this.kmerSize <= 0) {
+        if (this.builderConfig.getKmerSize() <= 0) {
             throw new RuntimeException("kmer size has to be a positive value");
         }
-        
-        this.histogramInputPath = this.histogramReaderConf.getInputPath();
         
         this.partitions = new KmerRangePartition[this.namedOutputs.getSize()][];
         this.partitionEndKeys = new CompressedSequenceWritable[this.namedOutputs.getSize()][];
@@ -71,19 +61,20 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     
     private void initialize(int fileID, int numReduceTasks) throws IOException {
         if(this.partitionEndKeys[fileID] == null) {
-            KmerHistogramReader reader = null;
+            KmerHistogram histogram = null;
             // search index file
-            String filename = this.namedOutputs.getNamedOutputFromID(fileID).getInputString();
-            Path histogramHadoopPath = new Path(this.histogramInputPath, KmerHistogramHelper.makeHistogramFileName(filename));
+            String filename = this.namedOutputs.getRecordFromID(fileID).getFilename();
+            Path histogramHadoopPath = new Path(this.builderConfig.getHistogramPath(), KmerHistogramHelper.makeHistogramFileName(filename));
             FileSystem fs = histogramHadoopPath.getFileSystem(this.conf);
             if (fs.exists(histogramHadoopPath)) {
-                reader = new KmerHistogramReader(histogramHadoopPath, this.conf);
+                histogram = new KmerHistogram();
+                histogram.loadFrom(histogramHadoopPath, fs);
             } else {
                 throw new IOException("k-mer histogram is not found in given paths");
             }
 
-            KmerRangePartitioner partitioner = new KmerRangePartitioner(this.kmerSize, numReduceTasks);
-            this.partitions[fileID] = partitioner.getHistogramPartitions(reader.getRecords(), reader.getSampleCount());
+            KmerRangePartitioner partitioner = new KmerRangePartitioner(this.builderConfig.getKmerSize(), numReduceTasks);
+            this.partitions[fileID] = partitioner.getHistogramPartitions(histogram.getSortedRecords(), histogram.getKmerCount());
 
             this.partitionEndKeys[fileID] = new CompressedSequenceWritable[numReduceTasks];
             for (int i = 0; i < this.partitions[fileID].length; i++) {

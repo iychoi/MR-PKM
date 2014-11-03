@@ -3,21 +3,20 @@ package edu.arizona.cs.mrpkm.kmeridx;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
-import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
-import edu.arizona.cs.mrpkm.augment.HirodsBloomMapFileOutputFormat;
+import edu.arizona.cs.mrpkm.hadoop.io.format.bloommap.BloomMapFileOutputFormat;
+import edu.arizona.cs.mrpkm.hadoop.io.format.bloommap.HirodsBloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutput;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramReaderConfig;
-import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
-import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
-import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputRecord;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
+import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
+import edu.arizona.cs.mrpkm.helpers.MapReduceHelper;
+import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,11 +71,8 @@ public class KmerIndexBuilder extends Configured implements Tool {
         KmerIndexBuilderConfig indexBuilderConfig = new KmerIndexBuilderConfig();
         indexBuilderConfig.setKmerSize(kmerSize);
         indexBuilderConfig.setReadIDIndexPath(readIDIndexPath);
+        indexBuilderConfig.setHistogramPath(histogramPath);
         indexBuilderConfig.saveTo(conf);
-        
-        KmerHistogramReaderConfig histogramReaderConfig = new KmerHistogramReaderConfig();
-        histogramReaderConfig.setInputPath(histogramPath);
-        histogramReaderConfig.saveTo(conf);
         
         String[] paths = FileSystemHelper.splitCommaSeparated(inputPath);
         Path[] inputFiles = FileSystemHelper.getAllFastaFilePaths(conf, paths);
@@ -125,7 +121,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
 
             // Register named outputs
             NamedOutputs namedOutputs = new NamedOutputs();
-            namedOutputs.addNamedOutput(roundInputFiles);
+            namedOutputs.add(roundInputFiles);
             namedOutputs.saveTo(job.getConfiguration());
             
             boolean hirodsOutputPath = FileSystemHelper.isHirodsFileSystemPath(conf, roundOutputPath);
@@ -148,15 +144,15 @@ public class KmerIndexBuilder extends Configured implements Tool {
                 MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
             }
 
-            for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
+            for(NamedOutputRecord namedOutput : namedOutputs.getAllRecords()) {
                 if(hirodsOutputPath) {
                     if (outputFormat.equals(MapFileOutputFormat.class)) {
-                        HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                        HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getIdentifier(), HirodsMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
                     } else if (outputFormat.equals(BloomMapFileOutputFormat.class)) {
-                        HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsBloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                        HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getIdentifier(), HirodsBloomMapFileOutputFormat.class, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
                     }
                 } else {
-                    MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
+                    MultipleOutputs.addNamedOutput(job, namedOutput.getIdentifier(), outputFormat, CompressedSequenceWritable.class, CompressedIntArrayWritable.class);
                 }
             }
             
@@ -223,12 +219,14 @@ public class KmerIndexBuilder extends Configured implements Tool {
                 // remove unnecessary outputs
                 if(MapReduceHelper.isLogFiles(entryPath)) {
                     fs.delete(entryPath, true);
+                } else if(MapReduceHelper.isPartialOutputFiles(entryPath)) {
+                    fs.delete(entryPath, true);
                 } else {
                     // rename outputs
-                    NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath);
+                    NamedOutputRecord namedOutput = namedOutputs.getRecordFromMROutput(entryPath);
                     if(namedOutput != null) {
                         int mapreduceID = MapReduceHelper.getMapReduceID(entryPath);
-                        Path toPath = new Path(finalOutputPath, KmerIndexHelper.makeKmerIndexFileName(namedOutput.getInputString(), kmerSize, mapreduceID));
+                        Path toPath = new Path(finalOutputPath, KmerIndexHelper.makeKmerIndexFileName(namedOutput.getFilename(), kmerSize, mapreduceID));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

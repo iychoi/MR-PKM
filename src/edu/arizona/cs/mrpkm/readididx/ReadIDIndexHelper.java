@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.types.ReadIDIndexPathFilter;
-import static edu.arizona.cs.mrpkm.utils.FileSystemHelper.makePathFromString;
+import edu.arizona.cs.mrpkm.types.filters.ReadIDIndexPathFilter;
+import static edu.arizona.cs.mrpkm.helpers.FileSystemHelper.makePathFromString;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

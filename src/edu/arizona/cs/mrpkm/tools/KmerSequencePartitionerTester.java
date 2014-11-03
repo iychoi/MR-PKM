@@ -1,14 +1,14 @@
 package edu.arizona.cs.mrpkm.tools;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner.PartitionerMode;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramReader;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramRecord;
-import edu.arizona.cs.mrpkm.utils.SequenceHelper;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartitioner;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogram;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogramRecord;
+import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
 import java.math.BigInteger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -30,37 +30,31 @@ public class KmerSequencePartitionerTester extends Configured implements Tool {
         
         int kmerSize = Integer.parseInt(args[0]);
         int numPartitions = Integer.parseInt(args[1]);
-        int partitionerMode = Integer.parseInt(args[2]);
-        
-        KmerRangePartitioner.PartitionerMode mode = KmerRangePartitioner.PartitionerMode.values()[partitionerMode];
-        System.out.println("Partitioner Mode : " + mode.toString());
         
         KmerRangePartitioner partitioner = new KmerRangePartitioner(kmerSize, numPartitions);
         KmerRangePartition[] partitions = null;
-        if(mode.equals(PartitionerMode.MODE_EQUAL_ENTRIES)) {
-            partitions = partitioner.getEqualAreaPartitions();
-        } else if(mode.equals(PartitionerMode.MODE_EQUAL_RANGE)) {
-            partitions = partitioner.getEqualRangePartitions();
-        } else if(mode.equals(PartitionerMode.MODE_WEIGHTED_RANGE)) {
-            partitions = partitioner.getWeightedRangePartitions();
-        } else if(mode.equals(PartitionerMode.MODE_HISTOGRAM)) {
-            String histogramPath = args[3];
-            KmerHistogramReader reader = new KmerHistogramReader(new Path(histogramPath), conf);
-            System.out.println("total : " + reader.getSampleCount());
-            long partitionWidth = reader.getSampleCount() / numPartitions;
-            System.out.println("partitionWidth : " + partitionWidth);
-            long partitionRem = partitionWidth;
-            for(KmerHistogramRecord rec : reader.getRecords()) {
-                if(partitionRem - rec.getCount() <= 0) {
-                    System.out.println("rec : " + rec.getKey() + " : " + rec.getCount() + " -- part : " + partitionRem);
-                    partitionRem = partitionWidth - (rec.getCount() - partitionRem);
-                } else {
-                    System.out.println("rec : " + rec.getKey() + " : " + rec.getCount());
-                    partitionRem -= rec.getCount();
-                }
+        String histogramPathString = args[3];
+        Path histogramPath = new Path(histogramPathString);
+        FileSystem fs = histogramPath.getFileSystem(conf);
+
+        KmerHistogram histogram = new KmerHistogram();
+        histogram.loadFrom(histogramPath, fs);
+        System.out.println("total : " + histogram.getKmerCount());
+        long partitionWidth = histogram.getKmerCount() / numPartitions;
+        System.out.println("partitionWidth : " + partitionWidth);
+        long partitionRem = partitionWidth;
+
+        KmerHistogramRecord[] records = histogram.getSortedRecords();
+        for(KmerHistogramRecord rec : records) {
+            if(partitionRem - rec.getCount() <= 0) {
+                System.out.println("rec : " + rec.getKmer() + " : " + rec.getCount() + " -- part : " + partitionRem);
+                partitionRem = partitionWidth - (rec.getCount() - partitionRem);
+            } else {
+                System.out.println("rec : " + rec.getKmer() + " : " + rec.getCount());
+                partitionRem -= rec.getCount();
             }
-            partitions = partitioner.getHistogramPartitions(reader.getRecords(), reader.getSampleCount());
         }
+        partitions = partitioner.getHistogramPartitions(records, histogram.getKmerCount());
         
         BigInteger lastEnd = BigInteger.ZERO;
         System.out.println(partitions.length);

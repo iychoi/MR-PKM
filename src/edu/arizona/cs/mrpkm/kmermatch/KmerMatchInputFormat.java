@@ -1,11 +1,18 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartitioner;
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
+import edu.arizona.cs.mrpkm.readididx.KmerHistogramHelper;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogram;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogramRecord;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogramRecordComparator;
+import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartitioner;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.filters.KmerIndexPathFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -68,9 +75,55 @@ public class KmerMatchInputFormat extends SequenceFileInputFormat<CompressedSequ
         }
         
         Path[] indexFilePaths = indexFiles.toArray(new Path[0]);
+
+        // histogram
+        Hashtable<String, Boolean> indexGroupTable = new Hashtable<String, Boolean>();
+        List<String> indexGroupFiles = new ArrayList<String>();
+        for(int i=0;i<indexFiles.size();i++) {
+            String fastaFileName = KmerIndexHelper.getFastaFileName(indexFiles.get(i));
+            Boolean has = indexGroupTable.get(fastaFileName);
+            if(has == null) {
+                indexGroupTable.put(fastaFileName, true);
+                indexGroupFiles.add(fastaFileName);
+            }
+        }
+        indexGroupTable.clear();
+        
+        List<KmerHistogram> histogramReaders = new ArrayList<KmerHistogram>();
+        for(String indexGroupEntry : indexGroupFiles) {
+            Path histogramHadoopPath = new Path(inputFormatConfig.getHistogramPath(), KmerHistogramHelper.makeHistogramFileName(indexGroupEntry));
+            FileSystem fs = histogramHadoopPath.getFileSystem(job.getConfiguration());
+            if (fs.exists(histogramHadoopPath)) {
+                KmerHistogram histogram = new KmerHistogram();
+                histogram.loadFrom(histogramHadoopPath, fs);
+                histogramReaders.add(histogram);
+            } else {
+                throw new IOException("k-mer histogram is not found in given paths");
+            }
+        }
+        
+        // merge histogram
+        Hashtable<String, KmerHistogramRecord> histogramRecords = new Hashtable<String, KmerHistogramRecord>();
+        long histogramRecordCounts = 0;
+        for(int i=0;i<histogramReaders.size();i++) {
+            KmerHistogramRecord[] records = histogramReaders.get(i).getSortedRecords();
+            histogramRecordCounts += histogramReaders.get(i).getKmerCount();
+            for(KmerHistogramRecord rec : records) {
+                KmerHistogramRecord ext_rec = histogramRecords.get(rec.getKmer());
+                if(ext_rec == null) {
+                    histogramRecords.put(rec.getKmer(), rec);
+                } else {
+                    ext_rec.increaseCount(rec.getCount());
+                }
+            }
+        }
+        
+        List<KmerHistogramRecord> histogramRecordsArr = new ArrayList<KmerHistogramRecord>();
+        histogramRecordsArr.addAll(histogramRecords.values());
+        Collections.sort(histogramRecordsArr, new KmerHistogramRecordComparator());
         
         KmerRangePartitioner partitioner = new KmerRangePartitioner(kmerSize, numPartitions);
-        KmerRangePartition[] partitions = partitioner.getEqualRangePartitions();
+        KmerRangePartition[] partitions = partitioner.getHistogramPartitions(histogramRecordsArr.toArray(new KmerHistogramRecord[0]), histogramRecordCounts);
         
         for(KmerRangePartition partition : partitions) {
             splits.add(new KmerMatchIndexSplit(indexFilePaths, partition));

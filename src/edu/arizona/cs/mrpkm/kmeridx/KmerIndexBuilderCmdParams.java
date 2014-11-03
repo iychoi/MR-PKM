@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.augment.BloomMapFileOutputFormat;
+import edu.arizona.cs.mrpkm.hadoop.io.format.bloommap.BloomMapFileOutputFormat;
 import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsBase;
 import java.util.ArrayList;
 import java.util.List;

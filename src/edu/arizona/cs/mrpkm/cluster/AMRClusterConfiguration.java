@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.cluster;
 
-import edu.arizona.cs.mrpkm.utils.ClassHelper;
+import edu.arizona.cs.mrpkm.helpers.ClassHelper;
 import org.apache.hadoop.conf.Configuration;
 
 /**

@@ -1,12 +1,10 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramWriterConfig;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
-import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramWriter;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramHelper;
-import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
+import edu.arizona.cs.mrpkm.types.histogram.KmerHistogram;
+import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,8 +28,8 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
     private MultipleOutputs mos = null;
     private HirodsMultipleOutputs hmos = null;
     private int[] readIDs;
-    private KmerHistogramWriterConfig histogramWriterConf;
-    private KmerHistogramWriter[] histogramWriters;
+    private ReadIDIndexBuilderConfig builderConfig;
+    private KmerHistogram[] histograms;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -51,20 +49,20 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
             this.readIDs[i] = 0;
         }
         
-        this.histogramWriterConf = new KmerHistogramWriterConfig();
-        this.histogramWriterConf.loadFrom(conf);
+        this.builderConfig = new ReadIDIndexBuilderConfig();
+        this.builderConfig.loadFrom(conf);
         
-        if(this.histogramWriterConf.getKmerSize() <= 0) {
+        if(this.builderConfig.getKmerSize() <= 0) {
             throw new IOException("kmer size has to be a positive value");
         }
         
-        this.histogramWriters = new KmerHistogramWriter[this.namedOutputs.getSize()];
+        this.histograms = new KmerHistogram[this.namedOutputs.getSize()];
     }
     
     @Override
     protected void map(LongWritable key, FastaRead value, Context context) throws IOException, InterruptedException {
-        int namedoutputID = this.namedOutputs.getIDFromOutput(value.getFileName());
-        String namedOutput = this.namedOutputs.getNamedOutputFromID(namedoutputID).getNamedOutputString();
+        int namedoutputID = this.namedOutputs.getIDFromFilename(value.getFileName());
+        String namedOutput = this.namedOutputs.getRecordFromID(namedoutputID).getIdentifier();
         this.readIDs[namedoutputID]++;
         
         if (this.mos != null) {
@@ -73,11 +71,11 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
             this.hmos.write(namedOutput, new LongWritable(value.getReadOffset()), new IntWritable(this.readIDs[namedoutputID]));
         }
         
-        if(this.histogramWriters[namedoutputID] == null) {
-            this.histogramWriters[namedoutputID] = new KmerHistogramWriter(namedOutput, this.histogramWriterConf.getKmerSize());
+        if(this.histograms[namedoutputID] == null) {
+            this.histograms[namedoutputID] = new KmerHistogram(namedOutput, this.builderConfig.getKmerSize());
         }
         
-        this.histogramWriters[namedoutputID].takeSample(value.getSequence());
+        this.histograms[namedoutputID].takeSample(value.getSequence());
     }
     
     @Override
@@ -90,23 +88,23 @@ public class UnsplitableReadIDIndexBuilderMapper extends Mapper<LongWritable, Fa
             this.hmos.close();
         }
         
-        for(int i=0;i<this.histogramWriters.length;i++) {
-            if(this.histogramWriters[i] != null) {
-                if(this.histogramWriters[i].getSampleCount() > 0) {
-                    String sampleName = this.histogramWriters[i].getInputName();
+        for(int i=0;i<this.histograms.length;i++) {
+            if(this.histograms[i] != null) {
+                if(this.histograms[i].getKmerCount() > 0) {
+                    String sampleName = this.histograms[i].getHistogramName();
                     String histogramFileName = KmerHistogramHelper.makeHistogramFileName(sampleName);
                     LOG.info("making histogram file : " + histogramFileName);
-                    Path histogramOutputFile = new Path(this.histogramWriterConf.getOutputPath(), histogramFileName);
+                    Path histogramOutputFile = new Path(this.builderConfig.getHistogramOutputPath(), histogramFileName);
                     FileSystem outputFileSystem = histogramOutputFile.getFileSystem(context.getConfiguration());
         
-                    this.histogramWriters[i].createHistogramFile(histogramOutputFile, outputFileSystem);
+                    this.histograms[i].saveTo(histogramOutputFile, outputFileSystem);
                 }
-                this.histogramWriters[i] = null;
+                this.histograms[i] = null;
             }
         }
-        this.histogramWriters = null;
+        this.histograms = null;
         
         this.namedOutputs = null;
-        this.histogramWriterConf = null;
+        this.builderConfig = null;
     }
 }

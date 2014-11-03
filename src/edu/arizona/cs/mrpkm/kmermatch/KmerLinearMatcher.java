@@ -1,16 +1,17 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmeridx.AKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.FilteredKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.stddeviation.KmerStdDeviationHelper;
-import edu.arizona.cs.mrpkm.stddeviation.KmerStdDeviationReader;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
-import edu.arizona.cs.mrpkm.utils.SequenceHelper;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
+import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
+import edu.arizona.cs.mrpkm.types.statistics.KmerStdDeviation;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,30 +29,29 @@ public class KmerLinearMatcher {
     
     private static final Log LOG = LogFactory.getLog(KmerLinearMatcher.class);
     
-    private static final int REPORT_FREQUENCY = 1000000;
-    
     private Path[] inputIndexPaths;
+    private String kmerIndexChunkInfoPath;
     private KmerRangePartition slice;
     private Configuration conf;
     
     private AKmerIndexReader[] readers;
     private BigInteger sliceSize;
-    private BigInteger currentProgress;
+    private CompressedSequenceWritable progressKey;
+    private boolean eof;
     private BigInteger beginSequence;
     
-    private KmerMatchResult curMatch;
     private CompressedSequenceWritable[] stepKeys;
     private CompressedIntArrayWritable[] stepVals;
     private List<Integer> stepMinKeys;
     private boolean stepStarted;
-    private int reportCounter;
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, Configuration conf) throws IOException {
-        initialize(inputIndexPaths, slice, filterPath, conf);
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
+        initialize(inputIndexPaths, slice, filterPath, kmerIndexChunkInfoPath, conf);
     }
     
-    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, Configuration conf) throws IOException {
+    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
         this.inputIndexPaths = inputIndexPaths;
+        this.kmerIndexChunkInfoPath = kmerIndexChunkInfoPath;
         this.slice = slice;
         this.conf = conf;
         
@@ -64,21 +64,21 @@ public class KmerLinearMatcher {
             String stddevFilename = KmerStdDeviationHelper.makeStdDeviationFileName(fastaFilename);
             Path stdDeviationPath = new Path(filterPath, stddevFilename);
             
-            KmerStdDeviationReader stddevReader = new KmerStdDeviationReader(stdDeviationPath, this.conf);
-            double avg = stddevReader.getAverageCounts();
-            double stddev = stddevReader.getStandardDeviation();
+            KmerStdDeviation stddevReader = new KmerStdDeviation();
+            stddevReader.loadFrom(stdDeviationPath, fs);
+            double avg = stddevReader.getAverage();
+            double stddev = stddevReader.getStdDeviation();
             double factor = 2;
-            this.readers[i] = new FilteredKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf, avg, stddev, factor);
+            this.readers[i] = new FilteredKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.kmerIndexChunkInfoPath, this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf, avg, stddev, factor);
         }
         
         this.sliceSize = slice.getPartitionSize();
-        this.currentProgress = BigInteger.ZERO;
+        this.progressKey = null;
+        this.eof = false;
         this.beginSequence = this.slice.getPartitionBegin();
-        this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
         this.stepStarted = false;
-        this.reportCounter = 0;
         
         LOG.info("Matcher is initialized");
         LOG.info("> Range " + this.slice.getPartitionBeginKmer() + " ~ " + this.slice.getPartitionEndKmer());
@@ -92,7 +92,6 @@ public class KmerLinearMatcher {
         }
         
         this.currentProgress = BigInteger.ZERO;
-        this.curMatch = null;
         this.stepKeys = new CompressedSequenceWritable[this.readers.length];
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
         this.stepStarted = false;
@@ -100,40 +99,30 @@ public class KmerLinearMatcher {
     }
     */
     
-    public boolean nextMatch() throws IOException {
+    public KmerMatchResult stepNext() throws IOException {
         List<Integer> minKeyIndice = getNextMinKeys();
-        while(minKeyIndice.size() > 0) {
+        if(minKeyIndice.size() > 0) {
             CompressedSequenceWritable minKey = this.stepKeys[minKeyIndice.get(0)];
-            this.reportCounter++;
-            if(this.reportCounter >= REPORT_FREQUENCY) {
-                this.currentProgress = SequenceHelper.convertToBigInteger(minKey.getSequence()).subtract(this.beginSequence).add(BigInteger.ONE);
-                this.reportCounter = 0;
-                LOG.info("Reporting Progress : " + this.currentProgress);
-            }
-
-            // check matching
-            if (minKeyIndice.size() > 1) {
-                CompressedIntArrayWritable[] minVals = new CompressedIntArrayWritable[minKeyIndice.size()];
-                String[][] minIndexPaths = new String[minKeyIndice.size()][];
-
-                int valIdx = 0;
-                for (int idx : minKeyIndice) {
-                    minVals[valIdx] = this.stepVals[idx];
-                    minIndexPaths[valIdx] = this.readers[idx].getIndexPaths();
-                    valIdx++;
-                }
-
-                this.curMatch = new KmerMatchResult(minKey, minVals, minIndexPaths);
-                return true;
-            }
+            this.progressKey = minKey;
             
-            minKeyIndice = getNextMinKeys();
+            // check matching
+            CompressedIntArrayWritable[] minVals = new CompressedIntArrayWritable[minKeyIndice.size()];
+            String[][] minIndexPaths = new String[minKeyIndice.size()][];
+
+            int valIdx = 0;
+            for (int idx : minKeyIndice) {
+                minVals[valIdx] = this.stepVals[idx];
+                minIndexPaths[valIdx] = this.readers[idx].getIndexPaths();
+                valIdx++;
+            }
+
+            return new KmerMatchResult(minKey, minVals, minIndexPaths);
         }
         
         // step failed and no match
-        this.curMatch = null;
-        this.currentProgress = this.sliceSize;
-        return false;
+        this.eof = true;
+        this.progressKey = null;
+        return null;
     }
     
     private List<Integer> findMinKeys() throws IOException {
@@ -206,18 +195,26 @@ public class KmerLinearMatcher {
         }
     }
     
-    public KmerMatchResult getCurrentMatch() {
-        return this.curMatch;
-    }
-    
     public float getProgress() {
-        if (this.sliceSize.compareTo(this.currentProgress) <= 0) {
-            return 1.0f;
+        if(this.progressKey == null) {
+            if(this.eof) {
+                return 1.0f;
+            } else {
+                return 0.0f;
+            }
         } else {
-            BigInteger divided = this.currentProgress.multiply(BigInteger.valueOf(100)).divide(this.sliceSize);
-            float f = divided.floatValue() / 100;
-            
-            return Math.min(1.0f, f);
+            BigInteger seq = SequenceHelper.convertToBigInteger(this.progressKey.getSequence());
+            BigInteger prog = seq.subtract(this.beginSequence);
+            int comp = this.sliceSize.compareTo(prog);
+            if (comp <= 0) {
+                return 1.0f;
+            } else {
+                BigDecimal progD = new BigDecimal(prog);
+                BigDecimal rate = progD.divide(new BigDecimal(this.sliceSize), 3, BigDecimal.ROUND_HALF_UP);
+                
+                float f = rate.floatValue();
+                return Math.min(1.0f, f);
+            }
         }
     }
     

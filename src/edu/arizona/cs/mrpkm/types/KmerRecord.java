@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.types;
 
-import edu.arizona.cs.mrpkm.utils.SequenceHelper;
+import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
 
 /**
  *

@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.tools;
 
-import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
+import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;

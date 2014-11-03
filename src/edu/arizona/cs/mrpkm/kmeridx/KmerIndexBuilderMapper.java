@@ -1,12 +1,12 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.mrpkm.types.KmerRecord;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexReader;
 import edu.arizona.cs.mrpkm.readididx.ReadIDNotFoundException;
-import edu.arizona.cs.mrpkm.fastareader.types.FastaRead;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
+import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
@@ -74,7 +74,7 @@ public class KmerIndexBuilderMapper extends Mapper<LongWritable, FastaRead, Mult
         this.previousReadID = readID;
         
         String sequence = value.getSequence();
-        int namedoutputID = this.namedOutputs.getIDFromOutput(value.getFileName());
+        int namedoutputID = this.namedOutputs.getIDFromFilename(value.getFileName());
         
         for (int i = 0; i < (sequence.length() - this.kmerSize + 1); i++) {
             String kmer = sequence.substring(i, i + this.kmerSize);

@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.notification;
 
-import edu.arizona.cs.mrpkm.utils.RunningTimeHelper;
+import edu.arizona.cs.mrpkm.helpers.RunningTimeHelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

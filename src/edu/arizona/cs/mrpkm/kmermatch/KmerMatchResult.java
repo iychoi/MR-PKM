@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 
 /**
  *

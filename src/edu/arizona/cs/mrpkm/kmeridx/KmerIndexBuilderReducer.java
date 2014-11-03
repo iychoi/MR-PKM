@@ -1,11 +1,11 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.types.MultiFileCompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +52,7 @@ public class KmerIndexBuilderReducer extends Reducer<MultiFileCompressedSequence
         }
         
         int namedoutputID = key.getFileID();
-        String namedOutput = this.namedOutputs.getNamedOutputFromID(namedoutputID).getNamedOutputString();
+        String namedOutput = this.namedOutputs.getRecordFromID(namedoutputID).getIdentifier();
         
         CompressedSequenceWritable outKey = new CompressedSequenceWritable(key.getCompressedSequence(), key.getSequenceLength());
         

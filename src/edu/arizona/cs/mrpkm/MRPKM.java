@@ -1,9 +1,9 @@
 package edu.arizona.cs.mrpkm;
 
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexBuilder;
-import edu.arizona.cs.mrpkm.kmermatch.PairwiseKmerModeCounter;
+import edu.arizona.cs.mrpkm.kmermatch.deprecated.PairwiseKmerModeCounter;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexBuilder;
-import edu.arizona.cs.mrpkm.utils.ClassHelper;
+import edu.arizona.cs.mrpkm.helpers.ClassHelper;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.logging.Log;

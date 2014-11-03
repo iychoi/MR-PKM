@@ -1,8 +1,8 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.types.KmerIndexPathFilter;
-import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
-import static edu.arizona.cs.mrpkm.utils.FileSystemHelper.makePathFromString;
+import edu.arizona.cs.mrpkm.types.filters.KmerIndexPathFilter;
+import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
+import static edu.arizona.cs.mrpkm.helpers.FileSystemHelper.makePathFromString;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;

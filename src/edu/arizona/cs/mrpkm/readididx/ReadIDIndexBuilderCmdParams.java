@@ -4,12 +4,21 @@ import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsBase;
 import java.util.ArrayList;
 import java.util.List;
 import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.Option;
 
 /**
  *
  * @author iychoi
  */
 public class ReadIDIndexBuilderCmdParams extends PKMCmdParamsBase {
+    
+    @Option(name = "-s", aliases = "--histogrampath", required = true, usage = "specify Histogram output path")
+    private String histogramPath = null;
+        
+    public String getHistogramPath() {
+        return this.histogramPath;
+    }
+    
     @Argument(metaVar = "input-path [input-path ...] output-path", usage = "input-paths and output-path")
     private List<String> paths = new ArrayList<String>();
 

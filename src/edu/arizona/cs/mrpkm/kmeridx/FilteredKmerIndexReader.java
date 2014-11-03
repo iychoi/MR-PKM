@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,26 +21,26 @@ public class FilteredKmerIndexReader extends AKmerIndexReader {
     private double stddeviation;
     private double factor;
     
-    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
-        initialize(fs, indexPaths, null, null, conf, avg, stddeviation, factor);
+    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, null, null, conf, avg, stddeviation, factor);
     }
     
-    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
-        initialize(fs, indexPaths, beginKey, endKey, conf, avg, stddeviation, factor);
+    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, conf, avg, stddeviation, factor);
     }
     
-    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, String endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
-        initialize(fs, indexPaths, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf, avg, stddeviation, factor);
+    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, String beginKey, String endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf, avg, stddeviation, factor);
     }
     
-    private void initialize(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+    private void initialize(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
         this.avg = avg;
         this.stddeviation = stddeviation;
         this.factor = factor;
         if(indexPaths.length == 1) {
             this.kmerIndexReader = new SingleKmerIndexReader(fs, indexPaths[0], beginKey, endKey, conf);    
         } else {
-            this.kmerIndexReader = new MultiKmerIndexReader(fs, indexPaths, beginKey, endKey, conf);
+            this.kmerIndexReader = new MultiKmerIndexReader(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, conf);
         }
     }
     
@@ -54,7 +54,7 @@ public class FilteredKmerIndexReader extends AKmerIndexReader {
         CompressedSequenceWritable tempKey = new CompressedSequenceWritable();
         CompressedIntArrayWritable tempVal = new CompressedIntArrayWritable();
         
-        while(this.kmerIndexReader.next(tempKey, tempVal)) {
+        if(this.kmerIndexReader.next(tempKey, tempVal)) {
             double diffPositive = Math.abs(this.avg - tempVal.getPositiveEntriesCount());
             double diffNegative = Math.abs(this.avg - tempVal.getNegativeEntriesCount());
             double boundary = Math.ceil(Math.abs(this.stddeviation * this.factor));
@@ -88,6 +88,10 @@ public class FilteredKmerIndexReader extends AKmerIndexReader {
                     }
                 }
                 val.set(negativeArr);
+                return true;
+            } else {
+                val.setEmpty();
+                key.set(tempKey);
                 return true;
             }
         }

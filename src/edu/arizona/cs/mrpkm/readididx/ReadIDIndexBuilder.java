@@ -1,19 +1,17 @@
 package edu.arizona.cs.mrpkm.readididx;
 
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramWriterConfig;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
-import edu.arizona.cs.mrpkm.fastareader.FastaReadInputFormat;
+import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.FastaReadInputFormat;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
-import edu.arizona.cs.mrpkm.histogram.KmerHistogramHelper;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutput;
-import edu.arizona.cs.mrpkm.namedoutputs.NamedOutputs;
-import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
-import edu.arizona.cs.mrpkm.utils.MapReduceHelper;
-import edu.arizona.cs.mrpkm.utils.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputRecord;
+import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
+import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
+import edu.arizona.cs.mrpkm.helpers.MapReduceHelper;
+import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,6 +50,7 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
         
         int kmerSize = cmdParams.getKmerSize();
         String inputPath = cmdParams.getCommaSeparatedInputPath();
+        String histogramPath = cmdParams.getHistogramPath();
         String outputPath = cmdParams.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdParams.getClusterConfig();
         
@@ -84,9 +83,14 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             LOG.info("> " + inputFile.toString());
         }
         
+        ReadIDIndexBuilderConfig builderConfig = new ReadIDIndexBuilderConfig();
+        builderConfig.setHistogramOutputPath(histogramPath);
+        builderConfig.setKmerSize(kmerSize);
+        builderConfig.saveTo(conf);
+        
         // Register named outputs
         NamedOutputs namedOutputs = new NamedOutputs();
-        namedOutputs.addNamedOutput(inputFiles);
+        namedOutputs.add(inputFiles);
         namedOutputs.saveTo(conf);
         
         boolean hirodsOutputPath = FileSystemHelper.isHirodsFileSystemPath(conf, outputPath);
@@ -101,17 +105,11 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
             MultipleOutputsHelper.setMultipleOutputsClass(conf, MultipleOutputs.class);
         }
         
-        // sampling
-        KmerHistogramWriterConfig histogramWriterConfig = new KmerHistogramWriterConfig();
-        histogramWriterConfig.setOutputPath(outputPath);
-        histogramWriterConfig.setKmerSize(kmerSize);
-        histogramWriterConfig.saveTo(conf);
-        
-        for(NamedOutput namedOutput : namedOutputs.getAllNamedOutput()) {
+        for(NamedOutputRecord namedOutput : namedOutputs.getAllRecords()) {
             if(hirodsOutputPath) {
-                HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), HirodsMapFileOutputFormat.class, LongWritable.class, IntWritable.class);
+                HirodsMultipleOutputs.addNamedOutput(job, namedOutput.getIdentifier(), HirodsMapFileOutputFormat.class, LongWritable.class, IntWritable.class);
             } else {
-                MultipleOutputs.addNamedOutput(job, namedOutput.getNamedOutputString(), MapFileOutputFormat.class, LongWritable.class, IntWritable.class);
+                MultipleOutputs.addNamedOutput(job, namedOutput.getIdentifier(), MapFileOutputFormat.class, LongWritable.class, IntWritable.class);
             }
         }
         
@@ -151,11 +149,13 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                 // remove unnecessary outputs
                 if(MapReduceHelper.isLogFiles(entryPath)) {
                     fs.delete(entryPath, true);
+                } else if(MapReduceHelper.isPartialOutputFiles(entryPath)) {
+                    fs.delete(entryPath, true);
                 } else if(KmerHistogramHelper.isHistogramFile(entryPath)) {
                     // rename histogram output
-                    NamedOutput namedOutput = namedOutputs.getNamedOutput(KmerHistogramHelper.getInputFileName(entryPath.getName()));
+                    NamedOutputRecord namedOutput = namedOutputs.getRecord(KmerHistogramHelper.getInputFileName(entryPath.getName()));
                     if(namedOutput != null) {
-                        Path toPath = new Path(entryPath.getParent(), KmerHistogramHelper.makeHistogramFileName(namedOutput.getInputString()));
+                        Path toPath = new Path(entryPath.getParent(), KmerHistogramHelper.makeHistogramFileName(namedOutput.getFilename()));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());
@@ -163,9 +163,9 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                     }
                 } else {
                     // rename outputs
-                    NamedOutput namedOutput = namedOutputs.getNamedOutputByMROutput(entryPath.getName());
+                    NamedOutputRecord namedOutput = namedOutputs.getRecordFromMROutput(entryPath.getName());
                     if(namedOutput != null) {
-                        Path toPath = new Path(entryPath.getParent(), ReadIDIndexHelper.makeReadIDIndexFileName(namedOutput.getInputString()));
+                        Path toPath = new Path(entryPath.getParent(), ReadIDIndexHelper.makeReadIDIndexFileName(namedOutput.getFilename()));
                         
                         LOG.info("output : " + entryPath.toString());
                         LOG.info("renamed to : " + toPath.toString());

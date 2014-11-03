@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;

@@ -1,9 +1,9 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
-import edu.arizona.cs.mrpkm.utils.FileSystemHelper;
-import edu.arizona.cs.mrpkm.utils.SequenceHelper;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
+import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
 import java.io.IOException;
 import java.math.BigInteger;
 import org.apache.hadoop.conf.Configuration;
@@ -44,7 +44,7 @@ public class KmerIndexRecordReader extends RecordReader<CompressedSequenceWritab
         if(this.inputIndexPaths.length == 1) {
             this.indexReader = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(this.inputIndexPaths)[0], this.conf);
         } else {
-            this.indexReader = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(this.inputIndexPaths), this.conf);
+            this.indexReader = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(this.inputIndexPaths), this.inputFormatConfig.getKmerIndexChunkInfoPath(), this.conf);
         }
         
         this.currentProgress = BigInteger.ZERO;

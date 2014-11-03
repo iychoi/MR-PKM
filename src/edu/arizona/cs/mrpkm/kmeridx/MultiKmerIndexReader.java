@@ -1,8 +1,9 @@
 package edu.arizona.cs.mrpkm.kmeridx;
 
-import edu.arizona.cs.mrpkm.augment.IndexCloseableMapFileReader;
-import edu.arizona.cs.mrpkm.types.CompressedIntArrayWritable;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.indexchunkinfo.KmerIndexChunkInfo;
+import edu.arizona.cs.mrpkm.hadoop.io.format.map.IndexCloseableMapFileReader;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -10,6 +11,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 /**
  *
@@ -28,20 +30,21 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     private CompressedSequenceWritable beginKey;
     private CompressedSequenceWritable endKey;
     private BlockingQueue<KmerIndexBufferEntry> buffer = new LinkedBlockingQueue<KmerIndexBufferEntry>();
+    private String[] chunkLastKeys;
     private boolean eof;
     
     private int currentIndex;
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, null, null, conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, null, null, conf);
     }
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, beginKey, endKey, conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, conf);
     }
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String beginKey, String endKey, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, String beginKey, String endKey, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf);
     }
     
     private String[] reorderIndexParts(String[] indexPaths) {
@@ -66,7 +69,7 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         return orderedArr;
     }
     
-    private void initialize(FileSystem fs, String[] indexPaths, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
+    private void initialize(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
         this.fs = fs;
         this.indexPaths = reorderIndexParts(indexPaths);
         this.conf = conf;
@@ -78,44 +81,42 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         }
         
         this.mapfileReaders = new IndexCloseableMapFileReader[this.indexPaths.length];
+
+        String fastaFilename = KmerIndexHelper.getFastaFileName(this.indexPaths[0]);
+        Path chunkInfoPath = new Path(kmerIndexChunkInfoPath, KmerIndexChunkInfoHelper.makeKmerIndexChunkInfoFileName(fastaFilename));
+        KmerIndexChunkInfo chunkinfo = new KmerIndexChunkInfo();
+        chunkinfo.loadFrom(chunkInfoPath, fs);
         
-        boolean bFound = false;
-        for(int i=0;i<this.indexPaths.length;i++) {
-            this.mapfileReaders[i] = new IndexCloseableMapFileReader(fs, this.indexPaths[i], conf);
-            
-            if(beginKey != null) {
-                CompressedSequenceWritable finalKey = new CompressedSequenceWritable();
-                this.mapfileReaders[i].finalKey(finalKey);
-                if(finalKey.compareTo(beginKey) >= 0) {
+        this.chunkLastKeys = chunkinfo.getSortedLastKeys();
+        
+        if(this.chunkLastKeys.length != this.indexPaths.length) {
+            throw new IOException("KmerIndexChunkKeys length is different from given index group length");
+        }
+        
+        this.currentIndex = 0;
+        if(beginKey != null) {
+            boolean bFound = false;
+            for(int i=0;i<this.chunkLastKeys.length;i++) {
+                if(this.chunkLastKeys[i].compareToIgnoreCase(beginKey.getSequence()) >= 0) {
+                    //found
                     this.currentIndex = i;
-                    this.mapfileReaders[i].reset();
-
-                    seek(beginKey);
-
-                    //this.mapfileReaders[i].closeIndex();
                     bFound = true;
                     break;
-                } else {
-                    this.mapfileReaders[i].close();
-                    this.mapfileReaders[i] = null;
                 }
-            } else {
-                this.currentIndex = i;
-                this.mapfileReaders[i].reset();
-
-                this.eof = false;
-                fillBuffer();
-
-                //this.mapfileReaders[i].closeIndex();
-                bFound = true;
-                break;
+            }
+            
+            if(!bFound) {
+                throw new IOException("Could not find start point from kmer index");
             }
         }
         
-        if(!bFound) {
-            this.eof = true;
+        this.mapfileReaders[this.currentIndex] = new IndexCloseableMapFileReader(fs, this.indexPaths[this.currentIndex], conf);
+        if(beginKey != null) {
+            this.eof = false;
+            seek(beginKey);
         } else {
-            LOG.info("found kmer begin");
+            this.eof = false;
+            fillBuffer();
         }
     }
     

@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.kmerrangepartitioner.KmerRangePartition;
-import edu.arizona.cs.mrpkm.types.CompressedSequenceWritable;
+import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -17,6 +17,7 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
     private Path[] inputIndexPaths;
     private KmerLinearMatcher matcher;
     private Configuration conf;
+    private KmerMatchResult curResult;
 
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
@@ -31,25 +32,33 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
         KmerMatchInputFormatConfig inputFormatConfig = new KmerMatchInputFormatConfig();
         inputFormatConfig.loadFrom(this.conf);
         String filterPath = inputFormatConfig.getStdDeviationFilterPath();
+        String indexChunkInfoPath = inputFormatConfig.getKmerIndexChunkInfoPath();
         
         KmerRangePartition partitions = kmerIndexSplit.getPartition();
-        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, filterPath, this.conf);
+        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, filterPath, indexChunkInfoPath, this.conf);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        return this.matcher.nextMatch();
+        this.curResult = this.matcher.stepNext();
+        if(this.curResult != null) {
+            return true;
+        }
+        return false;
     }
 
     @Override
     public CompressedSequenceWritable getCurrentKey() {
-        return this.matcher.getCurrentMatch().getKey();
+        if(this.curResult != null) {
+            return this.curResult.getKey();
+        }
+        return null;
     }
 
     @Override
     public KmerMatchResult getCurrentValue() {
-        return this.matcher.getCurrentMatch();
+        return this.curResult;
     }
 
     @Override
