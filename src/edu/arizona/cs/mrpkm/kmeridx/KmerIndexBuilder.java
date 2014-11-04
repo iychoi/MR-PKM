@@ -169,7 +169,7 @@ public class KmerIndexBuilder extends Configured implements Tool {
             }
             
             if(!result) {
-                LOG.error("job failed at round " + round + " of " + inputFiles.length);
+                LOG.error("job failed at round " + round + " of " + rounds);
                 job_result = false;
                 break;
             }

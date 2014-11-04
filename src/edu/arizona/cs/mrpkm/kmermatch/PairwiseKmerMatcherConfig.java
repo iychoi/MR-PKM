@@ -18,7 +18,7 @@ import org.json.JSONObject;
  * @author iychoi
  */
 public class PairwiseKmerMatcherConfig {
-    private final static String CONF_INPUT_JSON = "edu.arizona.cs.mrpkm.kmermatch.input.json";
+    private final static String CONF_INPUT_JSON = "edu.arizona.cs.mrpkm.kmermatch.matcher.input.json";
 
     private final static String JSON_CONF_INPUT_NUM = "itemcounts";
     private final static String JSON_CONF_INPUTS = "items";

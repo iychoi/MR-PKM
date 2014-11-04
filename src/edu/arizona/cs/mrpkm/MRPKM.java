@@ -1,9 +1,10 @@
 package edu.arizona.cs.mrpkm;
 
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexBuilder;
-import edu.arizona.cs.mrpkm.kmermatch.deprecated.PairwiseKmerModeCounter;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexBuilder;
 import edu.arizona.cs.mrpkm.helpers.ClassHelper;
+import edu.arizona.cs.mrpkm.kmermatch.ModeCounter;
+import edu.arizona.cs.mrpkm.kmermatch.PairwiseKmerMatcher;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.logging.Log;
@@ -91,8 +92,10 @@ public class MRPKM {
                     clazz = ReadIDIndexBuilder.class;
                 } else if(potentialClassName.equalsIgnoreCase("kidx")) {
                     clazz = KmerIndexBuilder.class;
-                } else if(potentialClassName.equalsIgnoreCase("pkm")) {
-                    clazz = PairwiseKmerModeCounter.class;
+                } else if(potentialClassName.equalsIgnoreCase("match")) {
+                    clazz = PairwiseKmerMatcher.class;
+                } else if(potentialClassName.equalsIgnoreCase("mode")) {
+                    clazz = ModeCounter.class;
                 }
             }
 
@@ -117,6 +120,7 @@ public class MRPKM {
         System.out.println("Abbreviations :");
         System.out.println("> ridx : ReadIDIndexBuilder");
         System.out.println("> kidx : KmerIndexBuilder");
-        System.out.println("> pkm : PairwiseKmerModeCounter");
+        System.out.println("> match : PairwiseKmerMatcher");
+        System.out.println("> mode : ModeCounter");
     }
 }

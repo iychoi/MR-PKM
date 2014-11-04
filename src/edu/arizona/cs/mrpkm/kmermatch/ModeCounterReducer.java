@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.kmermatch.deprecated;
+package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
@@ -21,9 +21,9 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
  *
  * @author iychoi
  */
-public class PairwiseKmerModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWritable, Text, Text> {
+public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWritable, Text, Text> {
     
-    private static final Log LOG = LogFactory.getLog(PairwiseKmerModeCounterReducer.class);
+    private static final Log LOG = LogFactory.getLog(ModeCounterReducer.class);
     
     private NamedOutputs namedOutputs = null;
     private MultipleOutputs mos;

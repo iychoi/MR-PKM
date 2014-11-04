@@ -47,6 +47,12 @@ public class NamedOutputs {
         }
     }
     
+    public void add(String[] filenames) {
+        for(String filename : filenames) {
+            add(filename);
+        }
+    }
+    
     public void add(String filename) {
         String identifier = NamedOutputRecord.getSafeIdentifier(filename);
         

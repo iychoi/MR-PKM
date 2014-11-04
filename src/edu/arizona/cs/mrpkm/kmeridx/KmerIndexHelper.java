@@ -216,7 +216,7 @@ public class KmerIndexHelper {
         return groups.toArray(new Path[0][0]);
     }
     
-    public static List<Path> sortPaths(Path[] paths) {
+    private static List<Path> sortPaths(Path[] paths) {
         List<Path> pathList = new ArrayList<Path>();
         pathList.addAll(Arrays.asList(paths));
         

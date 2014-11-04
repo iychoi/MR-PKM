@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.modecount;
+package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.cmdparams.APKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
@@ -8,13 +8,13 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class PairwiseKmerMatcherCmdParamsParser extends APKMCmdParamsParser<PairwiseKmerMatcherCmdParams> {
-    public PairwiseKmerMatcherCmdParamsParser() {
+public class ModeCounterCmdParamsParser extends APKMCmdParamsParser<ModeCounterCmdParams> {
+    public ModeCounterCmdParamsParser() {
     }
 
     @Override
-    public PairwiseKmerMatcherCmdParams parse(String[] args) {
-        PairwiseKmerMatcherCmdParams cmdargs = new PairwiseKmerMatcherCmdParams();
+    public ModeCounterCmdParams parse(String[] args) {
+        ModeCounterCmdParams cmdargs = new ModeCounterCmdParams();
         CmdLineParser parser = new CmdLineParser(cmdargs);
         CmdLineException parseException = null;
         try {
