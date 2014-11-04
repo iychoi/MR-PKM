@@ -82,9 +82,6 @@ public class PairwiseKmerMatcher extends Configured implements Tool {
             matcherConfig.addInput(kmerFilename);
         }
         matcherConfig.saveTo(conf);
-        Path TOCfilePath = new Path(outputPath, PairwiseKmerMatcherHelper.makePairwiseKmerMatchTOCFileName());
-        FileSystem fs = TOCfilePath.getFileSystem(conf);
-        matcherConfig.saveTo(TOCfilePath, fs);
         
         KmerMatchInputFormatConfig matchInputFormatConfig = new KmerMatchInputFormatConfig();
         matchInputFormatConfig.setKmerSize(kmerSize);
@@ -121,6 +118,9 @@ public class PairwiseKmerMatcher extends Configured implements Tool {
         // commit results
         if(result) {
             commit(new Path(outputPath), conf);
+            Path TOCfilePath = new Path(outputPath, PairwiseKmerMatcherHelper.makePairwiseKmerMatchTOCFileName());
+            FileSystem fs = TOCfilePath.getFileSystem(conf);
+            matcherConfig.saveTo(TOCfilePath, fs);
         }
         
         // notify
