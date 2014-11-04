@@ -1,6 +1,6 @@
 package edu.arizona.cs.mrpkm.hadoop.io.format.fasta;
 
-import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.fasta.FastaRead;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

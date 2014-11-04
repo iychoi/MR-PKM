@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types;
+package edu.arizona.cs.mrpkm.types.fasta;
 
 /**
  *

@@ -5,7 +5,7 @@ import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexReader;
 import edu.arizona.cs.mrpkm.readididx.ReadIDNotFoundException;
-import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.fasta.FastaRead;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.readididx.ReadIDIndexHelper;
 import java.io.IOException;

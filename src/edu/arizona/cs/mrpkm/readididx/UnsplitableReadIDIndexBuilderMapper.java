@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.readididx;
 
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
-import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.fasta.FastaRead;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.types.histogram.KmerHistogram;
 import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;

@@ -1,7 +1,7 @@
 package edu.arizona.cs.mrpkm.hadoop.io.format.fasta;
 
-import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRawRead;
-import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.types.FastaRead;
+import edu.arizona.cs.mrpkm.types.fasta.FastaRawRead;
+import edu.arizona.cs.mrpkm.types.fasta.FastaRead;
 import java.io.IOException;
 import org.apache.hadoop.io.LongWritable;
 
