@@ -82,41 +82,42 @@ public class NamedOutputs {
     }
     
     public NamedOutputRecord getRecord(String identifier) {
-        if(this.identifierCache.get(identifier) == null) {
+        Integer ret = this.identifierCache.get(identifier);
+        if(ret == null) {
             return null;
         } else {
-            int idx = this.identifierCache.get(identifier);
-            return this.recordList.get(idx);
+            return this.recordList.get(ret.intValue());
         }
     }
     
-    public int getIDFromFilename(String filename) {
-        if(this.filenameCache.get(filename) == null) {
-            return -1;
+    public int getIDFromFilename(String filename) throws IOException {
+        Integer ret = this.filenameCache.get(filename);
+        if(ret == null) {
+            throw new IOException("could not find id from " + filename);
         } else {
-            return this.filenameCache.get(filename);
+            return ret.intValue();
         }
     }
     
-    public NamedOutputRecord getRecordFromID(int id) {
+    public NamedOutputRecord getRecordFromID(int id) throws IOException {
         if(this.recordList.size() <= id) {
-            return null;
+            throw new IOException("could not find record " + id);
         } else {
             return this.recordList.get(id);    
         }
     }
     
-    public NamedOutputRecord getRecordFromMROutput(Path outputFile) {
+    public NamedOutputRecord getRecordFromMROutput(Path outputFile) throws IOException {
         return getRecordFromMROutput(outputFile.getName());
     }
     
-    public NamedOutputRecord getRecordFromMROutput(String outputFilename) {
+    public NamedOutputRecord getRecordFromMROutput(String outputFilename) throws IOException {
         String identifier = MapReduceHelper.getNameFromMapReduceOutput(outputFilename);
-        if(this.identifierCache.get(identifier) == null) {
-            return null;
+        Integer ret = this.identifierCache.get(identifier);
+        if(ret == null) {
+            throw new IOException("could not find record " + outputFilename);
         } else {
-            int idx = this.identifierCache.get(identifier);
-            return this.recordList.get(idx);
+            return this.recordList.get(ret.intValue());
         }
     }
     
@@ -188,8 +189,12 @@ public class NamedOutputs {
         writer.close();
     }
     
-    public void loadFrom(Configuration conf) {
-        loadFromJson(conf.get(CONF_NAMED_OUTPUT_JSON));
+    public void loadFrom(Configuration conf) throws IOException {
+        String json = conf.get(CONF_NAMED_OUTPUT_JSON);
+        if(json == null) {
+            throw new IOException("could not load configuration string");
+        }
+        loadFromJson(json);
     }
     
     public void loadFrom(Path file, FileSystem fs) throws IOException {

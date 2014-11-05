@@ -40,8 +40,12 @@ public class KmerStdDeviationGroup {
         return this.recordList.toArray(new KmerStdDeviation[0]);
     }
     
-    public KmerStdDeviation getStdDeviation(String stddeviation) {
-        return this.recordCache.get(stddeviation);
+    public KmerStdDeviation getStdDeviation(String stddeviation) throws IOException {
+        KmerStdDeviation std = this.recordCache.get(stddeviation);
+        if(std == null) {
+            throw new IOException("could not find stddeviation " + stddeviation);
+        }
+        return std;
     }
     
     public int getSize() {
@@ -96,8 +100,12 @@ public class KmerStdDeviationGroup {
         writer.close();
     }
     
-    public void loadFrom(Configuration conf) {
-        loadFromJson(conf.get(CONF_STDDEVIATION_GROUP_JSON));
+    public void loadFrom(Configuration conf) throws IOException {
+        String json = conf.get(CONF_STDDEVIATION_GROUP_JSON);
+        if(json == null) {
+            throw new IOException("could not load configuration string");
+        }
+        loadFromJson(json);
     }
     
     public void loadFrom(Path file, FileSystem fs) throws IOException {

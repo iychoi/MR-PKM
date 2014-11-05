@@ -78,8 +78,8 @@ public class PairwiseKmerMatcher extends Configured implements Tool {
         PairwiseKmerMatcherConfig matcherConfig = new PairwiseKmerMatcherConfig();
         Path[][] indiceGroups = KmerIndexHelper.groupKmerIndice(inputFiles);
         for(Path[] indiceGroup : indiceGroups) {
-            String kmerFilename = KmerIndexHelper.getFastaFileName(indiceGroup[0]);
-            matcherConfig.addInput(kmerFilename);
+            String fastaFilename = KmerIndexHelper.getFastaFileName(indiceGroup[0]);
+            matcherConfig.addInput(fastaFilename);
         }
         matcherConfig.saveTo(conf);
         
@@ -151,7 +151,8 @@ public class PairwiseKmerMatcher extends Configured implements Tool {
                     fs.delete(entryPath, true);
                 } else if(MapReduceHelper.isPartialOutputFiles(entryPath)) {
                     // rename outputs
-                    String newName = "match_" + MapReduceHelper.getMapReduceID(entryPath);
+                    int mapreduceID = MapReduceHelper.getMapReduceID(entryPath);
+                    String newName = PairwiseKmerMatcherHelper.makePairwiseKmerMatchFileName(mapreduceID);
                     Path toPath = new Path(entryPath.getParent(), newName);
 
                     LOG.info("output : " + entryPath.toString());

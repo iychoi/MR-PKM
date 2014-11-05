@@ -101,8 +101,12 @@ public class KmerIndexChunkInfo {
         writer.close();
     }
     
-    public void loadFrom(Configuration conf) {
-        loadFromJson(conf.get(CONF_KMER_INDEX_CHUNK_INFO_JSON));
+    public void loadFrom(Configuration conf) throws IOException {
+        String json = conf.get(CONF_KMER_INDEX_CHUNK_INFO_JSON);
+        if(json == null) {
+            throw new IOException("could not load configuration string");
+        }
+        loadFromJson(json);
     }
     
     public void loadFrom(Path file, FileSystem fs) throws IOException {

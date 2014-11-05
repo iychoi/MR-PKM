@@ -40,8 +40,12 @@ public class KmerStatisticsGroup {
         return this.recordList.toArray(new KmerStatistics[0]);
     }
     
-    public KmerStatistics getStatistics(String statisticsName) {
-        return this.recordCache.get(statisticsName);
+    public KmerStatistics getStatistics(String statisticsName) throws IOException {
+        KmerStatistics statistics = this.recordCache.get(statisticsName);
+        if(statistics == null) {
+            throw new IOException("could not find statistics " + statisticsName);
+        }
+        return statistics;
     }
     
     public int getSize() {
@@ -96,8 +100,12 @@ public class KmerStatisticsGroup {
         writer.close();
     }
     
-    public void loadFrom(Configuration conf) {
-        loadFromJson(conf.get(CONF_STATISTICS_GROUP_JSON));
+    public void loadFrom(Configuration conf) throws IOException {
+        String json = conf.get(CONF_STATISTICS_GROUP_JSON);
+        if(json == null) {
+            throw new IOException("could not load configuration string");
+        }
+        loadFromJson(json);
     }
     
     public void loadFrom(Path file, FileSystem fs) throws IOException {

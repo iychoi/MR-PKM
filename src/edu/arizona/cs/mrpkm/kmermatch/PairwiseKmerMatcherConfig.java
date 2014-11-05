@@ -48,17 +48,17 @@ public class PairwiseKmerMatcherConfig {
         this.objList.add(input);
     }
     
-    public int getIDFromInput(String input) {
+    public int getIDFromInput(String input) throws IOException {
         if(this.inputTable.get(input) == null) {
-            return -1;
+            throw new IOException("could not find id from " + input);
         } else {
             return this.inputTable.get(input);
         }
     }
     
-    public String getInputFromID(int id) {
+    public String getInputFromID(int id) throws IOException {
         if(this.objList.size() <= id) {
-            return null;
+            throw new IOException("could not find filename from " + id);
         } else {
             return this.objList.get(id);    
         }
@@ -127,8 +127,12 @@ public class PairwiseKmerMatcherConfig {
         writer.close();
     }
     
-    public void loadFrom(Configuration conf) {
-        loadFromJson(conf.get(CONF_INPUT_JSON));
+    public void loadFrom(Configuration conf) throws IOException {
+        String json = conf.get(CONF_INPUT_JSON);
+        if(json == null) {
+            throw new IOException("could not load configuration string");
+        }
+        loadFromJson(json);
     }
     
     public void loadFrom(Path file, FileSystem fs) throws IOException {

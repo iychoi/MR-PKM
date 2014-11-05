@@ -1,5 +1,7 @@
 package edu.arizona.cs.mrpkm.types;
 
+import java.io.IOException;
+
 /**
  *
  * @author iychoi
@@ -8,7 +10,7 @@ public class PairwiseKmerMatchRecordColumn {
     private int fileid;
     private int[] readids;
     
-    public PairwiseKmerMatchRecordColumn(String str) {
+    public PairwiseKmerMatchRecordColumn(String str) throws IOException {
         parse(str);
     }
     
@@ -20,7 +22,7 @@ public class PairwiseKmerMatchRecordColumn {
         return this.readids;
     }
     
-    private void parse(String str) {
+    private void parse(String str) throws IOException {
         String[] strs = str.split(":");
         if(strs.length == 2) {
             this.fileid = Integer.parseInt(strs[0]);
@@ -30,6 +32,8 @@ public class PairwiseKmerMatchRecordColumn {
             for(int i=0;i<readidstrs.length;i++) {
                 this.readids[i] = Integer.parseInt(readidstrs[i]);
             }
+        } else {
+            throw new IOException("failed to parse " + str);
         }
     }
 }

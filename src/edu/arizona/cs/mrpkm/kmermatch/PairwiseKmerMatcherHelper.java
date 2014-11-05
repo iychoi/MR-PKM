@@ -1,8 +1,8 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import edu.arizona.cs.mrpkm.types.filters.KmerIndexPathFilter;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import static edu.arizona.cs.mrpkm.helpers.FileSystemHelper.makePathFromString;
+import edu.arizona.cs.mrpkm.types.filters.PairwiseKmerMatchPathFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,7 +79,7 @@ public class PairwiseKmerMatcherHelper {
     
     public static Path[] getAllPairwiseKmerMatchFilePaths(Configuration conf, Path[] inputPaths) throws IOException {
         List<Path> inputFiles = new ArrayList<Path>();
-        KmerIndexPathFilter filter = new KmerIndexPathFilter();
+        PairwiseKmerMatchPathFilter filter = new PairwiseKmerMatchPathFilter();
         
         for(Path path : inputPaths) {
             FileSystem fs = path.getFileSystem(conf);
@@ -89,7 +89,7 @@ public class PairwiseKmerMatcherHelper {
                     // check child
                     FileStatus[] entries = fs.listStatus(path);
                     for (FileStatus entry : entries) {
-                        if(entry.isDir()) {
+                        if(!entry.isDir()) {
                             if (filter.accept(entry.getPath())) {
                                 inputFiles.add(entry.getPath());
                             }

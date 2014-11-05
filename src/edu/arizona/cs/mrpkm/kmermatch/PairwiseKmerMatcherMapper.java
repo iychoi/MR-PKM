@@ -26,6 +26,8 @@ public class PairwiseKmerMatcherMapper extends Mapper<CompressedSequenceWritable
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         this.matcherConfig = new PairwiseKmerMatcherConfig();
+        this.matcherConfig.loadFrom(context.getConfiguration());
+        
         this.idCacheTable = new Hashtable<String, Integer>();
     }
     

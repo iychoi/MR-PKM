@@ -55,7 +55,7 @@ public class ModeCounter extends Configured implements Tool {
         String inputPath = cmdParams.getInputPath();
         String outputPath = cmdParams.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdParams.getClusterConfig();
-        int numReducers = clusterConfig.getPairwiseKmerModeCounterReducerNumber(nodeSize);
+        //int numReducers = clusterConfig.getPairwiseKmerModeCounterReducerNumber(nodeSize);
         
         // configuration
         Configuration conf = this.getConf();
@@ -66,7 +66,7 @@ public class ModeCounter extends Configured implements Tool {
         FileSystem fs = TOCfilePath.getFileSystem(conf);
         PairwiseKmerMatcherConfig matcherConfig = new PairwiseKmerMatcherConfig();
         matcherConfig.loadFrom(TOCfilePath, fs);
-        
+
         Path[] inputFiles = PairwiseKmerMatcherHelper.getAllPairwiseKmerMatchFilePaths(conf, inputPath);
         
         int rounds = matcherConfig.getSize();
@@ -114,11 +114,11 @@ public class ModeCounter extends Configured implements Tool {
             boolean hirodsOutputPath = FileSystemHelper.isHirodsFileSystemPath(job.getConfiguration(), roundOutputPath);
             if (hirodsOutputPath) {
                 LOG.info("Use H-iRODS");
-                HirodsFileOutputFormat.setOutputPath(job, new Path(outputPath));
+                HirodsFileOutputFormat.setOutputPath(job, new Path(roundOutputPath));
                 job.setOutputFormatClass(HirodsTextOutputFormat.class);
                 MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), HirodsMultipleOutputs.class);
             } else {
-                FileOutputFormat.setOutputPath(job, new Path(outputPath));
+                FileOutputFormat.setOutputPath(job, new Path(roundOutputPath));
                 job.setOutputFormatClass(TextOutputFormat.class);
                 MultipleOutputsHelper.setMultipleOutputsClass(job.getConfiguration(), MultipleOutputs.class);
             }
@@ -131,7 +131,7 @@ public class ModeCounter extends Configured implements Tool {
                 }
             }
             
-            job.setNumReduceTasks(numReducers);
+            job.setNumReduceTasks(matcherConfig.getSize());
             
             // Execute job and return status
             boolean result = job.waitForCompletion(true);

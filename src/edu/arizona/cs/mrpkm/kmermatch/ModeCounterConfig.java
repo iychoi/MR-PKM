@@ -1,17 +1,7 @@
 package edu.arizona.cs.mrpkm.kmermatch;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  *
@@ -37,7 +27,11 @@ public class ModeCounterConfig {
         conf.setInt(CONF_MASTER_FILE_ID, this.masterFileID);
     }
     
-    public void loadFrom(Configuration conf) {
-        this.masterFileID = conf.getInt(CONF_MASTER_FILE_ID, 0);
+    public void loadFrom(Configuration conf) throws IOException {
+        int masterID = conf.getInt(CONF_MASTER_FILE_ID, -1);
+        if(masterID < 0) {
+            throw new IOException("could not load configuration string");
+        }
+        this.masterFileID = masterID;
     }
 }
