@@ -20,6 +20,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
  *
@@ -33,6 +34,7 @@ public class KmerLinearMatcher {
     private String kmerIndexChunkInfoPath;
     private KmerRangePartition slice;
     private Configuration conf;
+    private TaskAttemptContext context;
     
     private AKmerIndexReader[] readers;
     private BigInteger sliceSize;
@@ -45,20 +47,29 @@ public class KmerLinearMatcher {
     private List<Integer> stepMinKeys;
     private boolean stepStarted;
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
-        initialize(inputIndexPaths, slice, filterPath, kmerIndexChunkInfoPath, conf);
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, TaskAttemptContext context) throws IOException {
+        initialize(inputIndexPaths, slice, filterPath, kmerIndexChunkInfoPath, context, context.getConfiguration());
     }
     
-    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
+    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
+        initialize(inputIndexPaths, slice, filterPath, kmerIndexChunkInfoPath, null, conf);
+    }
+    
+    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, TaskAttemptContext context, Configuration conf) throws IOException {
         this.inputIndexPaths = inputIndexPaths;
         this.kmerIndexChunkInfoPath = kmerIndexChunkInfoPath;
         this.slice = slice;
         this.conf = conf;
+        this.context = context;
         
         Path[][] indice = KmerIndexHelper.groupKmerIndice(this.inputIndexPaths);
         this.readers = new AKmerIndexReader[indice.length];
         LOG.info("# of KmerIndexReader : " + indice.length);
         for(int i=0;i<indice.length;i++) {
+            if(context != null) {
+                context.progress();
+            }
+            
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
             String fastaFilename = KmerIndexHelper.getFastaFileName(indice[i][0]);
             String stddevFilename = KmerStdDeviationHelper.makeStdDeviationFileName(fastaFilename);
@@ -69,7 +80,7 @@ public class KmerLinearMatcher {
             double avg = stddevReader.getAverage();
             double stddev = stddevReader.getStdDeviation();
             double factor = 2;
-            this.readers[i] = new FilteredKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.kmerIndexChunkInfoPath, this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.conf, avg, stddev, factor);
+            this.readers[i] = new FilteredKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.kmerIndexChunkInfoPath, this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.context, this.conf, avg, stddev, factor);
         }
         
         this.sliceSize = slice.getPartitionSize();

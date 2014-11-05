@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
  *
@@ -21,11 +22,12 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     
     private static final Log LOG = LogFactory.getLog(MultiKmerIndexReader.class);
     
-    private static final int BUFFER_SIZE = 1000;
+    private static final int BUFFER_SIZE = 100;
     
     private FileSystem fs;
     private String[] indexPaths;
     private Configuration conf;
+    private TaskAttemptContext context;
     private IndexCloseableMapFileReader[] mapfileReaders;
     private CompressedSequenceWritable beginKey;
     private CompressedSequenceWritable endKey;
@@ -35,16 +37,16 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
     
     private int currentIndex;
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, kmerIndexChunkInfoPath, null, null, conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, TaskAttemptContext context, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, null, null, context, conf);
     }
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, TaskAttemptContext context, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, context, conf);
     }
     
-    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, String beginKey, String endKey, Configuration conf) throws IOException {
-        initialize(fs, indexPaths, kmerIndexChunkInfoPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf);
+    public MultiKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, String beginKey, String endKey, TaskAttemptContext context, Configuration conf) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), context, conf);
     }
     
     private String[] reorderIndexParts(String[] indexPaths) {
@@ -69,9 +71,10 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         return orderedArr;
     }
     
-    private void initialize(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf) throws IOException {
+    private void initialize(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, TaskAttemptContext context, Configuration conf) throws IOException {
         this.fs = fs;
         this.indexPaths = reorderIndexParts(indexPaths);
+        this.context = context;
         this.conf = conf;
         this.beginKey = beginKey;
         this.endKey = endKey;
@@ -82,6 +85,9 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
         
         this.mapfileReaders = new IndexCloseableMapFileReader[this.indexPaths.length];
 
+        if(context != null) {
+            context.progress();
+        }
         String fastaFilename = KmerIndexHelper.getFastaFileName(this.indexPaths[0]);
         Path chunkInfoPath = new Path(kmerIndexChunkInfoPath, KmerIndexChunkInfoHelper.makeKmerIndexChunkInfoFileName(fastaFilename));
         KmerIndexChunkInfo chunkinfo = new KmerIndexChunkInfo();
@@ -108,6 +114,10 @@ public class MultiKmerIndexReader extends AKmerIndexReader {
             if(!bFound) {
                 throw new IOException("Could not find start point from kmer index");
             }
+        }
+        
+        if(context != null) {
+            context.progress();
         }
         
         this.mapfileReaders[this.currentIndex] = new IndexCloseableMapFileReader(fs, this.indexPaths[this.currentIndex], conf);

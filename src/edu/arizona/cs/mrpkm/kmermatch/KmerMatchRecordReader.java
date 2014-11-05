@@ -35,7 +35,7 @@ public class KmerMatchRecordReader extends RecordReader<CompressedSequenceWritab
         String indexChunkInfoPath = inputFormatConfig.getKmerIndexChunkInfoPath();
         
         KmerRangePartition partitions = kmerIndexSplit.getPartition();
-        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, filterPath, indexChunkInfoPath, this.conf);
+        this.matcher = new KmerLinearMatcher(this.inputIndexPaths, partitions, filterPath, indexChunkInfoPath, context);
     }
 
     @Override

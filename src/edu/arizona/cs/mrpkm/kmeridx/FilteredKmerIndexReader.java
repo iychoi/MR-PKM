@@ -7,6 +7,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
  *
@@ -21,26 +22,26 @@ public class FilteredKmerIndexReader extends AKmerIndexReader {
     private double stddeviation;
     private double factor;
     
-    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
-        initialize(fs, indexPaths, kmerIndexChunkInfoPath, null, null, conf, avg, stddeviation, factor);
+    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, TaskAttemptContext context, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, null, null, context, conf, avg, stddeviation, factor);
     }
     
-    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
-        initialize(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, conf, avg, stddeviation, factor);
+    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, TaskAttemptContext context, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, context, conf, avg, stddeviation, factor);
     }
     
-    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, String beginKey, String endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
-        initialize(fs, indexPaths, kmerIndexChunkInfoPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), conf, avg, stddeviation, factor);
+    public FilteredKmerIndexReader(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, String beginKey, String endKey, TaskAttemptContext context, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+        initialize(fs, indexPaths, kmerIndexChunkInfoPath, new CompressedSequenceWritable(beginKey), new CompressedSequenceWritable(endKey), context, conf, avg, stddeviation, factor);
     }
     
-    private void initialize(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
+    private void initialize(FileSystem fs, String[] indexPaths, String kmerIndexChunkInfoPath, CompressedSequenceWritable beginKey, CompressedSequenceWritable endKey, TaskAttemptContext context, Configuration conf, double avg, double stddeviation, double factor) throws IOException {
         this.avg = avg;
         this.stddeviation = stddeviation;
         this.factor = factor;
         if(indexPaths.length == 1) {
             this.kmerIndexReader = new SingleKmerIndexReader(fs, indexPaths[0], beginKey, endKey, conf);    
         } else {
-            this.kmerIndexReader = new MultiKmerIndexReader(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, conf);
+            this.kmerIndexReader = new MultiKmerIndexReader(fs, indexPaths, kmerIndexChunkInfoPath, beginKey, endKey, context, conf);
         }
     }
     

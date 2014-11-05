@@ -44,7 +44,7 @@ public class KmerIndexRecordReader extends RecordReader<CompressedSequenceWritab
         if(this.inputIndexPaths.length == 1) {
             this.indexReader = new SingleKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(this.inputIndexPaths)[0], this.conf);
         } else {
-            this.indexReader = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(this.inputIndexPaths), this.inputFormatConfig.getKmerIndexChunkInfoPath(), this.conf);
+            this.indexReader = new MultiKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(this.inputIndexPaths), this.inputFormatConfig.getKmerIndexChunkInfoPath(), context, this.conf);
         }
         
         this.currentProgress = BigInteger.ZERO;
