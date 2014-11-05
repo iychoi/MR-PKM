@@ -51,6 +51,8 @@ public class ModeCounter extends Configured implements Tool {
         ModeCounterCmdParamsParser parser = new ModeCounterCmdParamsParser();
         ModeCounterCmdParams cmdParams = parser.parse(args);
         
+        System.out.println(cmdParams.toString());
+        
         int nodeSize = cmdParams.getNodes();
         String inputPath = cmdParams.getInputPath();
         String outputPath = cmdParams.getOutputPath();
@@ -62,6 +64,7 @@ public class ModeCounter extends Configured implements Tool {
         clusterConfig.configureClusterParamsTo(conf);
         
         // TOC
+        System.out.println("inputPath : " + inputPath);
         Path TOCfilePath = new Path(inputPath, PairwiseKmerMatcherHelper.makePairwiseKmerMatchTOCFileName());
         FileSystem fs = TOCfilePath.getFileSystem(conf);
         PairwiseKmerMatcherConfig matcherConfig = new PairwiseKmerMatcherConfig();

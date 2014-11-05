@@ -63,7 +63,7 @@ public class FilteredKmerIndexReader extends AKmerIndexReader {
                 key.set(tempKey);
                 val.set(tempVal);
                 return true;
-            } else if(diffPositive <= boundary) {
+            } else if(diffPositive <= boundary && tempVal.getPositiveEntriesCount() > 0) {
                 key.set(tempKey);
                 int[] positiveArr = new int[tempVal.getPositiveEntriesCount()];
                 int j=0;
@@ -76,7 +76,7 @@ public class FilteredKmerIndexReader extends AKmerIndexReader {
                 }
                 val.set(positiveArr);
                 return true;
-            } else if(diffNegative <= boundary) {
+            } else if(diffNegative <= boundary && tempVal.getNegativeEntriesCount() > 0) {
                 key.set(tempKey);
                 int[] negativeArr = new int[tempVal.getNegativeEntriesCount()];
                 int j=0;

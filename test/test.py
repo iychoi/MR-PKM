@@ -91,11 +91,11 @@ def runReadIDIndexBuilder():
 
 def runReadIDIndexBuilder_0_20_2():
     removeOutDir();
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder -n 2 -k 20 -s test/sample/histogram test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM ReadIDIndexBuilder -n 2 -k 20 -s test/sample/histogram test/sample/input/ test/sample/ridx", shell=True)
 
 def runReadIDIndexBuilder_2_3_0():
     removeOutDir();
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar ReadIDIndexBuilder -libjars dist/lib/* -n 2 -k 20 -s test/sample/histogram test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar ReadIDIndexBuilder -n 2 -k 20 -s test/sample/histogram test/sample/input/ test/sample/ridx", shell=True)
 
 # Kmer Index Builder
 def runKmerIndexBuilder():
@@ -106,11 +106,11 @@ def runKmerIndexBuilder():
 
 def runKmerIndexBuilder_0_20_2():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexBuilder -k 20 -i test/sample/ridx -s test/sample/histogram test/sample/input/ test/sample/kidx", shell=True)
 
 def runKmerIndexBuilder_2_3_0():
     removeOutDir()
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexBuilder -libjars dist/lib/* -k 20 -i test/sample/ridx test/sample/input/ test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar KmerIndexBuilder -k 20 -i test/sample/ridx -s test/sample/histogram test/sample/input/ test/sample/kidx", shell=True)
 
 # Kmer Index Chunk Info Builder
 def runKmerIndexChunkInfoBuilder():
@@ -121,11 +121,11 @@ def runKmerIndexChunkInfoBuilder():
 
 def runKmerIndexChunkInfoBuilder_0_20_2():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexChunkInfoBuilder -k 20 test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerIndexChunkInfoBuilder -k 20 test/sample/kidx test/sample/chunkinfo", shell=True)
 
 def runKmerIndexChunkInfoBuilder_2_3_0():
     removeOutDir()
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerIndexChunkInfoBuilder -libjars dist/lib/* -k 20 test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar KmerIndexChunkInfoBuilder -k 20 test/sample/kidx test/sample/chunkinfo", shell=True)
 
 # Kmer Index Standard Deviation Builder
 def runKmerStandardDeviation():
@@ -136,18 +136,27 @@ def runKmerStandardDeviation():
 
 def runKmerStandardDeviation_0_20_2():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStdDeviation -k 20 test/sample/kidx test/sample/stddv", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStdDeviationBuilder -k 20 test/sample/kidx test/sample/stddv", shell=True)
 
 def runKmerStandardDeviation_2_3_0():
     removeOutDir()
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar KmerStdDeviation -libjars dist/lib/* -k 20 test/sample/kidx test/sample/stddv", shell=True)
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar KmerStdDeviationBuilder -k 20 test/sample/kidx test/sample/stddv", shell=True)
 
+# Pairwise Kmer Matcher
 def runPairwiseKmerMatcher():
     runPairwiseKmerMatcher_2_3_0()
 
 def runPairwiseKmerMatcher_2_3_0():
     removeOutDir();
-    subprocess.call("cd ..;time hadoop jar dist/MR-PKM.jar PairwiseKmerMatcher -libjars dist/lib/* -k 20 -s test/sample/ridx -u test/sample/kidx -f test/sample/stddv test/sample/kidx test/sample/output", shell=True)
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar PairwiseKmerMatcher -k 20 -s test/sample/histogram -u test/sample/chunkinfo -f test/sample/stddv test/sample/kidx test/sample/match", shell=True)
+
+# Mode Counter
+def runModeCounter():
+    runModeCounter_2_3_0()
+
+def runModeCounter_2_3_0():
+    removeOutDir();
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar ModeCounter -k 20 test/sample/match test/sample/mode", shell=True)
 
 def main():
     if len(sys.argv) < 2:
@@ -158,6 +167,7 @@ def main():
         print "command : ./test.py kidxci"
         print "command : ./test.py stddv"
         print "command : ./test.py matcher"
+        print "command : ./test.py mode"
     else:
         command = sys.argv[1]
 
@@ -175,6 +185,8 @@ def main():
             runKmerStandardDeviation()
         elif command == "matcher":
             runPairwiseKmerMatcher()
+        elif command == "mode":
+            runModeCounter()
         else:
             print "invalid command"
 
