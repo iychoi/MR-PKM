@@ -9,6 +9,7 @@ import edu.arizona.cs.mrpkm.helpers.MapReduceHelper;
 import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
 import edu.arizona.cs.mrpkm.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputRecord;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
@@ -22,7 +23,6 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -95,7 +95,10 @@ public class ModeCounter extends Configured implements Tool {
             job.setMapperClass(ModeCounterMapper.class);
             job.setInputFormatClass(TextInputFormat.class);
             job.setMapOutputKeyClass(MultiFileReadIDWritable.class);
-            job.setMapOutputValueClass(IntWritable.class);
+            job.setMapOutputValueClass(CompressedIntArrayWritable.class);
+            
+            // Combiner
+            job.setCombinerClass(ModeCounterCombiner.class);
             
             // Partitioner
             job.setPartitionerClass(ModeCounterPartitioner.class);

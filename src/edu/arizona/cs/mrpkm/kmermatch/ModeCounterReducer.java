@@ -5,6 +5,7 @@ import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.types.hadoop.MultiFileReadIDWritable;
 import edu.arizona.cs.mrpkm.types.MutableInteger;
 import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -12,7 +13,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
@@ -21,7 +21,7 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
  *
  * @author iychoi
  */
-public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWritable, Text, Text> {
+public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, CompressedIntArrayWritable, Text, Text> {
     
     private static final Log LOG = LogFactory.getLog(ModeCounterReducer.class);
     
@@ -44,18 +44,35 @@ public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWrit
     }
     
     @Override
-    protected void reduce(MultiFileReadIDWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+    protected void reduce(MultiFileReadIDWritable key, Iterable<CompressedIntArrayWritable> values, Context context) throws IOException, InterruptedException {
         int namedoutputID = key.getFileID();
         String namedOutput = this.namedOutputs.getRecordFromID(namedoutputID).getIdentifier();
                 
-        List<Integer> forward_list = new ArrayList<Integer>();
-        List<Integer> reverse_list = new ArrayList<Integer>();
-        for(IntWritable value : values) {
-            int hit = value.get();
-            if(hit > 0) {
-                forward_list.add(hit);
-            } else if(hit < 0) {
-                reverse_list.add(-1 * hit);
+        List<CompressedIntArrayWritable> forward_list = new ArrayList<CompressedIntArrayWritable>();
+        List<CompressedIntArrayWritable> reverse_list = new ArrayList<CompressedIntArrayWritable>();
+        for(CompressedIntArrayWritable value : values) {
+            int[] arr_value = value.get();
+            if(arr_value.length < 2 && arr_value.length % 2 != 0) {
+                throw new IOException("passed value is not in correct size");
+            }
+            
+            for(int i=0;i<(arr_value.length / 2);i++) {
+                int hit =  arr_value[i*2];
+                if(hit > 0) {
+                    int[] entry_val = new int[2];
+                    entry_val[0] = arr_value[i*2];
+                    entry_val[1] = arr_value[(i*2) + 1];
+                    CompressedIntArrayWritable entry = new CompressedIntArrayWritable(entry_val);
+
+                    forward_list.add(entry);
+                } else if(hit < 0) {
+                    int[] entry_val = new int[2];
+                    entry_val[0] = Math.abs(arr_value[i*2]);
+                    entry_val[1] = arr_value[(i*2) + 1];
+                    CompressedIntArrayWritable entry = new CompressedIntArrayWritable(entry_val);
+                    
+                    reverse_list.add(entry);
+                }
             }
         }
         
@@ -81,13 +98,15 @@ public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWrit
         }
     }
     
-    private int[] getMode(List<Integer> values) throws IOException {
+    private int[] getMode(List<CompressedIntArrayWritable> values) throws IOException {
         Hashtable<Integer, MutableInteger> modeTable = new Hashtable<Integer, MutableInteger>();
         
         int mode_hit = 0;
         int mode_count = 0;
-        for(Integer value : values) {
-            int hit = value.intValue();
+        for(CompressedIntArrayWritable value : values) {
+            int[] arrval = value.get();
+            int hit = arrval[0];
+            int cnt = arrval[1];
             
             if(hit == 0) {
                 continue;
@@ -95,7 +114,7 @@ public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWrit
 
             MutableInteger cntExist = modeTable.get(hit);
             if(cntExist == null) {
-                MutableInteger new_cnt = new MutableInteger(1);
+                MutableInteger new_cnt = new MutableInteger(cnt);
                 modeTable.put(hit, new_cnt);
                 if(mode_hit == 0) {
                     mode_hit = hit;
@@ -111,7 +130,7 @@ public class ModeCounterReducer extends Reducer<MultiFileReadIDWritable, IntWrit
                 }
             } else {
                 // existing
-                cntExist.increase();
+                cntExist.increase(cnt);
                 
                 if(hit == mode_hit) {
                     mode_count = cntExist.get();

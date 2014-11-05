@@ -2,13 +2,13 @@ package edu.arizona.cs.mrpkm.kmermatch;
 
 import edu.arizona.cs.mrpkm.types.PairwiseKmerMatchRecord;
 import edu.arizona.cs.mrpkm.types.PairwiseKmerMatchRecordColumn;
+import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.types.hadoop.MultiFileReadIDWritable;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -17,7 +17,7 @@ import org.apache.hadoop.mapreduce.Mapper;
  *
  * @author iychoi
  */
-public class ModeCounterMapper extends Mapper<LongWritable, Text, MultiFileReadIDWritable, IntWritable> {
+public class ModeCounterMapper extends Mapper<LongWritable, Text, MultiFileReadIDWritable, CompressedIntArrayWritable> {
     
     private static final Log LOG = LogFactory.getLog(ModeCounterMapper.class);
     
@@ -85,24 +85,40 @@ public class ModeCounterMapper extends Mapper<LongWritable, Text, MultiFileReadI
                             // pos
                             if(count_pos_vals[j] > 0) {
                                 // forward match
-                                context.write(new MultiFileReadIDWritable(fileID, readID), new IntWritable(count_pos_vals[j]));
+                                int[] ciaw_val = new int[2];
+                                ciaw_val[0] = count_pos_vals[j];
+                                ciaw_val[1] = 1;
+                                CompressedIntArrayWritable ciaw = new CompressedIntArrayWritable(ciaw_val);
+                                context.write(new MultiFileReadIDWritable(fileID, readID), ciaw);
                             }
 
                             if(count_neg_vals[j] > 0) {
                                 // reverse match
-                                context.write(new MultiFileReadIDWritable(fileID, readID), new IntWritable(-1 * count_neg_vals[j]));
+                                int[] ciaw_val = new int[2];
+                                ciaw_val[0] = -1 * count_neg_vals[j];
+                                ciaw_val[1] = 1;
+                                CompressedIntArrayWritable ciaw = new CompressedIntArrayWritable(ciaw_val);
+                                context.write(new MultiFileReadIDWritable(fileID, readID), ciaw);
                             }
                         } else {
                             // neg
                             readID *= -1;
                             if(count_pos_vals[j] > 0) {
                                 // reverse match
-                                context.write(new MultiFileReadIDWritable(fileID, readID), new IntWritable(-1 * count_pos_vals[j]));
+                                int[] ciaw_val = new int[2];
+                                ciaw_val[0] = -1 * count_pos_vals[j];
+                                ciaw_val[1] = 1;
+                                CompressedIntArrayWritable ciaw = new CompressedIntArrayWritable(ciaw_val);
+                                context.write(new MultiFileReadIDWritable(fileID, readID), ciaw);
                             }
 
                             if(count_neg_vals[j] > 0) {
                                 // forward match
-                                context.write(new MultiFileReadIDWritable(fileID, readID), new IntWritable(count_neg_vals[j]));
+                                int[] ciaw_val = new int[2];
+                                ciaw_val[0] = count_neg_vals[j];
+                                ciaw_val[1] = 1;
+                                CompressedIntArrayWritable ciaw = new CompressedIntArrayWritable(ciaw_val);
+                                context.write(new MultiFileReadIDWritable(fileID, readID), ciaw);
                             }
                         }
                     }

@@ -22,4 +22,8 @@ public class MutableInteger {
     public void increase() {
         this.value++;
     }
+    
+    public void increase(int val) {
+        this.value += val;
+    }
 }
