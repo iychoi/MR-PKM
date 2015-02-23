@@ -10,6 +10,8 @@ import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
@@ -44,7 +46,7 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
         return this.conf;
     }
     
-    private void initialize() {
+    private void initialize() throws IOException {
         this.namedOutputs = new NamedOutputs();
         this.namedOutputs.loadFrom(conf);
         
@@ -90,8 +92,12 @@ public class KmerIndexBuilderPartitioner extends Partitioner<MultiFileCompressed
     @Override
     public int getPartition(MultiFileCompressedSequenceWritable key, CompressedIntArrayWritable value, int numReduceTasks) {
         if(!this.initialized) {
-            initialize();
-            this.initialized = true;
+            try {
+                initialize();
+                this.initialized = true;
+            } catch (IOException ex) {
+                throw new RuntimeException(ex.toString());
+            }
         }
         
         try {

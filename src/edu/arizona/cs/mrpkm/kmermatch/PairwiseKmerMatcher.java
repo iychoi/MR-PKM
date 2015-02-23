@@ -114,7 +114,7 @@ public class PairwiseKmerMatcher extends Configured implements Tool {
         
         // Execute job and return status
         boolean result = job.waitForCompletion(true);
-        
+
         // commit results
         if(result) {
             commit(new Path(outputPath), conf);

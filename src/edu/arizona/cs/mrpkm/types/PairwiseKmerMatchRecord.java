@@ -1,5 +1,7 @@
 package edu.arizona.cs.mrpkm.types;
 
+import java.io.IOException;
+
 /**
  *
  * @author iychoi
@@ -9,7 +11,7 @@ public class PairwiseKmerMatchRecord {
     private PairwiseKmerMatchRecordColumn[] columns;
     private int columnNum = 0;
     
-    public PairwiseKmerMatchRecord(String str) {
+    public PairwiseKmerMatchRecord(String str) throws IOException {
         parse(str);
     }
     
@@ -25,7 +27,7 @@ public class PairwiseKmerMatchRecord {
         return this.columnNum;
     }
     
-    private void parse(String str) {
+    private void parse(String str) throws IOException {
         String[] strs = str.split("\\t");
         if(strs.length >= 3) {
             this.kmer = strs[0];
