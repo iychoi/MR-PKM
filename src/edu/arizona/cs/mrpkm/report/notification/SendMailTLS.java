@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.notification;
+package edu.arizona.cs.mrpkm.report.notification;
 
 /* Original code is from
  * http://www.mkyong.com/java/javamail-api-sending-email-via-gmail-smtp-example/

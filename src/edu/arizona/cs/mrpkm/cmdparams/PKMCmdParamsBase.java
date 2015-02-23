@@ -28,6 +28,9 @@ public class PKMCmdParamsBase {
     @Option(name = "-n", aliases = "--nodenum", usage = "specify the number of hadoop slaves")
     protected int nodes = 1;
     
+    @Option(name = "--report", usage = "specify report to file")
+    protected String reportfile;
+    
     @Option(name = "--notifyemail", usage = "specify email address for job notification")
     protected String notificationEmail;
 
@@ -50,10 +53,18 @@ public class PKMCmdParamsBase {
         return this.nodes;
     }
     
+    public boolean needReport() {
+        return (reportfile != null);
+    }
+    
+    public String getReportFilename() {
+        return reportfile;
+    }
+    
     public boolean needNotification() {
         return (notificationEmail != null);
     }
-
+    
     public String getNotificationEmail() {
         return notificationEmail;
     }

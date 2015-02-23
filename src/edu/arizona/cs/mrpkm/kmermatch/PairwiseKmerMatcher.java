@@ -4,10 +4,11 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsTextOutputFormat;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
-import edu.arizona.cs.mrpkm.notification.EmailNotification;
-import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
+import edu.arizona.cs.mrpkm.report.notification.EmailNotification;
+import edu.arizona.cs.mrpkm.report.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import edu.arizona.cs.mrpkm.helpers.MapReduceHelper;
+import edu.arizona.cs.mrpkm.report.Report;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -121,6 +122,13 @@ public class PairwiseKmerMatcher extends Configured implements Tool {
             Path TOCfilePath = new Path(outputPath, PairwiseKmerMatcherHelper.makePairwiseKmerMatchTOCFileName());
             FileSystem fs = TOCfilePath.getFileSystem(conf);
             matcherConfig.saveTo(TOCfilePath, fs);
+        }
+        
+        // report
+        if(cmdParams.needReport()) {
+            Report report = new Report();
+            report.addJob(job);
+            report.writeTo(cmdParams.getReportFilename());
         }
         
         // notify

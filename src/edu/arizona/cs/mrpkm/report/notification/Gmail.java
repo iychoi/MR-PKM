@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.notification;
+package edu.arizona.cs.mrpkm.report.notification;
 
 import javax.mail.MessagingException;
 

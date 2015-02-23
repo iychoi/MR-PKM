@@ -5,13 +5,14 @@ import edu.arizona.cs.hadoop.fs.irods.output.HirodsMapFileOutputFormat;
 import edu.arizona.cs.hadoop.fs.irods.output.HirodsMultipleOutputs;
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.FastaReadInputFormat;
-import edu.arizona.cs.mrpkm.notification.EmailNotification;
-import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
+import edu.arizona.cs.mrpkm.report.notification.EmailNotification;
+import edu.arizona.cs.mrpkm.report.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputRecord;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import edu.arizona.cs.mrpkm.helpers.MapReduceHelper;
 import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.report.Report;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -126,6 +127,13 @@ public class ReadIDIndexBuilder extends Configured implements Tool {
                 commit(new Path(outputPath), conf, namedOutputs);
                 commit(new Path(histogramPath), conf, namedOutputs);
             }
+        }
+        
+        // report
+        if(cmdParams.needReport()) {
+            Report report = new Report();
+            report.addJob(job);
+            report.writeTo(cmdParams.getReportFilename());
         }
         
         // notify

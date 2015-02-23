@@ -10,13 +10,14 @@ import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.MultiFileCompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.hadoop.io.format.fasta.FastaReadInputFormat;
-import edu.arizona.cs.mrpkm.notification.EmailNotification;
-import edu.arizona.cs.mrpkm.notification.EmailNotificationException;
+import edu.arizona.cs.mrpkm.report.notification.EmailNotification;
+import edu.arizona.cs.mrpkm.report.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputRecord;
 import edu.arizona.cs.mrpkm.types.namedoutputs.NamedOutputs;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import edu.arizona.cs.mrpkm.helpers.MapReduceHelper;
 import edu.arizona.cs.mrpkm.helpers.MultipleOutputsHelper;
+import edu.arizona.cs.mrpkm.report.Report;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -173,6 +174,13 @@ public class KmerIndexBuilder extends Configured implements Tool {
                 job_result = false;
                 break;
             }
+        }
+        
+        // report
+        if(cmdParams.needReport()) {
+            Report report = new Report();
+            report.addJob(jobs);
+            report.writeTo(cmdParams.getReportFilename());
         }
         
         // notify

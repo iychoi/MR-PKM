@@ -1,25 +1,28 @@
-package edu.arizona.cs.mrpkm.notification;
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package edu.arizona.cs.mrpkm.report;
 
 import edu.arizona.cs.mrpkm.helpers.RunningTimeHelper;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
-import javax.mail.MessagingException;
 import org.apache.hadoop.mapreduce.Job;
 
 /**
  *
  * @author iychoi
  */
-public class EmailNotification {
-
-    private String email;
-    private Gmail mail;
+public class Report {
     private List<Job> jobs;
     
-    public EmailNotification(String email, String password) {
-        this.email = email;
-        this.mail = new Gmail(email, password);
+    public Report() {
         this.jobs = new ArrayList<Job>();
     }
 
@@ -37,37 +40,28 @@ public class EmailNotification {
         this.jobs.addAll(jobs);
     }
     
-    public void send() throws EmailNotificationException {
-        Job lastJob = this.jobs.get(this.jobs.size() - 1);
-        
-        String subject = makeSubject(lastJob);
-        StringBuilder text = new StringBuilder();
-        for(Job job : this.jobs) {
-            if(text.length() != 0) {
-                text.append("\n\n");
-            }
-            text.append(makeText(job));
-        }
-        
-        try {
-            this.mail.send(this.email, subject, text.toString());
-        } catch (MessagingException ex) {
-            throw new EmailNotificationException(ex.getCause());
-        }
+    public void writeTo(String filename) throws IOException {
+        writeTo(new File("./", filename));
     }
-
-    private String makeSubject(Job job) {
-        String jobName = job.getJobName();
-        String jobStatus;
-        try {
-            jobStatus = job.getJobState().name();
-        } catch (IOException ex) {
-            jobStatus = "Unknown";
-        } catch (InterruptedException ex) {
-            jobStatus = "Unknown";
+    
+    public void writeTo(File f) throws IOException {
+        if(f.getParentFile() != null) {
+            if(!f.getParentFile().exists()) {
+                f.getParentFile().mkdirs();
+            }
         }
         
-        return jobName + " Finished - " + jobStatus;
+        Writer writer = new FileWriter(f);
+        boolean first = true;
+        for(Job job : this.jobs) {
+            if(first) {
+                writer.write("\n\n");
+                first = false;
+            }
+            writer.write(makeText(job));
+        }
+        
+        writer.close();
     }
     
     private String makeText(Job job) {
@@ -80,6 +74,13 @@ public class EmailNotification {
             jobStatus = "Unknown";
         } catch (InterruptedException ex) {
             jobStatus = "Unknown";
+        }
+        
+        String startTimeStr;
+        try {
+            startTimeStr = RunningTimeHelper.getTimeString(job.getStartTime());
+        } catch (Exception ex) {
+            startTimeStr = "Unknown";
         }
         
         String finishTimeStr;
@@ -96,10 +97,19 @@ public class EmailNotification {
             timeTakenStr = "Unknown";
         }
         
+        String countersStr;
+        try {
+            countersStr = job.getCounters().toString();
+        } catch (Exception ex) {
+            countersStr = "Unknown";
+        }
+        
         return "Job : " + jobName + "\n" +
                 "JobID : " + jobID + "\n" + 
                 "Status : " + jobStatus + "\n" +
+                "StartTime : " + startTimeStr + "\n" +
                 "FinishTime : " + finishTimeStr + "\n" + 
-                "TimeTaken : " + timeTakenStr + "\n";
+                "TimeTaken : " + timeTakenStr + "\n\n" +
+                countersStr;
     }
 }
