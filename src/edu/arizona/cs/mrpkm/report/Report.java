@@ -55,10 +55,10 @@ public class Report {
         boolean first = true;
         for(Job job : this.jobs) {
             if(first) {
-                writer.write("\n\n");
                 first = false;
             }
             writer.write(makeText(job));
+            writer.write("\n\n");
         }
         
         writer.close();
