@@ -13,6 +13,7 @@ JOB_FINISH_TIME = "FinishTime : "
 JOB_TIME_TAKEN = "TimeTaken : "
 JOB_HDFS_READ = "HDFS: Number of bytes read="
 JOB_HDFS_WRITTEN = "HDFS: Number of bytes written="
+JOB_INTERMEDIATE_DATA_GENERATED = "Reduce shuffle bytes="
 
 JOB_STATUS_SUCCEEDED = "SUCCEEDED"
 
@@ -23,7 +24,8 @@ extract_pattern = [
     JOB_FINISH_TIME,
     JOB_TIME_TAKEN,
     JOB_HDFS_READ,
-    JOB_HDFS_WRITTEN
+    JOB_HDFS_WRITTEN,
+    JOB_INTERMEDIATE_DATA_GENERATED
 ]
 
 regex_duration = re.compile(r'((?P<hours>\d+?)h\s*)?((?P<minutes>\d+?)m\s*)?((?P<seconds>\d+?)s)?')
@@ -42,6 +44,14 @@ def parse_time(time_str):
 def extract_data(line, pattern):
     idx = line.find(pattern)
     return line[idx + len(pattern):].strip()
+
+def data_size(size):
+    sizeB = size
+    sizeKB = sizeB/1024.0
+    sizeMB = sizeKB/1024.0
+    sizeGB = sizeMB/1024.0
+    sizeTB = sizeGB/1024.0
+    return str(sizeB) + " B\n\t" + str(sizeKB) + " KB\n\t" + str(sizeMB) + " MB\n\t" + str(sizeGB) + " GB\n\t" + str(sizeTB) + " TB"
 
 # parse report file
 def parse(filename):
@@ -69,6 +79,7 @@ def parse(filename):
     totalTimeTaken = timedelta(0)
     totalBytesRead = 0
     totalBytesWritten = 0
+    totalIntermediateBytes = 0
     jobFailedTitle = []
     jobSucceededTitle = []
     for dataline in jobs:
@@ -91,6 +102,10 @@ def parse(filename):
                         bytesStr = extract_data(line, JOB_HDFS_WRITTEN)
                         totalBytesWritten += long(bytesStr)                        
 
+                    if pattern == JOB_INTERMEDIATE_DATA_GENERATED:
+                        bytesStr = extract_data(line, JOB_INTERMEDIATE_DATA_GENERATED)
+                        totalIntermediateBytes += long(bytesStr)                        
+
                     if pattern == JOB_STRING:
                         jobTitle = extract_data(line, JOB_STRING)
 
@@ -110,8 +125,9 @@ def parse(filename):
     print "Job Succeeded :", len(jobSucceededTitle)
     print "Job Failed :", len(jobFailedTitle)
     print "Total Time Taken :", totalTimeTaken
-    print "Total Bytes Read :", totalBytesRead, ", KB =", totalBytesRead/1024.0, ", MB =", totalBytesRead/1024.0/1024.0
-    print "Total Bytes Written :", totalBytesWritten, ", KB =", totalBytesWritten/1024.0, ", MB =", totalBytesWritten/1024.0/1024.0
+    print "Total Bytes Read :", data_size(totalBytesRead)
+    print "Total Bytes Written :", data_size(totalBytesWritten)
+    print "Total Intermediate Data in Bytes:", data_size(totalIntermediateBytes)
 
 
 def runModeCounter_2_3_0():
