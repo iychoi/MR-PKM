@@ -41,9 +41,17 @@ public class KmerStdDeviationBuilderMapper extends Mapper<CompressedSequenceWrit
     
     @Override
     protected void map(CompressedSequenceWritable key, CompressedIntArrayWritable value, Context context) throws IOException, InterruptedException {
-        double diff = value.get().length - this.average;
-        double diff2 = diff * diff;
-        this.diffKmerCounter.increment((long)(diff2 * 1000));
+        if(value.getPositiveEntriesCount() > 0) {
+            double diff = value.getPositiveEntriesCount() - this.average;
+            double diff2 = diff * diff;
+            this.diffKmerCounter.increment((long)(diff2 * 1000));
+        }
+        
+        if(value.getNegativeEntriesCount() > 0) {
+            double diff = value.getNegativeEntriesCount() - this.average;
+            double diff2 = diff * diff;
+            this.diffKmerCounter.increment((long)(diff2 * 1000));
+        }
     }
     
     @Override
