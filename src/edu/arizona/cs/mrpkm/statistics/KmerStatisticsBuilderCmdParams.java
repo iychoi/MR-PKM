@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddeviation;
+package edu.arizona.cs.mrpkm.statistics;
 
 import edu.arizona.cs.mrpkm.cmdparams.PKMCmdParamsBase;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import org.kohsuke.args4j.Option;
  *
  * @author iychoi
  */
-public class KmerStdDeviationBuilderCmdParams extends PKMCmdParamsBase {
+public class KmerStatisticsBuilderCmdParams extends PKMCmdParamsBase {
     
     @Option(name = "-g", aliases = "--group", usage = "specify group size")
     private int groupSize = 20;

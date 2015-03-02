@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddeviation;
+package edu.arizona.cs.mrpkm.statistics;
 
 import edu.arizona.cs.mrpkm.cluster.AMRClusterConfiguration;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
@@ -6,8 +6,6 @@ import edu.arizona.cs.mrpkm.report.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.report.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import edu.arizona.cs.mrpkm.report.Report;
-import edu.arizona.cs.mrpkm.types.statistics.KmerStatistics;
-import edu.arizona.cs.mrpkm.types.statistics.KmerStatisticsGroup;
 import edu.arizona.cs.mrpkm.types.statistics.KmerStdDeviation;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,20 +30,20 @@ import org.apache.hadoop.util.ToolRunner;
  *
  * @author iychoi
  */
-public class KmerStdDeviationBuilder extends Configured implements Tool {
-    private static final Log LOG = LogFactory.getLog(KmerStdDeviationBuilder.class);
+public class KmerStatisticsBuilder extends Configured implements Tool {
+    private static final Log LOG = LogFactory.getLog(KmerStatisticsBuilder.class);
     
     private List<Job> jobs = new ArrayList<Job>();
     
     public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(new Configuration(), new KmerStdDeviationBuilder(), args);
+        int res = ToolRunner.run(new Configuration(), new KmerStatisticsBuilder(), args);
         System.exit(res);
     }
 
     @Override
     public int run(String[] args) throws Exception {
-        KmerStdDeviationBuilderCmdParamsParser parser = new KmerStdDeviationBuilderCmdParamsParser();
-        KmerStdDeviationBuilderCmdParams cmdParams = parser.parse(args);
+        KmerStatisticsBuilderCmdParamsParser parser = new KmerStatisticsBuilderCmdParamsParser();
+        KmerStatisticsBuilderCmdParams cmdParams = parser.parse(args);
         
         int groupSize = cmdParams.getGroupSize();
         int kmerSize = cmdParams.getKmerSize();
@@ -78,17 +76,7 @@ public class KmerStdDeviationBuilder extends Configured implements Tool {
         int result = 1;
         for(int round=0;round<rounds;round++) {
             Path[] roundInputFiles = getRoundInputFiles(round, groupSize, groups);
-            KmerStatisticsGroup statisticsGroup = runKmerStatistics(conf, roundInputFiles);
-            if(statisticsGroup != null) {
-                result = runKmerStdDeviation(conf, statisticsGroup, roundInputFiles, outputPath);
-                if(result != 0) {
-                    LOG.error("runKmerStdDeviation failed");
-                    break;
-                }
-            } else {
-                LOG.error("runKmerStatistics failed");
-                break;
-            }
+            runKmerStatistics(conf, roundInputFiles, outputPath);
         }
         
         // report
@@ -129,11 +117,11 @@ public class KmerStdDeviationBuilder extends Configured implements Tool {
         return arr.toArray(new Path[0]);
     }
     
-    private KmerStatisticsGroup runKmerStatistics(Configuration conf, Path[] inputIndexFiles) throws IOException, InterruptedException, ClassNotFoundException {
+    private int runKmerStatistics(Configuration conf, Path[] inputIndexFiles, String outputPath) throws IOException, InterruptedException, ClassNotFoundException {
         Job job = new Job(conf, "Kmer Statistics");
         conf = job.getConfiguration();
         
-        job.setJarByClass(KmerStdDeviationBuilder.class);
+        job.setJarByClass(KmerStatisticsBuilder.class);
         
         // Mapper
         job.setMapperClass(KmerStatisticsBuilderMapper.class);
@@ -161,95 +149,47 @@ public class KmerStdDeviationBuilder extends Configured implements Tool {
         
         // check results
         if(result) {
-            KmerStatisticsGroup statisticsGroup = new KmerStatisticsGroup();
+            CounterGroup uniqueGroup = job.getCounters().getGroup(KmerStatisticsHelper.getCounterGroupNameUnique());
+            CounterGroup totalGroup = job.getCounters().getGroup(KmerStatisticsHelper.getCounterGroupNameTotal());
+            CounterGroup squareGroup = job.getCounters().getGroup(KmerStatisticsHelper.getCounterGroupNameSquare());
             
-            CounterGroup uniqueGroup = job.getCounters().getGroup(KmerStdDeviationHelper.getCounterGroupNameUnique());
             Iterator<Counter> uniqueIterator = uniqueGroup.iterator();
             while(uniqueIterator.hasNext()) {
-                Counter next = uniqueIterator.next();
+                long count = 0;
+                long length = 0;
+                long square = 0;
+                double real_mean = 0;
+                double stddev = 0;
+                
+                Counter uniqueCounter = uniqueIterator.next();
                 //LOG.info("unique " + next.getName() + " : " + next.getValue());
-                KmerStatistics statistic = new KmerStatistics(next.getName(), next.getValue(), 0);
-                statisticsGroup.add(statistic);
-            }
-            
-            CounterGroup totalGroup = job.getCounters().getGroup(KmerStdDeviationHelper.getCounterGroupNameTotal());
-            Iterator<Counter> totalIterator = totalGroup.iterator();
-            while(totalIterator.hasNext()) {
-                Counter next = totalIterator.next();
-                //LOG.info("total " + next.getName() + " : " + next.getValue());
-                KmerStatistics statistic = statisticsGroup.getStatistics(next.getName());
-                if(statistic != null) {
-                    statistic.setTotalKmers(next.getValue());
-                } else {
-                    statistic = new KmerStatistics(next.getName(), 0, next.getValue());
-                    statisticsGroup.add(statistic);
-                }
-            }
-            
-            return statisticsGroup;
-        }
-        
-        return null;
-    }
-
-    private int runKmerStdDeviation(Configuration conf, KmerStatisticsGroup statisticsGroup, Path[] inputIndexFiles, String outputPath) throws IOException, InterruptedException, ClassNotFoundException {
-        Job job = new Job(conf, "Kmer Standard Deviation");
-        conf = job.getConfiguration();
-        
-        job.setJarByClass(KmerStdDeviationBuilder.class);
-        
-        // Mapper
-        job.setMapperClass(KmerStdDeviationBuilderMapper.class);
-        job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setMapOutputKeyClass(NullWritable.class);
-        job.setMapOutputValueClass(NullWritable.class);
-        
-        // Specify key / value
-        job.setOutputKeyClass(NullWritable.class);
-        job.setOutputValueClass(NullWritable.class);
-        
-        // Inputs
-        Path[] inputDataFiles = KmerIndexHelper.getAllKmerIndexDataFilePaths(conf, inputIndexFiles);
-        SequenceFileInputFormat.addInputPaths(job, FileSystemHelper.makeCommaSeparated(inputDataFiles));
-        
-        // Outputs
-        job.setOutputFormatClass(NullOutputFormat.class);
-        
-        job.setNumReduceTasks(0);
-        
-        // Statistics
-        statisticsGroup.saveTo(conf);
-        
-        // Execute job and return status
-        boolean result = job.waitForCompletion(true);
-        
-        this.jobs.add(job);
-        
-        // check results
-        if(result) {
-            CounterGroup uniqueGroup = job.getCounters().getGroup(KmerStdDeviationHelper.getCounterGroupNameDifferential());
-            Iterator<Counter> uniqueIterator = uniqueGroup.iterator();
-            while(uniqueIterator.hasNext()) {
-                Counter next = uniqueIterator.next();
-                KmerStatistics statistics = statisticsGroup.getStatistics(next.getName());
-
-                double avg = statistics.getTotalKmers() / (double)statistics.getUniqueKmers();
-                double diffsum = next.getValue() / (double)1000;
-                double distribution = diffsum / statistics.getUniqueKmers();
-                double stddeviation = Math.sqrt(distribution);
-                LOG.info("average " + next.getName() + " : " + avg);
-                LOG.info("std-deviation " + next.getName() + " : " + stddeviation);
-                //LOG.info("diff*diff " + next.getName() + " : " + next.getValue());
-
-                Path outputHadoopPath = new Path(outputPath, KmerStdDeviationHelper.makeStdDeviationFileName(next.getName()));
+                Counter totalCounter = totalGroup.findCounter(uniqueCounter.getName());
+                Counter squareCounter = squareGroup.findCounter(uniqueCounter.getName());
+                
+                count = uniqueCounter.getValue();
+                length = totalCounter.getValue();
+                square = squareCounter.getValue();
+                
+                real_mean = (double)length / (double)count;
+                // stddev = sqrt((sum(lengths ^ 2)/count) - (mean ^ 2)
+                double mean = Math.pow(real_mean, 2);
+                double term = (double)square / (double)count;
+                stddev = Math.sqrt(term - mean);
+                
+                LOG.info("distinct k-mers " + uniqueCounter.getName() + " : " + count);
+                LOG.info("total k-mers " + uniqueCounter.getName() + " : " + length);
+                LOG.info("average " + uniqueCounter.getName() + " : " + real_mean);
+                LOG.info("std-deviation " + uniqueCounter.getName() + " : " + stddev);
+                
+                Path outputHadoopPath = new Path(outputPath, KmerStatisticsHelper.makeStdDeviationFileName(uniqueCounter.getName()));
                 FileSystem fs = outputHadoopPath.getFileSystem(conf);
                 
                 KmerStdDeviation stdDeviationWriter = new KmerStdDeviation();
-                stdDeviationWriter.setStdDeviationName(next.getName());
-                stdDeviationWriter.setUniqueKmers(statistics.getUniqueKmers());
-                stdDeviationWriter.setTotalKmers(statistics.getTotalKmers());
-                stdDeviationWriter.setAverage(avg);
-                stdDeviationWriter.setStdDeviation(stddeviation);
+                stdDeviationWriter.setStdDeviationName(uniqueCounter.getName());
+                stdDeviationWriter.setUniqueKmers(count);
+                stdDeviationWriter.setTotalKmers(length);
+                stdDeviationWriter.setAverage(real_mean);
+                stdDeviationWriter.setStdDeviation(stddev);
                 
                 stdDeviationWriter.saveTo(outputHadoopPath, fs);
             }

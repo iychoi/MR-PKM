@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddeviation;
+package edu.arizona.cs.mrpkm.statistics;
 
 import org.apache.hadoop.fs.Path;
 
@@ -6,11 +6,11 @@ import org.apache.hadoop.fs.Path;
  *
  * @author iychoi
  */
-public class KmerStdDeviationHelper {
+public class KmerStatisticsHelper {
     private final static String OUTPUT_NAME_SUFFIX = "stddv";
     private final static String COUNTER_GROUP_NAME_UNIQUE = "KmerStatisticsUnique";
     private final static String COUNTER_GROUP_NAME_TOTAL = "KmerStatisticsTotal";
-    private final static String COUNTER_GROUP_NAME_DIFFERENTIAL = "KmerStatisticsDifferential";
+    private final static String COUNTER_GROUP_NAME_SQUARE = "KmerStatisticsSquare";
     
     public static String makeStdDeviationFileName(Path inputFileName) {
         return makeStdDeviationFileName(inputFileName.getName());
@@ -27,8 +27,8 @@ public class KmerStdDeviationHelper {
     public static String getCounterGroupNameTotal() {
         return COUNTER_GROUP_NAME_TOTAL;
     }
-    
-    public static String getCounterGroupNameDifferential() {
-        return COUNTER_GROUP_NAME_DIFFERENTIAL;
+
+    static String getCounterGroupNameSquare() {
+        return COUNTER_GROUP_NAME_SQUARE;
     }
 }

@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddeviation;
+package edu.arizona.cs.mrpkm.statistics;
 
 import edu.arizona.cs.mrpkm.cmdparams.APKMCmdParamsParser;
 import org.kohsuke.args4j.CmdLineException;
@@ -8,13 +8,13 @@ import org.kohsuke.args4j.CmdLineParser;
  *
  * @author iychoi
  */
-public class KmerStdDeviationBuilderCmdParamsParser extends APKMCmdParamsParser<KmerStdDeviationBuilderCmdParams> {
-    public KmerStdDeviationBuilderCmdParamsParser() {
+public class KmerStatisticsBuilderCmdParamsParser extends APKMCmdParamsParser<KmerStatisticsBuilderCmdParams> {
+    public KmerStatisticsBuilderCmdParamsParser() {
     }
     
     @Override
-    public KmerStdDeviationBuilderCmdParams parse(String[] args) {
-        KmerStdDeviationBuilderCmdParams cmdargs = new KmerStdDeviationBuilderCmdParams();
+    public KmerStatisticsBuilderCmdParams parse(String[] args) {
+        KmerStatisticsBuilderCmdParams cmdargs = new KmerStatisticsBuilderCmdParams();
         CmdLineParser parser = new CmdLineParser(cmdargs);
         CmdLineException parseException = null;
         try {

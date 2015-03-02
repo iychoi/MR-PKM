@@ -4,7 +4,7 @@ import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmeridx.AKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.FilteredKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
-import edu.arizona.cs.mrpkm.stddeviation.KmerStdDeviationHelper;
+import edu.arizona.cs.mrpkm.statistics.KmerStatisticsHelper;
 import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
@@ -72,7 +72,7 @@ public class KmerLinearMatcher {
             
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
             String fastaFilename = KmerIndexHelper.getFastaFileName(indice[i][0]);
-            String stddevFilename = KmerStdDeviationHelper.makeStdDeviationFileName(fastaFilename);
+            String stddevFilename = KmerStatisticsHelper.makeStdDeviationFileName(fastaFilename);
             Path stdDeviationPath = new Path(filterPath, stddevFilename);
             
             KmerStdDeviation stddevReader = new KmerStdDeviation();

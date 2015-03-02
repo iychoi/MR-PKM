@@ -1,4 +1,4 @@
-package edu.arizona.cs.mrpkm.stddeviation;
+package edu.arizona.cs.mrpkm.statistics;
 
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
 import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
@@ -21,26 +21,32 @@ public class KmerStatisticsBuilderMapper extends Mapper<CompressedSequenceWritab
     
     private Counter uniqueKmerCounter;
     private Counter totalKmerCounter;
+    private Counter squareKmerCounter;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         FileSplit inputSplit = (FileSplit)context.getInputSplit();
         String fastaFileName = KmerIndexHelper.getFastaFileName(inputSplit.getPath().getParent());
         
-        this.uniqueKmerCounter = context.getCounter(KmerStdDeviationHelper.getCounterGroupNameUnique(), fastaFileName);
-        this.totalKmerCounter = context.getCounter(KmerStdDeviationHelper.getCounterGroupNameTotal(), fastaFileName);
+        this.uniqueKmerCounter = context.getCounter(KmerStatisticsHelper.getCounterGroupNameUnique(), fastaFileName);
+        this.totalKmerCounter = context.getCounter(KmerStatisticsHelper.getCounterGroupNameTotal(), fastaFileName);
+        this.squareKmerCounter = context.getCounter(KmerStatisticsHelper.getCounterGroupNameSquare(), fastaFileName);
     }
     
     @Override
     protected void map(CompressedSequenceWritable key, CompressedIntArrayWritable value, Context context) throws IOException, InterruptedException {
-        if(value.getPositiveEntriesCount() > 0) {
+        int pos = value.getPositiveEntriesCount();
+        if(pos > 0) {
             this.uniqueKmerCounter.increment(1);
-            this.totalKmerCounter.increment(value.getPositiveEntriesCount());
+            this.totalKmerCounter.increment(pos);
+            this.squareKmerCounter.increment((long) Math.pow(pos, 2));
         }
         
-        if(value.getNegativeEntriesCount() > 0) {
+        int neg = value.getNegativeEntriesCount();
+        if(neg > 0) {
             this.uniqueKmerCounter.increment(1);
-            this.totalKmerCounter.increment(value.getNegativeEntriesCount());
+            this.totalKmerCounter.increment(neg);
+            this.squareKmerCounter.increment((long) Math.pow(neg, 2));
         }
     }
     
