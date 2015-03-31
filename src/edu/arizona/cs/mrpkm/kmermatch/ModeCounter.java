@@ -55,6 +55,7 @@ public class ModeCounter extends Configured implements Tool {
         System.out.println(cmdParams.toString());
         
         int nodeSize = cmdParams.getNodes();
+        List<Integer> givenRounds = cmdParams.getRounds();
         String inputPath = cmdParams.getInputPath();
         String outputPath = cmdParams.getOutputPath();
         AMRClusterConfiguration clusterConfig = cmdParams.getClusterConfig();
@@ -87,6 +88,13 @@ public class ModeCounter extends Configured implements Tool {
         List<Job> jobs = new ArrayList<Job>();
         
         for(int round=0;round<rounds;round++) {
+            if(!givenRounds.isEmpty()) {
+                if(!givenRounds.contains(round)) {
+                    // skip
+                    continue;
+                }
+            }
+            
             String roundOutputPath = outputPath + "_round" + round;
             
             Job job = new Job(conf, "Mode Counter Round " + round + " of " + rounds);

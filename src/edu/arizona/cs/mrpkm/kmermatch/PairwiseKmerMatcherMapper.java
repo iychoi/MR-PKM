@@ -10,6 +10,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapreduce.CounterGroup;
 import org.apache.hadoop.mapreduce.Mapper;
 
 /**
@@ -22,6 +24,7 @@ public class PairwiseKmerMatcherMapper extends Mapper<CompressedSequenceWritable
     
     PairwiseKmerMatcherConfig matcherConfig;
     Hashtable<String, Integer> idCacheTable;
+    private Counter reportCounter;
     
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -29,6 +32,8 @@ public class PairwiseKmerMatcherMapper extends Mapper<CompressedSequenceWritable
         this.matcherConfig.loadFrom(context.getConfiguration());
         
         this.idCacheTable = new Hashtable<String, Integer>();
+        
+        this.reportCounter = context.getCounter("PairwiseKmerMatcher", "report");
     }
     
     @Override
@@ -80,6 +85,7 @@ public class PairwiseKmerMatcherMapper extends Mapper<CompressedSequenceWritable
                     sb.append(",");
                 }
             }
+            this.reportCounter.increment(1);
         }
         
         context.write(new Text(key.getSequence()), new Text(sb.toString()));
