@@ -23,25 +23,25 @@ public class KmerStdDeviationGroup {
     private final static String JSON_CONF_RECORD_NUM = "itemcounts";
     private final static String JSON_CONF_RECORDS = "items";
     
-    private Hashtable<String, KmerStdDeviation> recordCache;
-    private List<KmerStdDeviation> recordList;
+    private Hashtable<String, KmerStatistics> recordCache;
+    private List<KmerStatistics> recordList;
     
     public KmerStdDeviationGroup() {
-        this.recordCache = new Hashtable<String, KmerStdDeviation>();
-        this.recordList = new ArrayList<KmerStdDeviation>();
+        this.recordCache = new Hashtable<String, KmerStatistics>();
+        this.recordList = new ArrayList<KmerStatistics>();
     }
     
-    public void add(KmerStdDeviation stddeviation) {
-        this.recordCache.put(stddeviation.getStdDeviationName(), stddeviation);
+    public void add(KmerStatistics stddeviation) {
+        this.recordCache.put(stddeviation.getStatisticsName(), stddeviation);
         this.recordList.add(stddeviation);
     }
     
-    public KmerStdDeviation[] getAllRecords() {
-        return this.recordList.toArray(new KmerStdDeviation[0]);
+    public KmerStatistics[] getAllRecords() {
+        return this.recordList.toArray(new KmerStatistics[0]);
     }
     
-    public KmerStdDeviation getStdDeviation(String stddeviation) throws IOException {
-        KmerStdDeviation std = this.recordCache.get(stddeviation);
+    public KmerStatistics getStdDeviation(String stddeviation) throws IOException {
+        KmerStatistics std = this.recordCache.get(stddeviation);
         if(std == null) {
             throw new IOException("could not find stddeviation " + stddeviation);
         }
@@ -62,11 +62,11 @@ public class KmerStdDeviationGroup {
         JSONArray outputsArray = jsonobj.getJSONArray(JSON_CONF_RECORDS);
         for(int i=0;i<records;i++) {
             JSONObject itemjsonobj = (JSONObject) outputsArray.get(i);
-            KmerStdDeviation record = new KmerStdDeviation();
+            KmerStatistics record = new KmerStatistics();
             record.loadFromJsonObject(itemjsonobj);
             
             this.recordList.add(record);
-            this.recordCache.put(record.getStdDeviationName(), record);
+            this.recordCache.put(record.getStatisticsName(), record);
         }
     }
     
@@ -78,7 +78,7 @@ public class KmerStdDeviationGroup {
         // set array
         JSONArray outputsArray = new JSONArray();
         for(int i=0;i<this.recordList.size();i++) {
-            KmerStdDeviation record = this.recordList.get(i);
+            KmerStatistics record = this.recordList.get(i);
             outputsArray.put(record.createJsonObject());
         }
         jsonobj.put(JSON_CONF_RECORDS, outputsArray);

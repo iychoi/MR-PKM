@@ -127,20 +127,28 @@ def runKmerIndexChunkInfoBuilder_2_3_0():
     removeOutDir()
     subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar KmerIndexChunkInfoBuilder -k 20 test/sample/kidx test/sample/chunkinfo", shell=True)
 
-# Kmer Index Standard Deviation Builder
-def runKmerStandardDeviation():
+# Kmer Index Statistics
+def runKmerStatistics():
     if isMR2():
-        runKmerStandardDeviation_2_3_0()
+        runKmerStatistics_2_3_0()
     else:
-        runKmerStandardDeviation_0_20_2()
+        runKmerStatistics_0_20_2()
 
-def runKmerStandardDeviation_0_20_2():
+def runKmerStatistics_0_20_2():
     removeOutDir()
-    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStdDeviationBuilder -k 20 test/sample/kidx test/sample/stddv", shell=True)
+    subprocess.call("cd ..;time java -cp dist/lib/*:dist/MR-PKM.jar edu.arizona.cs.mrpkm.MRPKM KmerStatisticsBuilder -k 20 test/sample/kidx test/sample/statistics", shell=True)
 
-def runKmerStandardDeviation_2_3_0():
+def runKmerStatistics_2_3_0():
     removeOutDir()
-    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar KmerStdDeviationBuilder -k 20 test/sample/kidx test/sample/stddv", shell=True)
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar KmerStatisticsBuilder -k 20 test/sample/kidx test/sample/statistics", shell=True)
+
+# Pairwise Kmer Frequency Comparator
+def runKmerFrequencyComparison():
+    runKmerFrequencyComparison_2_3_0()
+
+def runKmerFrequencyComparison_2_3_0():
+    removeOutDir();
+    subprocess.call("cd ..;time hadoop jar store/MR-PKM-Dist.jar PairwiseKmerFrequencyComparator -k 20 -s test/sample/histogram -u test/sample/chunkinfo -f test/sample/statistics test/sample/kidx test/sample/kfc", shell=True)
 
 # Pairwise Kmer Matcher
 def runPairwiseKmerMatcher():
@@ -165,7 +173,8 @@ def main():
         print "command : ./test.py ridx"
         print "command : ./test.py kidx"
         print "command : ./test.py kidxci"
-        print "command : ./test.py stddv"
+        print "command : ./test.py stat"
+        print "command : ./test.py kfc"
         print "command : ./test.py matcher"
         print "command : ./test.py mode"
     else:
@@ -181,8 +190,10 @@ def main():
             runKmerIndexBuilder()
         elif command == "kidxci":
             runKmerIndexChunkInfoBuilder()
-        elif command == "stddv":
-            runKmerStandardDeviation()
+        elif command == "stat":
+            runKmerStatistics()
+        elif command == "kfc":
+            runKmerFrequencyComparison()
         elif command == "matcher":
             runPairwiseKmerMatcher()
         elif command == "mode":

@@ -24,7 +24,7 @@ public class MRClusterConfiguration_atmosmall1 extends AMRClusterConfiguration {
     public int getPairwiseKmerModeCounterReducerNumber(int nodes) {
         return nodes;
     }
-
+    
     @Override
     public int getMapReduceChildMemSize() {
         return CHILD_MEM_SIZE;

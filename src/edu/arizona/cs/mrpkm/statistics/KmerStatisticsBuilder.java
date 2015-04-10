@@ -6,7 +6,7 @@ import edu.arizona.cs.mrpkm.report.notification.EmailNotification;
 import edu.arizona.cs.mrpkm.report.notification.EmailNotificationException;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import edu.arizona.cs.mrpkm.report.Report;
-import edu.arizona.cs.mrpkm.types.statistics.KmerStdDeviation;
+import edu.arizona.cs.mrpkm.types.statistics.KmerStatistics;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -181,11 +181,11 @@ public class KmerStatisticsBuilder extends Configured implements Tool {
                 LOG.info("average " + uniqueCounter.getName() + " : " + real_mean);
                 LOG.info("std-deviation " + uniqueCounter.getName() + " : " + stddev);
                 
-                Path outputHadoopPath = new Path(outputPath, KmerStatisticsHelper.makeStdDeviationFileName(uniqueCounter.getName()));
+                Path outputHadoopPath = new Path(outputPath, KmerStatisticsHelper.makeStatisticsFileName(uniqueCounter.getName()));
                 FileSystem fs = outputHadoopPath.getFileSystem(conf);
                 
-                KmerStdDeviation stdDeviationWriter = new KmerStdDeviation();
-                stdDeviationWriter.setStdDeviationName(uniqueCounter.getName());
+                KmerStatistics stdDeviationWriter = new KmerStatistics();
+                stdDeviationWriter.setStatisticsName(uniqueCounter.getName());
                 stdDeviationWriter.setUniqueKmers(count);
                 stdDeviationWriter.setTotalKmers(length);
                 stdDeviationWriter.setAverage(real_mean);

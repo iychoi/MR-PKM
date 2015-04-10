@@ -13,9 +13,9 @@ import org.json.JSONObject;
  *
  * @author iychoi
  */
-public class KmerStdDeviation {
+public class KmerStatistics {
     
-    private final static String CONF_STDDEVIATION_JSON = "edu.arizona.cs.mrpkm.types.statistics.kmer_stddeviation.json";
+    private final static String CONF_STATISTICS_JSON = "edu.arizona.cs.mrpkm.types.statistics.kmer_statistics.json";
     
     private final static String JSON_CONF_NAME = "name";
     private final static String JSON_CONF_UNIQUE_KMERS = "unique";
@@ -23,25 +23,25 @@ public class KmerStdDeviation {
     private final static String JSON_CONF_AVERAGE = "avg";
     private final static String JSON_CONF_STDDEVIATION = "stddev";
 
-    private String stddeviationName;
+    private String statisticsName;
     private long uniqueKmers;
     private long totalKmers;
     private double avgCounts;
     private double stdDeviation;
     
-    public KmerStdDeviation() {
+    public KmerStatistics() {
     }
     
-    public KmerStdDeviation(String stddeviationName) {
-        this.stddeviationName = stddeviationName;
+    public KmerStatistics(String statisticsName) {
+        this.statisticsName = statisticsName;
     }
     
-    public void setStdDeviationName(String stddeviationName) {
-        this.stddeviationName = stddeviationName;
+    public void setStatisticsName(String statisticsName) {
+        this.statisticsName = statisticsName;
     }
     
-    public String getStdDeviationName() {
-        return this.stddeviationName;
+    public String getStatisticsName() {
+        return this.statisticsName;
     }
     
     public long getUniqueKmers() {
@@ -82,7 +82,7 @@ public class KmerStdDeviation {
     }
     
     public void loadFromJsonObject(JSONObject jsonobj) {
-        this.stddeviationName = jsonobj.getString(JSON_CONF_NAME);
+        this.statisticsName = jsonobj.getString(JSON_CONF_NAME);
         this.uniqueKmers = jsonobj.getLong(JSON_CONF_UNIQUE_KMERS);
         this.totalKmers = jsonobj.getLong(JSON_CONF_TOTAL_KMERS);
         this.avgCounts = jsonobj.getDouble(JSON_CONF_AVERAGE);
@@ -96,7 +96,7 @@ public class KmerStdDeviation {
     public JSONObject createJsonObject() {
         JSONObject jsonobj = new JSONObject();
         
-        jsonobj.put(JSON_CONF_NAME, this.stddeviationName);
+        jsonobj.put(JSON_CONF_NAME, this.statisticsName);
         jsonobj.put(JSON_CONF_UNIQUE_KMERS, this.uniqueKmers);
         jsonobj.put(JSON_CONF_TOTAL_KMERS, this.totalKmers);
         jsonobj.put(JSON_CONF_AVERAGE, this.avgCounts);
@@ -106,7 +106,7 @@ public class KmerStdDeviation {
     }
     
     public void saveTo(Configuration conf) {
-        conf.set(CONF_STDDEVIATION_JSON, createJson());
+        conf.set(CONF_STATISTICS_JSON, createJson());
     }
     
     public void saveTo(Path file, FileSystem fs) throws IOException {
@@ -120,7 +120,7 @@ public class KmerStdDeviation {
     }
     
     public void loadFrom(Configuration conf) throws IOException {
-        String json = conf.get(CONF_STDDEVIATION_JSON);
+        String json = conf.get(CONF_STATISTICS_JSON);
         if(json == null) {
             throw new IOException("could not load configuration string");
         }

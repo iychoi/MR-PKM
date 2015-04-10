@@ -24,7 +24,7 @@ public class MRClusterConfiguration_uits extends AMRClusterConfiguration {
     public int getPairwiseKmerModeCounterReducerNumber(int nodes) {
         return nodes * (CPU_CORE_PER_NODE / 4);
     }
-
+    
     @Override
     public int getMapReduceChildMemSize() {
         return CHILD_MEM_SIZE;

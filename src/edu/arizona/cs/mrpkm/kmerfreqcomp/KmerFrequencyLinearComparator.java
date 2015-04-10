@@ -1,15 +1,14 @@
-package edu.arizona.cs.mrpkm.kmermatch;
+package edu.arizona.cs.mrpkm.kmerfreqcomp;
 
+import edu.arizona.cs.mrpkm.kmermatch.*;
 import edu.arizona.cs.mrpkm.types.kmerrangepartition.KmerRangePartition;
 import edu.arizona.cs.mrpkm.kmeridx.AKmerIndexReader;
-import edu.arizona.cs.mrpkm.kmeridx.FilteredKmerIndexReader;
 import edu.arizona.cs.mrpkm.kmeridx.KmerIndexHelper;
-import edu.arizona.cs.mrpkm.statistics.KmerStatisticsHelper;
 import edu.arizona.cs.mrpkm.types.hadoop.CompressedIntArrayWritable;
 import edu.arizona.cs.mrpkm.types.hadoop.CompressedSequenceWritable;
 import edu.arizona.cs.mrpkm.helpers.FileSystemHelper;
 import edu.arizona.cs.mrpkm.helpers.SequenceHelper;
-import edu.arizona.cs.mrpkm.types.statistics.KmerStatistics;
+import edu.arizona.cs.mrpkm.kmeridx.UnfilteredKmerIndexReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -26,11 +25,12 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  *
  * @author iychoi
  */
-public class KmerLinearMatcher {
+public class KmerFrequencyLinearComparator {
     
-    private static final Log LOG = LogFactory.getLog(KmerLinearMatcher.class);
+    private static final Log LOG = LogFactory.getLog(KmerFrequencyLinearComparator.class);
     
     private Path[] inputIndexPaths;
+    private String[][] groupedIndexPaths;
     private String kmerIndexChunkInfoPath;
     private KmerRangePartition slice;
     private Configuration conf;
@@ -47,15 +47,15 @@ public class KmerLinearMatcher {
     private List<Integer> stepMinKeys;
     private boolean stepStarted;
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, TaskAttemptContext context) throws IOException {
-        initialize(inputIndexPaths, slice, filterPath, kmerIndexChunkInfoPath, context, context.getConfiguration());
+    public KmerFrequencyLinearComparator(Path[] inputIndexPaths, KmerRangePartition slice, String kmerIndexChunkInfoPath, TaskAttemptContext context) throws IOException {
+        initialize(inputIndexPaths, slice, kmerIndexChunkInfoPath, context, context.getConfiguration());
     }
     
-    public KmerLinearMatcher(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
-        initialize(inputIndexPaths, slice, filterPath, kmerIndexChunkInfoPath, null, conf);
+    public KmerFrequencyLinearComparator(Path[] inputIndexPaths, KmerRangePartition slice, String kmerIndexChunkInfoPath, Configuration conf) throws IOException {
+        initialize(inputIndexPaths, slice, kmerIndexChunkInfoPath, null, conf);
     }
     
-    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String filterPath, String kmerIndexChunkInfoPath, TaskAttemptContext context, Configuration conf) throws IOException {
+    private void initialize(Path[] inputIndexPaths, KmerRangePartition slice, String kmerIndexChunkInfoPath, TaskAttemptContext context, Configuration conf) throws IOException {
         this.inputIndexPaths = inputIndexPaths;
         this.kmerIndexChunkInfoPath = kmerIndexChunkInfoPath;
         this.slice = slice;
@@ -63,6 +63,7 @@ public class KmerLinearMatcher {
         this.context = context;
         
         Path[][] indice = KmerIndexHelper.groupKmerIndice(this.inputIndexPaths);
+        this.groupedIndexPaths = new String[indice.length][];
         this.readers = new AKmerIndexReader[indice.length];
         LOG.info("# of KmerIndexReader : " + indice.length);
         for(int i=0;i<indice.length;i++) {
@@ -71,16 +72,9 @@ public class KmerLinearMatcher {
             }
             
             FileSystem fs = indice[i][0].getFileSystem(this.conf);
-            String fastaFilename = KmerIndexHelper.getFastaFileName(indice[i][0]);
-            String stddevFilename = KmerStatisticsHelper.makeStatisticsFileName(fastaFilename);
-            Path stdDeviationPath = new Path(filterPath, stddevFilename);
             
-            KmerStatistics stddevReader = new KmerStatistics();
-            stddevReader.loadFrom(stdDeviationPath, fs);
-            double avg = stddevReader.getAverage();
-            double stddev = stddevReader.getStdDeviation();
-            double factor = 2;
-            this.readers[i] = new FilteredKmerIndexReader(fs, FileSystemHelper.makeStringFromPath(indice[i]), this.kmerIndexChunkInfoPath, this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.context, this.conf, avg, stddev, factor);
+            this.groupedIndexPaths[i] = FileSystemHelper.makeStringFromPath(indice[i]);
+            this.readers[i] = new UnfilteredKmerIndexReader(fs, this.groupedIndexPaths[i], this.kmerIndexChunkInfoPath, this.slice.getPartitionBeginKmer(), this.slice.getPartitionEndKmer(), this.context, this.conf);
         }
         
         this.sliceSize = slice.getPartitionSize();
@@ -91,7 +85,7 @@ public class KmerLinearMatcher {
         this.stepVals = new CompressedIntArrayWritable[this.readers.length];
         this.stepStarted = false;
         
-        LOG.info("Matcher is initialized");
+        LOG.info("Kmer Frequency Comparator is initialized");
         LOG.info("> Range " + this.slice.getPartitionBeginKmer() + " ~ " + this.slice.getPartitionEndKmer());
         LOG.info("> Num of Slice Entries : " + this.slice.getPartitionSize().longValue());
     }
@@ -110,24 +104,28 @@ public class KmerLinearMatcher {
     }
     */
     
-    public KmerMatchResult stepNext() throws IOException {
+    public KmerFrequencyComparisonResult stepNext() throws IOException {
         List<Integer> minKeyIndice = getNextMinKeys();
         if(minKeyIndice.size() > 0) {
             CompressedSequenceWritable minKey = this.stepKeys[minKeyIndice.get(0)];
             this.progressKey = minKey;
             
-            // check matching
-            CompressedIntArrayWritable[] minVals = new CompressedIntArrayWritable[minKeyIndice.size()];
-            String[][] minIndexPaths = new String[minKeyIndice.size()][];
-
             int valIdx = 0;
-            for (int idx : minKeyIndice) {
-                minVals[valIdx] = this.stepVals[idx];
-                minIndexPaths[valIdx] = this.readers[idx].getIndexPaths();
-                valIdx++;
+            int[] freqPosArray = new int[this.readers.length];
+            int[] freqNegArray = new int[this.readers.length];
+            for(int i=0;i<this.readers.length;i++) {
+                freqPosArray[i] = 0;
+                freqNegArray[i] = 0;
             }
-
-            return new KmerMatchResult(minKey, minVals, minIndexPaths);
+            
+            for (int idx : minKeyIndice) {
+                freqPosArray[idx] = this.stepVals[idx].getPositiveEntriesCount();
+                freqNegArray[idx] = this.stepVals[idx].getNegativeEntriesCount();
+            }
+            
+            CompressedIntArrayWritable freqPos = new CompressedIntArrayWritable(freqPosArray);
+            CompressedIntArrayWritable freqNeg = new CompressedIntArrayWritable(freqNegArray);
+            return new KmerFrequencyComparisonResult(minKey, freqPos, freqNeg, this.groupedIndexPaths);
         }
         
         // step failed and no match

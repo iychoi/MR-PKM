@@ -22,7 +22,7 @@ public class MRClusterConfiguration_default extends AMRClusterConfiguration {
     public int getPairwiseKmerModeCounterReducerNumber(int nodes) {
         return nodes;
     }
-
+    
     @Override
     public int getMapReduceChildMemSize() {
         return 0;
