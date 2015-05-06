@@ -72,7 +72,7 @@ public class KmerHistogram {
     public void takeSample(String sequence) {
         for (int i = 0; i < (sequence.length() - this.kmerSize + 1); i++) {
             String kmer = sequence.substring(i, i + this.kmerSize);
-            String rkmer = SequenceHelper.getReverseCompliment(kmer);
+            String rkmer = SequenceHelper.getReverseComplement(kmer);
             
             kmer = kmer.substring(0, SAMPLING_CHARS);
             rkmer = rkmer.substring(0, SAMPLING_CHARS);

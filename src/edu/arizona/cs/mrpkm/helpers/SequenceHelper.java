@@ -8,21 +8,21 @@ import java.math.BigInteger;
  * @author iychoi
  */
 public class SequenceHelper {
-    private static char[] ComplimentCharLUT = {'T', ' ', 'G', ' ', ' ', ' ', 'C', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    private static char[] ComplementCharLUT = {'T', ' ', 'G', ' ', ' ', ' ', 'C', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', 'A', ' ', ' ', ' ', ' ', ' ', ' '};
     
     private static char[] convBitToCharLUT = {'A', 'C', 'G', 'T'};
     private static byte[] convCharToBitLUT = {0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     
-    public static char getCompliment(char ch) {
-        return ComplimentCharLUT[((byte)ch) - 'A'];
+    public static char getComplement(char ch) {
+        return ComplementCharLUT[((byte)ch) - 'A'];
     }
     
-    public static String getCompliment(String sequence) {
+    public static String getComplement(String sequence) {
         StringBuilder sb = new StringBuilder();
         for(int i=0;i<sequence.length();i++) {
-            sb.append(getCompliment(sequence.charAt(i)));
+            sb.append(getComplement(sequence.charAt(i)));
         }
         return sb.toString();
     }
@@ -35,10 +35,10 @@ public class SequenceHelper {
         return sb.toString();
     }
     
-    public static String getReverseCompliment(String sequence) {
+    public static String getReverseComplement(String sequence) {
         StringBuilder sb = new StringBuilder();
         for(int i=0;i<sequence.length();i++) {
-            sb.append(getCompliment(sequence.charAt(sequence.length() - i - 1)));
+            sb.append(getComplement(sequence.charAt(sequence.length() - i - 1)));
         }
         return sb.toString();
     }
