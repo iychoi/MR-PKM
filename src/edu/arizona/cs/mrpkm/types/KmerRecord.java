@@ -27,7 +27,7 @@ public class KmerRecord {
         return this.readID >= 0;
     }
     
-    public boolean isReverseCompliment() {
+    public boolean isReverseComplement() {
         return this.readID < 0;
     }
     
@@ -35,13 +35,13 @@ public class KmerRecord {
         if(this.isForward()) {
             return this;
         } else {
-            String another = SequenceHelper.getReverseCompliment(this.sequence);
+            String another = SequenceHelper.getReverseComplement(this.sequence);
             return new KmerRecord(another, -1 * this.readID);
         }
     }
     
     public KmerRecord getSmallerForm() {
-        String another = SequenceHelper.getReverseCompliment(this.sequence);
+        String another = SequenceHelper.getReverseComplement(this.sequence);
         if(another.compareTo(this.sequence) < 0) {
             return new KmerRecord(another, -1 * this.readID);
         } else {
